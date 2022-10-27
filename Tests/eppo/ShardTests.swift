@@ -2,7 +2,7 @@ import XCTest
 
 @testable import eppo_flagging
 
-final class eppo_ios_sdkTests: XCTestCase {
+final class shardTests: XCTestCase {
     func testIsShardInRangePositiveCase() throws {
         let range = ShardRange(start: 10, end: 20);
         XCTAssertTrue(Utils.isShardInRange(shard: 15, range: range));
