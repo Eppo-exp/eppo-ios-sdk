@@ -11,17 +11,16 @@ class EppoMockHttpClient: EppoHttpClient {
 
 final class eppoClientTests: XCTestCase {
     private var eppoHttpClient: EppoHttpClient = EppoMockHttpClient();
-    private var eppoClient: EppoClient;
+    private var eppoClient: EppoClient?;
     
-    override public init() {
-        super.init();
-        
-        eppoClient = EppoClient(
-            "mock-api-key",
-            "http://localhost:4001"
-        );
-    }
     override func setUp() {
         super.setUp();
+
+        try? eppoClient = EppoClient(
+            "mock-api-key",
+            "http://localhost:4001",
+            nil,
+            nil
+        );
     }
 }
