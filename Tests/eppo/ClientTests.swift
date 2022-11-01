@@ -31,12 +31,11 @@ struct AssignmentTestCase : Decodable {
     public var subjects: [String]?;
     public var expectedAssignments: [String?];
 
-    func assignments(_ client: EppoClient) throws -> [String] {
+    func assignments(_ client: EppoClient) throws -> [String?] {
 //        if self.subjectsWithAttributes != nil {
 //        }
 
         if self.subjects != nil {
-
             return try self.subjects!.map({ try client.getAssignment($0, self.experiment); })
         }
 

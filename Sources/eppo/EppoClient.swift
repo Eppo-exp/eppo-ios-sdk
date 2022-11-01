@@ -6,6 +6,7 @@ enum EppoClientError: Error {
     case hostInvalid
     case subjectKeyRequired
     case flagKeyRequired
+    case featureFlagDisabled
 }
 
 class EppoClient {
@@ -33,14 +34,14 @@ class EppoClient {
 
     }
 
-    public func getAssignment(_ subjectKey: String, _ flagKey: String) throws -> String {
+    public func getAssignment(_ subjectKey: String, _ flagKey: String) throws -> String? {
         return try getAssignment(subjectKey, flagKey, [:]);
     }
 
     public func getAssignment(
         _ subjectKey: String,
         _ flagKey: String,
-        _ subjectAttributes: SubjectAttributes) throws -> String
+        _ subjectAttributes: SubjectAttributes) throws -> String?
     {
         try self.validate();
 
@@ -48,8 +49,16 @@ class EppoClient {
         if flagKey.count == 0 { throw EppoClientError.flagKeyRequired }
 
         let flagConfig = try requestFlagConfiguration(flagKey, self.httpClient);
+        if let subjectVariationOverride = self.getSubjectVariationOverrides(subjectKey, flagConfig) {
+            return subjectVariationOverride;
+        }
 
-        return ""
+        if !flagConfig.enabled {
+            //TODO: Log something here?
+            return nil;
+        }
+
+        return nil;
     }
 
     public func validate() throws {
@@ -60,5 +69,14 @@ class EppoClient {
         if(self.host.count == 0) {
             throw EppoClientError.hostInvalid;
         }
+    }
+
+    private func getSubjectVariationOverrides(_ subjectKey: String, _ flagConfig: FlagConfig) -> String? {
+        let subjectHash = Utils.getMD5Hex(input: subjectKey);
+        if let occurence = flagConfig.overrides[subjectHash] {
+            return occurence;
+        }
+
+        return nil;
     }
 }
