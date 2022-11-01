@@ -21,10 +21,15 @@ let package = Package(
         .target(
             name: "eppo-flagging",
             dependencies: [],
-            path: "./Sources/eppo"),
+            path: "./Sources/eppo"
+        ),
         .testTarget(
             name: "eppo-flagging-tests",
             dependencies: ["eppo-flagging"],
-            path: "./Tests/eppo"),
+            path: "./Tests/eppo",
+            resources: [
+                .copy("Resources")
+            ]
+        ),
     ]
 )

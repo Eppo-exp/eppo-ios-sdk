@@ -9,6 +9,18 @@ class EppoMockHttpClient: EppoHttpClient {
     public func post() throws {}
 }
 
+struct subjectWithAttributes : Decodable {
+    var subjectKey: String;
+    var subjectAttributes: SubjectAttributes;
+}
+
+struct AssignmentTestCase : Decodable {
+    public var experiment: String = "";
+    var subjectsWithAttributes: [subjectWithAttributes]?
+    public var subjects: [String]?;
+    public var expectedAssignments: [String?]?;
+}
+
 final class eppoClientTests: XCTestCase {
     private var eppoHttpClient: EppoHttpClient = EppoMockHttpClient();
     private var eppoClient: EppoClient?;
@@ -22,5 +34,20 @@ final class eppoClientTests: XCTestCase {
             nil,
             nil
         );
+    }
+
+    func testAssignments() throws {
+        let testFiles = Bundle.module.paths(
+            forResourcesOfType: ".json",
+            inDirectory: "Resources/test-data/assignment-v2"
+        );
+
+        for testFile in testFiles {
+            let caseString = try String(contentsOfFile: testFile);
+            let caseData = caseString.data(using: .utf8)!;
+            let AssignmentTestCase = try JSONDecoder().decode(AssignmentTestCase.self, from: caseData);
+        }
+
+        XCTAssertGreaterThan(testFiles.count, 0);
     }
 }
