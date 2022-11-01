@@ -5,6 +5,8 @@ typealias AssignmentLogger = () -> ();
 enum EppoClientError: Error {
     case apiKeyInvalid
     case hostInvalid
+    case subjectKeyRequired
+    case flagKeyRequired
 }
 
 struct RefreshCallback {
@@ -31,15 +33,7 @@ class EppoClient {
         _ assignmentLogger: AssignmentLogger?,
         _ refreshCallback: RefreshCallback?,
         httpClient: EppoHttpClient = NetworkEppoHttpClient()
-    ) throws {
-        if(self.apiKey.count == 0) {
-            throw EppoClientError.apiKeyInvalid;
-        }
-
-        if(self.host.count == 0) {
-            throw EppoClientError.hostInvalid;
-        }
-
+    ) {
         self.apiKey = apiKey;
         self.host = host;
         self.assignmentLogger = assignmentLogger;
@@ -47,8 +41,34 @@ class EppoClient {
         self.refreshConfiguration(refreshCallback);
     }
 
-    public func refreshConfiguration(_ refreshCallback: RefreshCallback?)
-    {
+    public func refreshConfiguration(_ refreshCallback: RefreshCallback?) {
 
+    }
+
+    public func getAssignment(_ subjectKey: String, _ flagKey: String) throws -> String {
+        return try getAssignment(subjectKey, flagKey, [:]);
+    }
+
+    public func getAssignment(
+        _ subjectKey: String,
+        _ flagKey: String,
+        _ subjectAttributes: SubjectAttributes) throws -> String
+    {
+        try self.validate();
+
+        if subjectKey.count == 0 { throw EppoClientError.subjectKeyRequired }
+        if flagKey.count == 0 { throw EppoClientError.flagKeyRequired }
+
+        return ""
+    }
+
+    public func validate() throws {
+        if(self.apiKey.count == 0) {
+            throw EppoClientError.apiKeyInvalid;
+        }
+
+        if(self.host.count == 0) {
+            throw EppoClientError.hostInvalid;
+        }
     }
 }
