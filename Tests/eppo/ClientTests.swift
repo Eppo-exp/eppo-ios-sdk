@@ -1,11 +1,22 @@
 import XCTest
 
+import Foundation
+
 @testable import eppo_flagging
 
 class EppoMockHttpClient: EppoHttpClient {
     public init() {}
 
-    public func get() throws {}
+    public func get(_ url: URL) throws -> (Data, URLResponse) {
+        let fileURL = Bundle.module.url(
+            forResource: "Resources/test-data/rac-experiments-v2.json",
+            withExtension: ""
+        );
+
+        let stringData = try String(contentsOfFile: fileURL!.path);
+        return (stringData.data(using: .utf8)!, URLResponse());
+    }
+
     public func post() throws {}
 }
 
@@ -25,6 +36,7 @@ struct AssignmentTestCase : Decodable {
 //        }
 
         if self.subjects != nil {
+
             return try self.subjects!.map({ try client.getAssignment($0, self.experiment); })
         }
 
@@ -33,11 +45,11 @@ struct AssignmentTestCase : Decodable {
 }
 
 final class eppoClientTests: XCTestCase {
-    private var eppoHttpClient: EppoHttpClient = EppoMockHttpClient();
     private var eppoClient: EppoClient = EppoClient("mock-api-key",
                                                     "http://localhost:4001",
                                                     nil,
-                                                    nil);
+                                                    nil,
+                                                    httpClient: EppoMockHttpClient());
     
     override func setUp() {
         super.setUp();

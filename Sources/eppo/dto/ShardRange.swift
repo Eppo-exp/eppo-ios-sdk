@@ -1,6 +1,4 @@
-import Foundation
-
-public struct ShardRange {
+struct ShardRange : Decodable {
     var start: Int;
     var end: Int;
 }

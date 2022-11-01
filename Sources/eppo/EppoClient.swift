@@ -1,5 +1,4 @@
-typealias RefreshCompleteCallback = () -> ();
-typealias RefreshFailedCallback = () -> ();
+typealias RefreshCallback = (Result<Void, Error>) -> ();
 typealias AssignmentLogger = () -> ();
 
 enum EppoClientError: Error {
@@ -9,23 +8,11 @@ enum EppoClientError: Error {
     case flagKeyRequired
 }
 
-struct RefreshCallback {
-    var onComplete: RefreshCompleteCallback;
-    var onFailure: RefreshFailedCallback;
-
-    public init(
-        _ onComplete: @escaping RefreshCompleteCallback,
-        _ onFailure: @escaping RefreshFailedCallback
-    ) {
-        self.onComplete = onComplete;
-        self.onFailure = onFailure;
-    }
-}
-
 class EppoClient {
     public private(set) var apiKey: String = "";
     public private(set) var host: String = "";
     public private(set) var assignmentLogger: AssignmentLogger?;
+    public private(set) var httpClient: EppoHttpClient;
     
     public init(
         _ apiKey: String,
@@ -37,6 +24,7 @@ class EppoClient {
         self.apiKey = apiKey;
         self.host = host;
         self.assignmentLogger = assignmentLogger;
+        self.httpClient = httpClient;
 
         self.refreshConfiguration(refreshCallback);
     }
@@ -58,6 +46,8 @@ class EppoClient {
 
         if subjectKey.count == 0 { throw EppoClientError.subjectKeyRequired }
         if flagKey.count == 0 { throw EppoClientError.flagKeyRequired }
+
+        let flagConfig = try requestFlagConfiguration(flagKey, self.httpClient);
 
         return ""
     }

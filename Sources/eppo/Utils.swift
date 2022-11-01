@@ -3,8 +3,8 @@ import var CommonCrypto.CC_MD5_DIGEST_LENGTH
 import func CommonCrypto.CC_MD5
 import typealias CommonCrypto.CC_LONG
 
-public class Utils {
-    public static func getMD5Hex(input: String) -> String {
+class Utils {
+    static func getMD5Hex(input: String) -> String {
         let length = Int(CC_MD5_DIGEST_LENGTH)
         let messageData = input.data(using:.utf8)!
         var digestData = Data(count: length)
@@ -22,7 +22,7 @@ public class Utils {
         return String(decoding: digestData, as: UTF8.self)
     }
     
-    public static func getMD5Hex32(input: String) -> String {
+    static func getMD5Hex32(input: String) -> String {
         var hashText = getMD5Hex(input: input);
         while (hashText.count < 32) {
             hashText = "0" + hashText;
@@ -31,13 +31,13 @@ public class Utils {
         return hashText;
     }
 
-    public static func getShard(_ input: String, _ maxShardValue: Int) -> Int {
+    static func getShard(_ input: String, _ maxShardValue: Int) -> Int {
         let hashText = getMD5Hex32(input: input);
         let longVal = strtoul(String(hashText.prefix(8)), nil, 16);
         return Int(longVal % UInt(maxShardValue));
     }
 
-    public static func isShardInRange(shard: Int, range: ShardRange) -> Bool {
+    static func isShardInRange(shard: Int, range: ShardRange) -> Bool {
         return shard >= range.start && shard < range.end;
     }
 //
