@@ -58,6 +58,11 @@ class EppoClient {
             return nil;
         }
 
+        guard let rule = try RuleEvaluator.findMatchingRule(subjectAttributes, flagConfig.rules) else {
+            //TODO: Log that no assigned variation exists?
+            return nil;
+        }
+
         return nil;
     }
 

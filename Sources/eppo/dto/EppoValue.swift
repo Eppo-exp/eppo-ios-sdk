@@ -7,7 +7,8 @@ enum EppoValueType {
 }
 
 enum EppoValueErrors : Error {
-    case NotImplemented;
+    case NotImplemented
+    case conversionError
 }
 
 class EppoValue : Decodable {
@@ -54,5 +55,29 @@ class EppoValue : Decodable {
 
     public static func valueOf(value: String) -> EppoValue {
         return EppoValue(value: value, type: EppoValueType.String);
+    }
+
+    public func longValue() throws -> Int64 {
+        guard let rval = Int64(self.value) else {
+            throw EppoValueErrors.conversionError;
+        }
+
+        return rval;
+    }
+
+    public func boolValue() throws -> Bool {
+        guard let rval = Bool(self.value) else {
+            throw EppoValueErrors.conversionError;
+        }
+
+        return rval;
+    }
+
+    public func arrayValue() throws -> [String] {
+        return self.array;
+    }
+
+    public func stringValue() throws -> String {
+        return self.value;
     }
 }
