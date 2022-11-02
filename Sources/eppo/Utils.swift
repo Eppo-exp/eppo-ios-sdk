@@ -1,4 +1,6 @@
 import Foundation
+import CryptoKit
+
 import var CommonCrypto.CC_MD5_DIGEST_LENGTH
 import func CommonCrypto.CC_MD5
 import typealias CommonCrypto.CC_LONG
@@ -19,7 +21,7 @@ class Utils {
             }
         }
 
-        return String(decoding: digestData, as: UTF8.self)
+        return digestData.map { String(format: "%02hhx", $0) }.joined()
     }
     
     static func getMD5Hex32(input: String) -> String {

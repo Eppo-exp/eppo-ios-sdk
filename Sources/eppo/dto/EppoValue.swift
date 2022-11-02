@@ -6,15 +6,16 @@ enum EppoValueType {
     case ArrayOfStrings
 }
 
-enum EppoValueErrors : Error {
-    case NotImplemented
-    case conversionError
-}
-
 class EppoValue : Decodable {
-    public var value: String = "";
+    public var value: String?;
     public var type: EppoValueType = EppoValueType.Null;
-    public var array: [String] = [];
+    public var array: [String]?;
+
+    enum Errors : Error {
+        case NotImplemented
+        case conversionError
+        case valueNotSet;
+    }
 
     public init(value: String, type: EppoValueType) {
         self.value = value;
@@ -34,19 +35,32 @@ class EppoValue : Decodable {
 
     required public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer();
-        
+
         try? self.array = container.decode([String].self);
-        try? self.value = container.decode(String.self);
-        
-        if self.value.count > 0 {
-            if UInt(self.value) != nil {
-                self.type = EppoValueType.Number;
-            } else if self.value.lowercased() == "false" || self.value.lowercased() == "true" {
-                self.type = EppoValueType.Boolean;
-            }
-        } else if self.array.count > 0 {
+        if self.array != nil {
             self.type = EppoValueType.ArrayOfStrings;
+            return;
         }
+
+        try? self.value = String(container.decode(Int.self));
+        if self.value != nil {
+            self.type = EppoValueType.Number;
+            return;
+        }
+
+        try? self.value = String(container.decode(Bool.self));
+        if self.value != nil {
+            self.type = EppoValueType.Boolean;
+            return;
+        }
+
+        try? self.value = container.decode(String.self);
+        if self.value != nil {
+            self.type = EppoValueType.String;
+            return;
+        }
+
+        self.type = EppoValueType.Null;
     }
 
     public static func valueOf() -> EppoValue {
@@ -58,26 +72,42 @@ class EppoValue : Decodable {
     }
 
     public func longValue() throws -> Int64 {
-        guard let rval = Int64(self.value) else {
-            throw EppoValueErrors.conversionError;
+        if self.value == nil {
+            throw Errors.valueNotSet;
+        }
+
+        guard let rval = Int64(self.value!) else {
+            throw Errors.conversionError;
         }
 
         return rval;
     }
 
     public func boolValue() throws -> Bool {
-        guard let rval = Bool(self.value) else {
-            throw EppoValueErrors.conversionError;
+        if self.value == nil {
+            throw Errors.valueNotSet;
+        }
+
+        guard let rval = Bool(self.value!) else {
+            throw Errors.conversionError;
         }
 
         return rval;
     }
 
     public func arrayValue() throws -> [String] {
-        return self.array;
+        if self.array == nil {
+            throw Errors.valueNotSet;
+        }
+
+        return self.array!;
     }
 
     public func stringValue() throws -> String {
-        return self.value;
+        if self.value == nil {
+            throw Errors.valueNotSet;
+        }
+
+        return self.value!;
     }
 }
