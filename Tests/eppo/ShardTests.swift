@@ -5,12 +5,12 @@ import XCTest
 final class shardTests: XCTestCase {
     func testIsShardInRangePositiveCase() throws {
         let range = ShardRange(start: 10, end: 20);
-        XCTAssertTrue(Utils.isShardInRange(shard: 15, range: range));
+        XCTAssertTrue(Utils.isShardInRange(15, range));
     }
 
     func testIsShardInRangeNegativeCase() throws {
         let range = ShardRange(start: 10, end: 20);
-        XCTAssertTrue(Utils.isShardInRange(shard: 15, range: range));
+        XCTAssertTrue(Utils.isShardInRange(15, range));
     }
 
     func testGetShard() throws {

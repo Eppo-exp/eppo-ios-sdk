@@ -37,13 +37,16 @@ class Utils {
         return Int(longVal % UInt(maxShardValue));
     }
 
-    static func isShardInRange(shard: Int, range: ShardRange) -> Bool {
+    static func isShardInRange(_ shard: Int, _ range: ShardRange) -> Bool {
         return shard >= range.start && shard < range.end;
     }
-//
-//    public static void validateNotEmptyOrNull(String input, String errorMessage) {
-//        if (input == null || input.isEmpty()) {
-//            throw new IllegalArgumentException(errorMessage);
-//        }
-//    }
+
+    static func getISODate(_ date: Date) -> String {
+        let dateFormatter = DateFormatter();
+        dateFormatter.locale = Locale(identifier: "en_US_POSIX");
+        dateFormatter.timeZone = TimeZone(abbreviation: "UTC");
+        dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS"
+
+        return dateFormatter.string(from: date).appending("Z");
+    }
 }

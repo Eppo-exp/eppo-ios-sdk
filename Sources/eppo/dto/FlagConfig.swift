@@ -1,5 +1,5 @@
 class FlagConfig : Decodable {
-    var subjectShards: UInt;
+    var subjectShards: Int;
     var enabled: Bool;
     var overrides: [String: String];
     var rules: [TargetingRule];

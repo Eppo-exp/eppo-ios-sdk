@@ -20,20 +20,25 @@ class EppoMockHttpClient: EppoHttpClient {
     public func post() throws {}
 }
 
-struct subjectWithAttributes : Decodable {
+struct SubjectWithAttributes : Decodable {
     var subjectKey: String;
     var subjectAttributes: SubjectAttributes;
 }
 
 struct AssignmentTestCase : Decodable {
-    public var experiment: String = "";
-    var subjectsWithAttributes: [subjectWithAttributes]?
-    public var subjects: [String]?;
-    public var expectedAssignments: [String?];
+    var experiment: String = "";
+    var subjectsWithAttributes: [SubjectWithAttributes]?
+    var subjects: [String]?;
+    var expectedAssignments: [String?];
 
     func assignments(_ client: EppoClient) throws -> [String?] {
-//        if self.subjectsWithAttributes != nil {
-//        }
+        if self.subjectsWithAttributes != nil {
+            return try self.subjectsWithAttributes!.map({
+                try client.getAssignment(
+                    $0.subjectKey, self.experiment, $0.subjectAttributes
+                )
+            });
+        }
 
         if self.subjects != nil {
             return try self.subjects!.map({ try client.getAssignment($0, self.experiment); })
