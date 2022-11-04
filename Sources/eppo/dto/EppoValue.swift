@@ -6,7 +6,7 @@ enum EppoValueType {
     case ArrayOfStrings
 }
 
-class EppoValue : Decodable {
+class EppoValue : Decodable, Equatable {
     public var value: String?;
     public var type: EppoValueType = EppoValueType.Null;
     public var array: [String]?;
@@ -15,6 +15,22 @@ class EppoValue : Decodable {
         case NotImplemented
         case conversionError
         case valueNotSet;
+    }
+
+    public static func == (lhs: EppoValue, rhs: EppoValue) -> Bool {
+        if lhs.value != rhs.value { return false; }
+        if lhs.type != rhs.type { return false; }
+
+        if lhs.array == nil && rhs.array != nil { return false }
+        if rhs.array == nil && lhs.array != nil { return false; }
+
+        for lhItem in lhs.array! {
+            if !rhs.array!.contains(where: { (rhItem) in return rhItem == lhItem }) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public init(value: String, type: EppoValueType) {
@@ -67,8 +83,16 @@ class EppoValue : Decodable {
         return EppoValue(type: EppoValueType.Null);
     }
 
-    public static func valueOf(value: String) -> EppoValue {
+    public static func valueOf(_ value: String) -> EppoValue {
         return EppoValue(value: value, type: EppoValueType.String);
+    }
+
+    public static func valueOf(_ value: Int64) -> EppoValue {
+        return EppoValue(value: String(value), type: EppoValueType.Number);
+    }
+
+    public static func valueOf(_ value: [String]) -> EppoValue {
+        return EppoValue(array: value);
     }
 
     public func longValue() throws -> Int64 {

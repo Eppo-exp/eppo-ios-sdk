@@ -50,49 +50,52 @@ public class RuleEvaluator {
     {
         if let value = subjectAttributes[condition.attribute] {
             let operatorValue = OperatorType(rawValue: condition.targetingOperator);
-            
-            switch operatorValue {
-                case .GreaterThanEqualTo:
-                    return try Compare.compareNumber(
-                        value.longValue(),
-                        condition.value.longValue(),
-                        { (a: Int64, b: Int64) in return a >= b }
-                    );
-                case .GreaterThan:
-                    return try Compare.compareNumber(
-                        value.longValue(),
-                        condition.value.longValue(),
-                        { (a: Int64, b: Int64) in return a > b }
-                    )
-                case .LessThanEqualTo:
-                    return try Compare.compareNumber(
-                        value.longValue(),
-                        condition.value.longValue(),
-                        { (a: Int64, b: Int64) in return a <= b }
-                    )
-                case .LessThan:
-                    return try Compare.compareNumber(
-                        value.longValue(),
-                        condition.value.longValue(),
-                        { (a: Int64, b: Int64) in return a < b }
-                    )
-                case .Matches:
-                    return try Compare.compareRegex(
-                        value.stringValue(),
-                        condition.value.stringValue()
-                    )
-                case .OneOf:
-                    return try Compare.isOneOf(
-                        value.stringValue(),
-                        condition.value.arrayValue()
-                    )
-                case .NotOneOf:
-                    return try !Compare.isOneOf(
-                        value.stringValue(),
-                        condition.value.arrayValue()
-                    )
-                default:
-                    throw Errors.UnexpectedValue
+            do {
+                switch operatorValue {
+                    case .GreaterThanEqualTo:
+                        return try Compare.compareNumber(
+                            value.longValue(),
+                            condition.value.longValue(),
+                            { (a: Int64, b: Int64) in return a >= b }
+                        );
+                    case .GreaterThan:
+                        return try Compare.compareNumber(
+                            value.longValue(),
+                            condition.value.longValue(),
+                            { (a: Int64, b: Int64) in return a > b }
+                        )
+                    case .LessThanEqualTo:
+                        return try Compare.compareNumber(
+                            value.longValue(),
+                            condition.value.longValue(),
+                            { (a: Int64, b: Int64) in return a <= b }
+                        )
+                    case .LessThan:
+                        return try Compare.compareNumber(
+                            value.longValue(),
+                            condition.value.longValue(),
+                            { (a: Int64, b: Int64) in return a < b }
+                        )
+                    case .Matches:
+                        return try Compare.compareRegex(
+                            value.stringValue(),
+                            condition.value.stringValue()
+                        )
+                    case .OneOf:
+                        return try Compare.isOneOf(
+                            value.stringValue(),
+                            condition.value.arrayValue()
+                        )
+                    case .NotOneOf:
+                        return try !Compare.isOneOf(
+                            value.stringValue(),
+                            condition.value.arrayValue()
+                        )
+                    default:
+                        throw Errors.UnexpectedValue
+                }
+            } catch {
+                return false;
             }
         }
         
