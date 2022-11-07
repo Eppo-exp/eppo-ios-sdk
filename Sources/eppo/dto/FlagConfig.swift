@@ -1,4 +1,4 @@
-class FlagConfig : Decodable {
+public class FlagConfig : Decodable {
     var subjectShards: Int;
     var enabled: Bool;
     var overrides: [String: String];

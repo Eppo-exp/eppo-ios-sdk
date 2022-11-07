@@ -1,4 +1,4 @@
-enum EppoValueType {
+public enum EppoValueType {
     case Number
     case String
     case Boolean
@@ -6,7 +6,7 @@ enum EppoValueType {
     case ArrayOfStrings
 }
 
-class EppoValue : Decodable, Equatable {
+public class EppoValue : Decodable, Equatable {
     public var value: String?;
     public var type: EppoValueType = EppoValueType.Null;
     public var array: [String]?;

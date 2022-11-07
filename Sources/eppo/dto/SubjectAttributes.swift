@@ -1,1 +1,1 @@
-typealias SubjectAttributes = [String: EppoValue];
+public typealias SubjectAttributes = [String: EppoValue];

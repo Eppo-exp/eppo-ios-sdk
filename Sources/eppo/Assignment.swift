@@ -1,10 +1,14 @@
-class Assignment : CustomStringConvertible {
+public class Assignment : CustomStringConvertible {
     var experiment: String = "";
     var variation: String = "";
     var subject: String = "";
     var timestamp: String = "";
     var subjectAttributes: SubjectAttributes;
     
+    public var description: String {
+        return "Subject " + subject + " assigned to variation " + variation + " in experiment " + experiment;
+    }
+
     public init(
         _ experiment: String,
         _ variation: String,
@@ -18,9 +22,5 @@ class Assignment : CustomStringConvertible {
         self.subject = subject;
         self.timestamp = timestamp;
         self.subjectAttributes = subjectAttributes;
-    }
-    
-    var description: String {
-        return "Subject " + subject + " assigned to variation " + variation + " in experiment " + experiment;
     }
 }

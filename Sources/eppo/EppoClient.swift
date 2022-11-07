@@ -1,9 +1,9 @@
 import Foundation;
 
-typealias RefreshCallback = (Result<Void, Error>) -> ();
-typealias AssignmentLogger = (Assignment) -> ();
+public typealias RefreshCallback = (Result<Void, Error>) -> ();
+public typealias AssignmentLogger = (Assignment) -> ();
 
-class EppoClient {
+public class EppoClient {
     public private(set) var apiKey: String = "";
     public private(set) var host: String = "";
     public private(set) var assignmentLogger: AssignmentLogger?;
