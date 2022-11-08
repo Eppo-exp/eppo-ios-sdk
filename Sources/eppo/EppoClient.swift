@@ -1,7 +1,5 @@
 import Foundation;
 
-public typealias AssignmentLogger = (Assignment) -> ();
-
 public struct FlagConfigJSON : Decodable {
     var flags: [String : FlagConfig];
 }
@@ -9,7 +7,6 @@ public struct FlagConfigJSON : Decodable {
 public class EppoClient {
     public private(set) var apiKey: String = "";
     public private(set) var host: String = "";
-    public private(set) var assignmentLogger: AssignmentLogger?;
     public private(set) var flagConfigs: FlagConfigJSON = FlagConfigJSON(flags: [:]);
     
     enum Errors: Error {
@@ -26,16 +23,17 @@ public class EppoClient {
 
     public init(
         _ apiKey: String,
-        _ host: String,
-        _ assignmentLogger: AssignmentLogger?
+        host: String = "https://eppo.cloud"
     ) {
         self.apiKey = apiKey;
         self.host = host;
-        self.assignmentLogger = assignmentLogger;
     }
 
     public func load(httpClient: EppoHttpClient = NetworkEppoHttpClient()) async throws {
-        guard let url = URL(string: "/api/randomized_assignment/v2/config") else {
+        var urlString = self.host + "/api/randomized_assignment/v2/config";
+        urlString += "?apiKey=" + self.apiKey;
+
+        guard let url = URL(string: urlString) else {
             throw Errors.invalidURL;
         }
 
@@ -76,6 +74,7 @@ public class EppoClient {
             return nil;
         }
 
+        let allocations = flagConfig.allocations[rule.allocationKey];
         guard let allocation = flagConfig.allocations[rule.allocationKey] else {
             throw Errors.allocationKeyNotDefined;
         }
@@ -94,17 +93,6 @@ public class EppoClient {
             subjectKey, flagKey, flagConfig.subjectShards, allocation.variations
         ) else {
             return nil;
-        }
-
-        if self.assignmentLogger != nil {
-            let assignment = Assignment(
-                flagKey,
-                assignedVariation.value,
-                subjectKey,
-                Utils.getISODate(Date()),
-                subjectAttributes
-            );
-            self.assignmentLogger!(assignment);
         }
 
         return assignedVariation.value;

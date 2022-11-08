@@ -50,8 +50,7 @@ struct AssignmentTestCase : Decodable {
 
 final class eppoClientTests: XCTestCase {
     private var eppoClient: EppoClient = EppoClient("mock-api-key",
-                                                    "http://localhost:4001",
-                                                    nil);
+                                                    host: "http://localhost:4001");
     
     func testUnloadedClient() async throws {
         XCTAssertThrowsError(try self.eppoClient.getAssignment("badFlagRising", "allocation-experiment-1"))

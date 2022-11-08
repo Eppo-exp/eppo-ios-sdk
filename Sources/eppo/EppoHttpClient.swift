@@ -12,6 +12,6 @@ public class NetworkEppoHttpClient : EppoHttpClient {
     public init() {}
 
     public func get(_ url: URL) async throws -> (Data, URLResponse) {
-        throw EppoHttpClientErrors.invalidURL
+        return try await URLSession.shared.data(from: url);
     }
 }
