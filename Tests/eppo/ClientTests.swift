@@ -7,7 +7,7 @@ import Foundation
 class EppoMockHttpClient: EppoHttpClient {
     public init() {}
 
-    public func get(_ url: URL) throws -> (Data, URLResponse) {
+    public func get(_ url: URL) async throws -> (Data, URLResponse) {
         let fileURL = Bundle.module.url(
             forResource: "Resources/test-data/rac-experiments-v2.json",
             withExtension: ""
@@ -51,15 +51,27 @@ struct AssignmentTestCase : Decodable {
 final class eppoClientTests: XCTestCase {
     private var eppoClient: EppoClient = EppoClient("mock-api-key",
                                                     "http://localhost:4001",
-                                                    nil,
-                                                    nil,
-                                                    httpClient: EppoMockHttpClient());
+                                                    nil);
     
-    override func setUp() {
-        super.setUp();
+    func testUnloadedClient() async throws {
+        XCTAssertThrowsError(try self.eppoClient.getAssignment("badFlagRising", "allocation-experiment-1"))
+        {
+            error in XCTAssertEqual(error as! EppoClient.Errors, EppoClient.Errors.configurationNotLoaded)
+        };
     }
 
-    func testAssignments() throws {
+    func testBadFlagKey() async throws {
+        try await self.eppoClient.load(httpClient: EppoMockHttpClient());
+
+        XCTAssertThrowsError(try self.eppoClient.getAssignment("badFlagRising", "allocation-experiment-1"))
+        {
+            error in XCTAssertEqual(error as! EppoClient.Errors, EppoClient.Errors.flagConfigNotFound)
+        };
+    }
+
+    func testAssignments() async throws {
+        try await self.eppoClient.load(httpClient: EppoMockHttpClient());
+
         let testFiles = Bundle.module.paths(
             forResourcesOfType: ".json",
             inDirectory: "Resources/test-data/assignment-v2"

@@ -5,6 +5,10 @@ import PackageDescription
 
 let package = Package(
     name: "eppo-flagging",
+    platforms: [
+        .iOS(.v13),
+        .macOS(.v12)
+    ],
     products: [
         // Products define the executables and libraries a package produces, and make them visible to other packages.
         .library(
@@ -30,6 +34,7 @@ let package = Package(
             resources: [
                 .copy("Resources")
             ]
-        ),
-    ]
+        )
+    ],
+    swiftLanguageVersions: [.v5]
 )

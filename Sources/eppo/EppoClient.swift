@@ -1,13 +1,16 @@
 import Foundation;
 
-public typealias RefreshCallback = (Result<Void, Error>) -> ();
 public typealias AssignmentLogger = (Assignment) -> ();
+
+public struct FlagConfigJSON : Decodable {
+    var flags: [String : FlagConfig];
+}
 
 public class EppoClient {
     public private(set) var apiKey: String = "";
     public private(set) var host: String = "";
     public private(set) var assignmentLogger: AssignmentLogger?;
-    public private(set) var httpClient: EppoHttpClient;
+    public private(set) var flagConfigs: FlagConfigJSON = FlagConfigJSON(flags: [:]);
     
     enum Errors: Error {
         case apiKeyInvalid
@@ -16,25 +19,28 @@ public class EppoClient {
         case flagKeyRequired
         case featureFlagDisabled
         case allocationKeyNotDefined
+        case invalidURL
+        case configurationNotLoaded
+        case flagConfigNotFound
     }
 
     public init(
         _ apiKey: String,
         _ host: String,
-        _ assignmentLogger: AssignmentLogger?,
-        _ refreshCallback: RefreshCallback?,
-        httpClient: EppoHttpClient = NetworkEppoHttpClient()
+        _ assignmentLogger: AssignmentLogger?
     ) {
         self.apiKey = apiKey;
         self.host = host;
         self.assignmentLogger = assignmentLogger;
-        self.httpClient = httpClient;
-
-        self.refreshConfiguration(refreshCallback);
     }
 
-    public func refreshConfiguration(_ refreshCallback: RefreshCallback?) {
+    public func load(httpClient: EppoHttpClient = NetworkEppoHttpClient()) async throws {
+        guard let url = URL(string: "/api/randomized_assignment/v2/config") else {
+            throw Errors.invalidURL;
+        }
 
+        let (urlData, _) = try await httpClient.get(url);
+        self.flagConfigs = try JSONDecoder().decode(FlagConfigJSON.self, from: urlData);
     }
 
     public func getAssignment(_ subjectKey: String, _ flagKey: String) throws -> String? {
@@ -50,8 +56,12 @@ public class EppoClient {
 
         if subjectKey.count == 0 { throw Errors.subjectKeyRequired }
         if flagKey.count == 0 { throw Errors.flagKeyRequired }
+        if self.flagConfigs.flags.count == 0 { throw Errors.configurationNotLoaded }
 
-        let flagConfig = try requestFlagConfiguration(flagKey, self.httpClient);
+        guard let flagConfig = self.flagConfigs.flags[flagKey] else {
+            throw Errors.flagConfigNotFound;
+        }
+
         if let subjectVariationOverride = self.getSubjectVariationOverrides(subjectKey, flagConfig) {
             return subjectVariationOverride;
         }
