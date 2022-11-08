@@ -74,7 +74,6 @@ public class EppoClient {
             return nil;
         }
 
-        let allocations = flagConfig.allocations[rule.allocationKey];
         guard let allocation = flagConfig.allocations[rule.allocationKey] else {
             throw Errors.allocationKeyNotDefined;
         }
