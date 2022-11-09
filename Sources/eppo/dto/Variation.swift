@@ -1,4 +1,4 @@
 struct Variation: Decodable {
-    var value: String;
+    var value: EppoValue;
     var shardRange: ShardRange;
 }

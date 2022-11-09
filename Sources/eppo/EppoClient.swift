@@ -94,7 +94,7 @@ public class EppoClient {
             return nil;
         }
 
-        return assignedVariation.value;
+        return try assignedVariation.value.stringValue();
     }
 
     public func validate() throws {
