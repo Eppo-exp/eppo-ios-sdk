@@ -32,9 +32,3 @@ test-data:
 	mkdir -p $(testDataDir)
 	gsutil cp gs://sdk-test-data/rac-experiments-v2.json $(testDataDir)
 	gsutil cp -r gs://sdk-test-data/assignment-v2 $(testDataDir)
-
-## test
-.PHONY: test
-test: test-data build
-	./gradlew :eppo:testDebugUnitTest
-
