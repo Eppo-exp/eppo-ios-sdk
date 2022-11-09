@@ -126,12 +126,12 @@ final class ruleEvaluatorTests: XCTestCase {
         var condition1: TargetingCondition = TargetingCondition();
         condition1.value = EppoValue.valueOf(10);
         condition1.attribute = "price";
-        condition1.targetingOperator = OperatorType.GreaterThanEqualTo.rawValue;
+        condition1.targetingOperator = OperatorType.GreaterThanEqualTo;
         
         var condition2: TargetingCondition = TargetingCondition();
         condition2.value = EppoValue.valueOf(20);
         condition2.attribute = "price";
-        condition2.targetingOperator = OperatorType.LessThanEqualTo.rawValue;
+        condition2.targetingOperator = OperatorType.LessThanEqualTo;
         
         return [condition1, condition2];
     }
@@ -140,7 +140,7 @@ final class ruleEvaluatorTests: XCTestCase {
         var condition: TargetingCondition = TargetingCondition();
         condition.value = EppoValue.valueOf("[a-z]+");
         condition.attribute = "match";
-        condition.targetingOperator = OperatorType.Matches.rawValue;
+        condition.targetingOperator = OperatorType.Matches;
         
         return condition;
     }
@@ -151,7 +151,7 @@ final class ruleEvaluatorTests: XCTestCase {
         
         condition.value = EppoValue.valueOf(values);
         condition.attribute = "oneOf";
-        condition.targetingOperator = OperatorType.NotOneOf.rawValue;
+        condition.targetingOperator = OperatorType.NotOneOf;
         
         return condition;
     }

@@ -1,5 +1,5 @@
 struct TargetingCondition : Decodable, Equatable {
-    var targetingOperator: String = "";
+    var targetingOperator: OperatorType = OperatorType.None;
     var attribute: String = "";
     var value: EppoValue = EppoValue.valueOf();
     

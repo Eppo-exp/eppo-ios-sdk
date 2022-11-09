@@ -49,9 +49,8 @@ public class RuleEvaluator {
     ) throws -> Bool
     {
         if let value = subjectAttributes[condition.attribute] {
-            let operatorValue = OperatorType(rawValue: condition.targetingOperator);
             do {
-                switch operatorValue {
+                switch condition.targetingOperator {
                     case .GreaterThanEqualTo:
                         return try Compare.compareNumber(
                             value.longValue(),
