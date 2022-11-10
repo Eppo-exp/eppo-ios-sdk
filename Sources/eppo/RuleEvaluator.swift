@@ -1,9 +1,9 @@
 import Foundation
 
-typealias ConditionFunc = (Int64, Int64) -> Bool;
+typealias ConditionFunc = (Double, Double) -> Bool;
 
 class Compare {
-    public static func compareNumber(_ a: Int64, _ b: Int64, _ conditionFunc: ConditionFunc) -> Bool {
+    public static func compareNumber(_ a: Double, _ b: Double, _ conditionFunc: ConditionFunc) -> Bool {
         return conditionFunc(a, b);
     }
 
@@ -53,27 +53,27 @@ public class RuleEvaluator {
                 switch condition.targetingOperator {
                     case .GreaterThanEqualTo:
                         return try Compare.compareNumber(
-                            value.longValue(),
-                            condition.value.longValue(),
-                            { (a: Int64, b: Int64) in return a >= b }
+                            value.doubleValue(),
+                            condition.value.doubleValue(),
+                            { (a: Double, b: Double) in return a >= b }
                         );
                     case .GreaterThan:
                         return try Compare.compareNumber(
-                            value.longValue(),
-                            condition.value.longValue(),
-                            { (a: Int64, b: Int64) in return a > b }
+                            value.doubleValue(),
+                            condition.value.doubleValue(),
+                            { (a: Double, b: Double) in return a > b }
                         )
                     case .LessThanEqualTo:
                         return try Compare.compareNumber(
-                            value.longValue(),
-                            condition.value.longValue(),
-                            { (a: Int64, b: Int64) in return a <= b }
+                            value.doubleValue(),
+                            condition.value.doubleValue(),
+                            { (a: Double, b: Double) in return a <= b }
                         )
                     case .LessThan:
                         return try Compare.compareNumber(
-                            value.longValue(),
-                            condition.value.longValue(),
-                            { (a: Int64, b: Int64) in return a < b }
+                            value.doubleValue(),
+                            condition.value.doubleValue(),
+                            { (a: Double, b: Double) in return a < b }
                         )
                     case .Matches:
                         return try Compare.compareRegex(

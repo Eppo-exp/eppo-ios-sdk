@@ -87,7 +87,7 @@ public class EppoValue : Decodable, Equatable {
         return EppoValue(value: value, type: EppoValueType.String);
     }
 
-    public static func valueOf(_ value: Int64) -> EppoValue {
+    public static func valueOf(_ value: Double) -> EppoValue {
         return EppoValue(value: String(value), type: EppoValueType.Number);
     }
 
@@ -95,12 +95,12 @@ public class EppoValue : Decodable, Equatable {
         return EppoValue(array: value);
     }
 
-    public func longValue() throws -> Int64 {
+    public func doubleValue() throws -> Double {
         if self.value == nil {
             throw Errors.valueNotSet;
         }
 
-        guard let rval = Int64(self.value!) else {
+        guard let rval = Double(self.value!) else {
             throw Errors.conversionError;
         }
 
