@@ -11,8 +11,8 @@ Then select the eppo-flagging-tests target in Xcode and run Product > Test.
 
 ##Updating Test Data
 
-Test data is stored online. To ensure you have the most up to date data:
-
 First install [gsutil](https://cloud.google.com/storage/docs/gsutil_install) and update test data using
 
   make test-data
+
+This is only necessary when test data has changed

@@ -1,5 +1,7 @@
 import Foundation;
 
+public let version = "0.0.5"
+
 public struct FlagConfigJSON : Decodable {
     var flags: [String : FlagConfig];
 }
@@ -31,7 +33,9 @@ public class EppoClient {
 
     public func load(httpClient: EppoHttpClient = NetworkEppoHttpClient()) async throws {
         var urlString = self.host + "/api/randomized_assignment/v2/config";
-        urlString += "?apiKey=" + self.apiKey;
+        urlString += "?sdkName=ios";
+        urlString += "&sdkVersion=" + version;
+        urlString += "&apiKey=" + self.apiKey;
 
         guard let url = URL(string: urlString) else {
             throw Errors.invalidURL;
