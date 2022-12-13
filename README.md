@@ -24,11 +24,13 @@ var eppoClient: EppoClient = EppoClient(EPPO_API_KEY);
 
 During initialization, the SDK sends an API request to Eppo to retrieve the most recent experiment configurations such as variation values and traffic allocation. The SDK stores these configurations in memory so that assignments are effectively instant.
 
-```
-Note
+<br />
 
+:::note
 API Keys used with Client SDKs should have only ‘Randomization READ’ permissions.
-```
+:::
+
+<br />
 
 ## 3. Assign Variations
 
@@ -93,11 +95,13 @@ We recommend always handling the `nil` case in your code. Here are some examples
 
 3. If `getAssignment` is invoked before the SDK has finished initializing, the SDK may not have access to the most recent experiment configurations. In this case, the SDK will assign a variation based on any previously downloaded experiment configurations stored in local storage, or return `nil` if no configurations have been downloaded.
 
-```
-NOTE
+<br />
 
+:::note
 It may take up to 5 minutes for changes to Eppo experiments to be reflected by the SDK assignments.
-```
+:::
+
+<br />
 
 ## 5. Refreshing Test Data
 
