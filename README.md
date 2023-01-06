@@ -4,7 +4,7 @@ iOS implementation of the Eppo Randomization and Feature Flagging SDK.
 
 ## Integrating the SDK
 
-https://docs.geteppo.com/feature-flags/sdks/client-sdks/ios/
+Please refer to our [official documentation](tps://docs.geteppo.com/feature-flags/sdks/client-sdks/ios/)
 
 ## Contributing
 
