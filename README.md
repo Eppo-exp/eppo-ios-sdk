@@ -1,4 +1,4 @@
-# Eppo IOS Feature Flagging SDK
+# Eppo iOS Feature Flagging SDK
 
 iOS implementation of the Eppo Randomization and Feature Flagging SDK.
 
