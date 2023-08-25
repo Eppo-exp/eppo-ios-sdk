@@ -7,6 +7,11 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v3
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v1'
+
+      - name: 'Use gcloud CLI'
+        run: 'gcloud info'
 
       - name: Build
         run: make build
