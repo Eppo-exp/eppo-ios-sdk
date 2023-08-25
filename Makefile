@@ -24,6 +24,14 @@ help: Makefile
 	@echo "usage: make <target>"
 	@sed -n 's/^##//p' $<
 
+.PHONY: build
+build: 
+	swift build
+
+.PHONY: test
+test: 
+	swift test
+
 ## test-data
 testDataDir := Tests/eppo/Resources/test-data
 .PHONY: test-data

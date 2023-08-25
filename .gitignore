@@ -10,4 +10,5 @@ DerivedData/
 .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
 .netrca
 
-# do not add test-data to ignore list
+# test data
+Tests/eppo/Resources/test-data
