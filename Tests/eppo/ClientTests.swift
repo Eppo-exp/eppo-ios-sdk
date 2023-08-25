@@ -27,7 +27,7 @@ struct SubjectWithAttributes : Decodable {
 
 struct AssignmentTestCase : Decodable {
     var experiment: String = "";
-    var valueType: String = EppoValueType.String;
+    var valueType: String? = "string";
     var subjectsWithAttributes: [SubjectWithAttributes]?
     var subjects: [String]?;
     var expectedAssignments: [EppoValue?];
@@ -35,14 +35,16 @@ struct AssignmentTestCase : Decodable {
     func assignments(_ client: EppoClient) throws -> [String?] {
         if self.subjectsWithAttributes != nil {
             return try self.subjectsWithAttributes!.map({
-                try client.getAssignment(
+                // todo: make more tests
+                try client.getStringAssignment(
                     $0.subjectKey, self.experiment, $0.subjectAttributes
                 )
             });
         }
 
         if self.subjects != nil {
-            return try self.subjects!.map({ try client.getAssignment($0, self.experiment); })
+            // todo: make more tests
+            return try self.subjects!.map({ try client.getStringAssignment($0, self.experiment); })
         }
 
         return [];
@@ -54,7 +56,8 @@ final class eppoClientTests: XCTestCase {
                                                     host: "http://localhost:4001");
     
     func testUnloadedClient() async throws {
-        XCTAssertThrowsError(try self.eppoClient.getAssignment("badFlagRising", "allocation-experiment-1"))
+        // todo: more tests
+        XCTAssertThrowsError(try self.eppoClient.getStringAssignment("badFlagRising", "allocation-experiment-1"))
         {
             error in XCTAssertEqual(error as! EppoClient.Errors, EppoClient.Errors.configurationNotLoaded)
         };
@@ -63,7 +66,8 @@ final class eppoClientTests: XCTestCase {
     func testBadFlagKey() async throws {
         try await self.eppoClient.load(httpClient: EppoMockHttpClient());
 
-        XCTAssertThrowsError(try self.eppoClient.getAssignment("badFlagRising", "allocation-experiment-1"))
+        // todo: more tests
+        XCTAssertThrowsError(try self.eppoClient.getStringAssignment("badFlagRising", "allocation-experiment-1"))
         {
             error in XCTAssertEqual(error as! EppoClient.Errors, EppoClient.Errors.flagConfigNotFound)
         };
@@ -83,7 +87,10 @@ final class eppoClientTests: XCTestCase {
             let testCase = try JSONDecoder().decode(AssignmentTestCase.self, from: caseData);
 
             let assignments = try testCase.assignments(self.eppoClient);
-            XCTAssertEqual(assignments, testCase.expectedAssignments);
+            // todo: more tests
+            // todo: generic
+            let expectedAssignments = testCase.expectedAssignments.map { try? $0?.stringValue() }
+            XCTAssertEqual(assignments, expectedAssignments);
         }
 
         XCTAssertGreaterThan(testFiles.count, 0);

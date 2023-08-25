@@ -143,7 +143,7 @@ public class EppoClient {
             return nil;
         }
 
-        return try assignedVariation.typedValue;
+        return assignedVariation.typedValue;
     }
 
     public func validate() throws {
