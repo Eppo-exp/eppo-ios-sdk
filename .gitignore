@@ -1,4 +1,6 @@
+# local files
 .DS_Store
+.vscode
 /.build
 /Packages
 /*.xcodeproj
