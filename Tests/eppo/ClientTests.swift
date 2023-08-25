@@ -9,7 +9,7 @@ class EppoMockHttpClient: EppoHttpClient {
 
     public func get(_ url: URL) async throws -> (Data, URLResponse) {
         let fileURL = Bundle.module.url(
-            forResource: "Resources/test-data/rac-experiments-v2.json",
+            forResource: "Resources/test-data/rac-experiments-v3.json",
             withExtension: ""
         );
 
@@ -27,9 +27,10 @@ struct SubjectWithAttributes : Decodable {
 
 struct AssignmentTestCase : Decodable {
     var experiment: String = "";
+    var valueType: String = EppoValueType.String;
     var subjectsWithAttributes: [SubjectWithAttributes]?
     var subjects: [String]?;
-    var expectedAssignments: [String?];
+    var expectedAssignments: [EppoValue?];
 
     func assignments(_ client: EppoClient) throws -> [String?] {
         if self.subjectsWithAttributes != nil {
