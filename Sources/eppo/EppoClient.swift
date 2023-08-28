@@ -44,48 +44,28 @@ public class EppoClient {
         let (urlData, _) = try await httpClient.get(url);
         self.flagConfigs = try JSONDecoder().decode(FlagConfigJSON.self, from: urlData);
     }
-
-    public func getBoolAssignment(
-        _ subjectKey: String,
-        _ flagKey: String) throws -> Bool?
-    {
-        return try getAssignment(subjectKey, flagKey, SubjectAttributes())?.boolValue()
-    }
     
     public func getBoolAssignment(
         _ subjectKey: String,
         _ flagKey: String,
-        _ subjectAttributes: SubjectAttributes) throws -> Bool?
+        _ subjectAttributes: SubjectAttributes = SubjectAttributes()) throws -> Bool?
     {
         return try getAssignment(subjectKey, flagKey, subjectAttributes)?.boolValue()
     }
     
-    public func getNumericAssignment(
-        _ subjectKey: String,
-        _ flagKey: String) throws -> Double?
-    {
-        return try getAssignment(subjectKey, flagKey, SubjectAttributes())?.doubleValue()
-    }
     
     public func getNumericAssignment(
         _ subjectKey: String,
         _ flagKey: String,
-        _ subjectAttributes: SubjectAttributes) throws -> Double?
+        _ subjectAttributes: SubjectAttributes = SubjectAttributes()) throws -> Double?
     {
         return try getAssignment(subjectKey, flagKey, subjectAttributes)?.doubleValue()
     }
     
     public func getStringAssignment(
         _ subjectKey: String,
-        _ flagKey: String) throws -> String?
-    {
-        return try getAssignment(subjectKey, flagKey, SubjectAttributes())?.stringValue()
-    }
-    
-    public func getStringAssignment(
-        _ subjectKey: String,
         _ flagKey: String,
-        _ subjectAttributes: SubjectAttributes) throws -> String?
+        _ subjectAttributes: SubjectAttributes = SubjectAttributes()) throws -> String?
     {
         return try getAssignment(subjectKey, flagKey, subjectAttributes)?.stringValue()
     }
