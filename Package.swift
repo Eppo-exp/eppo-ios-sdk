@@ -26,7 +26,7 @@ let package = Package(
             name: "eppo-flagging",
             dependencies: [],
             path: "./Sources/eppo"
-        )/*,
+        ),
         .testTarget(
             name: "eppo-flagging-tests",
             dependencies: ["eppo-flagging"],
@@ -34,7 +34,7 @@ let package = Package(
             resources: [
                 .copy("Resources")
             ]
-        )*/
+        )
     ],
     swiftLanguageVersions: [.v5]
 )

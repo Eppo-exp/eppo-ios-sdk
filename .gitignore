@@ -1,4 +1,6 @@
+# local files
 .DS_Store
+.vscode
 /.build
 /Packages
 /*.xcodeproj
@@ -7,3 +9,6 @@ DerivedData/
 .swiftpm/config/registries.json
 .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
 .netrca
+
+# test data
+Tests/eppo/Resources/test-data

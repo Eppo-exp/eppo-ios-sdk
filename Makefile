@@ -24,11 +24,19 @@ help: Makefile
 	@echo "usage: make <target>"
 	@sed -n 's/^##//p' $<
 
+.PHONY: build
+build: 
+	swift build
+
+.PHONY: test
+test: 
+	swift test
+
 ## test-data
 testDataDir := Tests/eppo/Resources/test-data
 .PHONY: test-data
 test-data: 
 	rm -rf $(testDataDir)
 	mkdir -p $(testDataDir)
-	gsutil cp gs://sdk-test-data/rac-experiments-v2.json $(testDataDir)
+	gsutil cp gs://sdk-test-data/rac-experiments-v*.json $(testDataDir)
 	gsutil cp -r gs://sdk-test-data/assignment-v2 $(testDataDir)

@@ -1,6 +1,6 @@
 import Foundation;
 
-public let version = "0.6.0"
+public let version = "1.0.0"
 
 public struct FlagConfigJSON : Decodable {
     var flags: [String : FlagConfig];
@@ -44,15 +44,40 @@ public class EppoClient {
         let (urlData, _) = try await httpClient.get(url);
         self.flagConfigs = try JSONDecoder().decode(FlagConfigJSON.self, from: urlData);
     }
-
-    public func getAssignment(_ subjectKey: String, _ flagKey: String) throws -> String? {
+    
+    public func getBoolAssignment(
+        _ subjectKey: String,
+        _ flagKey: String,
+        _ subjectAttributes: SubjectAttributes = SubjectAttributes()) throws -> Bool?
+    {
+        return try getAssignment(subjectKey, flagKey, subjectAttributes)?.boolValue()
+    }
+    
+    
+    public func getNumericAssignment(
+        _ subjectKey: String,
+        _ flagKey: String,
+        _ subjectAttributes: SubjectAttributes = SubjectAttributes()) throws -> Double?
+    {
+        return try getAssignment(subjectKey, flagKey, subjectAttributes)?.doubleValue()
+    }
+    
+    public func getStringAssignment(
+        _ subjectKey: String,
+        _ flagKey: String,
+        _ subjectAttributes: SubjectAttributes = SubjectAttributes()) throws -> String?
+    {
+        return try getAssignment(subjectKey, flagKey, subjectAttributes)?.stringValue()
+    }
+    
+    private func getAssignment(_ subjectKey: String, _ flagKey: String) throws -> EppoValue? {
         return try getAssignment(subjectKey, flagKey, [:]);
     }
 
-    public func getAssignment(
+    private func getAssignment(
         _ subjectKey: String,
         _ flagKey: String,
-        _ subjectAttributes: SubjectAttributes) throws -> String?
+        _ subjectAttributes: SubjectAttributes) throws -> EppoValue?
     {
         try self.validate();
 
@@ -98,7 +123,7 @@ public class EppoClient {
             return nil;
         }
 
-        return try assignedVariation.value.stringValue();
+        return assignedVariation.typedValue;
     }
 
     public func validate() throws {
@@ -122,9 +147,9 @@ public class EppoClient {
         return shard <= Int(percentageExposure * Float(subjectShards));
     }
 
-    private func getSubjectVariationOverrides(_ subjectKey: String, _ flagConfig: FlagConfig) -> String? {
+    private func getSubjectVariationOverrides(_ subjectKey: String, _ flagConfig: FlagConfig) -> EppoValue? {
         let subjectHash = Utils.getMD5Hex(input: subjectKey);
-        if let occurence = flagConfig.overrides[subjectHash] {
+        if let occurence = flagConfig.typedOverrides[subjectHash] {
             return occurence;
         }
 

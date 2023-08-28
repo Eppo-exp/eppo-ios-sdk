@@ -83,28 +83,20 @@ public class EppoValue : Decodable, Equatable {
         return EppoValue(type: EppoValueType.Null);
     }
 
+    public static func valueOf(_ value: Bool) -> EppoValue {
+        return EppoValue(value: String(value), type: EppoValueType.Boolean);
+    }
+    
+    public static func valueOf(_ value: Double) -> EppoValue {
+        return EppoValue(value: String(value), type: EppoValueType.Number);
+    }
+    
     public static func valueOf(_ value: String) -> EppoValue {
         return EppoValue(value: value, type: EppoValueType.String);
     }
 
-    public static func valueOf(_ value: Double) -> EppoValue {
-        return EppoValue(value: String(value), type: EppoValueType.Number);
-    }
-
     public static func valueOf(_ value: [String]) -> EppoValue {
         return EppoValue(array: value);
-    }
-
-    public func doubleValue() throws -> Double {
-        if self.value == nil {
-            throw Errors.valueNotSet;
-        }
-
-        guard let rval = Double(self.value!) else {
-            throw Errors.conversionError;
-        }
-
-        return rval;
     }
 
     public func boolValue() throws -> Bool {
@@ -113,6 +105,18 @@ public class EppoValue : Decodable, Equatable {
         }
 
         guard let rval = Bool(self.value!) else {
+            throw Errors.conversionError;
+        }
+
+        return rval;
+    }
+    
+    public func doubleValue() throws -> Double {
+        if self.value == nil {
+            throw Errors.valueNotSet;
+        }
+
+        guard let rval = Double(self.value!) else {
             throw Errors.conversionError;
         }
 

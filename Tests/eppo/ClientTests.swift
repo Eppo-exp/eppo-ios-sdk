@@ -9,7 +9,7 @@ class EppoMockHttpClient: EppoHttpClient {
 
     public func get(_ url: URL) async throws -> (Data, URLResponse) {
         let fileURL = Bundle.module.url(
-            forResource: "Resources/test-data/rac-experiments-v2.json",
+            forResource: "Resources/test-data/rac-experiments-v3.json",
             withExtension: ""
         );
 
@@ -27,21 +27,59 @@ struct SubjectWithAttributes : Decodable {
 
 struct AssignmentTestCase : Decodable {
     var experiment: String = "";
+
+    // valueType is optional as its not always present in the test data
+    // but we need it to determine which assignment function to call
+    var valueType: String { return _valueType ?? "string" }
+    private var _valueType: String?
+
     var subjectsWithAttributes: [SubjectWithAttributes]?
     var subjects: [String]?;
-    var expectedAssignments: [String?];
+    var expectedAssignments: [EppoValue?];
 
-    func assignments(_ client: EppoClient) throws -> [String?] {
+    func boolAssignments(_ client: EppoClient) throws -> [Bool?] {
         if self.subjectsWithAttributes != nil {
             return try self.subjectsWithAttributes!.map({
-                try client.getAssignment(
+                try client.getBoolAssignment(
                     $0.subjectKey, self.experiment, $0.subjectAttributes
                 )
             });
         }
 
         if self.subjects != nil {
-            return try self.subjects!.map({ try client.getAssignment($0, self.experiment); })
+            return try self.subjects!.map({ try client.getBoolAssignment($0, self.experiment); })
+        }
+
+        return [];
+    }
+
+    func numericAssignments(_ client: EppoClient) throws -> [Double?] {
+        if self.subjectsWithAttributes != nil {
+            return try self.subjectsWithAttributes!.map({
+                try client.getNumericAssignment(
+                    $0.subjectKey, self.experiment, $0.subjectAttributes
+                )
+            });
+        }
+
+        if self.subjects != nil {
+            return try self.subjects!.map({ try client.getNumericAssignment($0, self.experiment); })
+        }
+
+        return [];
+    }
+
+    func stringAssignments(_ client: EppoClient) throws -> [String?] {
+        if self.subjectsWithAttributes != nil {
+            return try self.subjectsWithAttributes!.map({
+                try client.getStringAssignment(
+                    $0.subjectKey, self.experiment, $0.subjectAttributes
+                )
+            });
+        }
+
+        if self.subjects != nil {
+            return try self.subjects!.map({ try client.getStringAssignment($0, self.experiment); })
         }
 
         return [];
@@ -53,7 +91,7 @@ final class eppoClientTests: XCTestCase {
                                                     host: "http://localhost:4001");
     
     func testUnloadedClient() async throws {
-        XCTAssertThrowsError(try self.eppoClient.getAssignment("badFlagRising", "allocation-experiment-1"))
+        XCTAssertThrowsError(try self.eppoClient.getStringAssignment("badFlagRising", "allocation-experiment-1"))
         {
             error in XCTAssertEqual(error as! EppoClient.Errors, EppoClient.Errors.configurationNotLoaded)
         };
@@ -62,7 +100,7 @@ final class eppoClientTests: XCTestCase {
     func testBadFlagKey() async throws {
         try await self.eppoClient.load(httpClient: EppoMockHttpClient());
 
-        XCTAssertThrowsError(try self.eppoClient.getAssignment("badFlagRising", "allocation-experiment-1"))
+        XCTAssertThrowsError(try self.eppoClient.getStringAssignment("badFlagRising", "allocation-experiment-1"))
         {
             error in XCTAssertEqual(error as! EppoClient.Errors, EppoClient.Errors.flagConfigNotFound)
         };
@@ -81,8 +119,22 @@ final class eppoClientTests: XCTestCase {
             let caseData = caseString.data(using: .utf8)!;
             let testCase = try JSONDecoder().decode(AssignmentTestCase.self, from: caseData);
 
-            let assignments = try testCase.assignments(self.eppoClient);
-            XCTAssertEqual(assignments, testCase.expectedAssignments);
+            switch (testCase.valueType) {
+                case "bool":
+                    let assignments = try testCase.boolAssignments(self.eppoClient);
+                    let expectedAssignments = testCase.expectedAssignments.map { try? $0?.boolValue() }
+                    XCTAssertEqual(assignments, expectedAssignments);
+                case "numeric":
+                    let assignments = try testCase.numericAssignments(self.eppoClient);
+                    let expectedAssignments = testCase.expectedAssignments.map { try? $0?.doubleValue() }
+                    XCTAssertEqual(assignments, expectedAssignments);
+                case "string":
+                    let assignments = try testCase.stringAssignments(self.eppoClient);
+                    let expectedAssignments = testCase.expectedAssignments.map { try? $0?.stringValue() }
+                    XCTAssertEqual(assignments, expectedAssignments);
+                default:
+                    XCTFail("Unknown value type: \(testCase.valueType)");
+            }
         }
 
         XCTAssertGreaterThan(testFiles.count, 0);

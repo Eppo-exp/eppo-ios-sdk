@@ -1,15 +1,23 @@
-# name: Swift
+name: Swift
 
-# on: [push]
+on: [push]
 
-# jobs:
-#   build:
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v1'
 
-#     runs-on: macos-latest
+      - name: 'Use gcloud CLI'
+        run: 'gcloud info'
 
-#     steps:
-#       - uses: actions/checkout@v3
-#       - name: Build
-#         run: swift build
-#       - name: Run tests
-#         run: swift test
+      - name: Build
+        run: make build
+
+      - name: Pull test data
+        run: make test-data
+
+      - name: Run tests
+        run: make test
