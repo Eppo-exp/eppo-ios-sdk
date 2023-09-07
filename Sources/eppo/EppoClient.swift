@@ -45,21 +45,36 @@ public class EppoClient {
         self.flagConfigs = try JSONDecoder().decode(FlagConfigJSON.self, from: urlData);
     }
     
+    public func getAssignment(
+        _ subjectKey: String,
+        _ flagKey: String,
+        _ subjectAttributes: SubjectAttributes) throws -> String?
+    {
+        return try getStringAssignment(subjectKey, flagKey, subjectAttributes)
+    }
+
     public func getBoolAssignment(
         _ subjectKey: String,
         _ flagKey: String,
         _ subjectAttributes: SubjectAttributes = SubjectAttributes()) throws -> Bool?
     {
-        return try getAssignment(subjectKey, flagKey, subjectAttributes)?.boolValue()
+        return try getInternalAssignment(subjectKey, flagKey, subjectAttributes)?.boolValue()
     }
     
+    public func getJSONStringAssignment(
+        _ subjectKey: String,
+        _ flagKey: String,
+        _ subjectAttributes: SubjectAttributes = SubjectAttributes()) throws -> String?
+    {
+        return try getInternalAssignment(subjectKey, flagKey, subjectAttributes, true)?.stringValue()
+    }
     
     public func getNumericAssignment(
         _ subjectKey: String,
         _ flagKey: String,
         _ subjectAttributes: SubjectAttributes = SubjectAttributes()) throws -> Double?
     {
-        return try getAssignment(subjectKey, flagKey, subjectAttributes)?.doubleValue()
+        return try getInternalAssignment(subjectKey, flagKey, subjectAttributes)?.doubleValue()
     }
     
     public func getStringAssignment(
@@ -67,17 +82,14 @@ public class EppoClient {
         _ flagKey: String,
         _ subjectAttributes: SubjectAttributes = SubjectAttributes()) throws -> String?
     {
-        return try getAssignment(subjectKey, flagKey, subjectAttributes)?.stringValue()
+        return try getInternalAssignment(subjectKey, flagKey, subjectAttributes)?.stringValue()
     }
     
-    private func getAssignment(_ subjectKey: String, _ flagKey: String) throws -> EppoValue? {
-        return try getAssignment(subjectKey, flagKey, [:]);
-    }
-
-    private func getAssignment(
+    private func getInternalAssignment(
         _ subjectKey: String,
         _ flagKey: String,
-        _ subjectAttributes: SubjectAttributes) throws -> EppoValue?
+        _ subjectAttributes: SubjectAttributes,
+        _ isJson: Bool = false) throws -> EppoValue?
     {
         try self.validate();
 
@@ -123,6 +135,9 @@ public class EppoClient {
             return nil;
         }
 
+        if (isJson) {
+            return EppoValue(value: assignedVariation.value, type: EppoValueType.String);
+        }
         return assignedVariation.typedValue;
     }
 
