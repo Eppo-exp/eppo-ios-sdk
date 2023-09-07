@@ -50,7 +50,7 @@ public class EppoClient {
         _ flagKey: String,
         _ subjectAttributes: SubjectAttributes) throws -> String?
     {
-        return try getStringAssignment(subjectKey, flagKey, subjectAttributes)
+        return try getInternalAssignment(subjectKey, flagKey, subjectAttributes, false)?.stringValue()
     }
 
     public func getBoolAssignment(
@@ -58,7 +58,7 @@ public class EppoClient {
         _ flagKey: String,
         _ subjectAttributes: SubjectAttributes = SubjectAttributes()) throws -> Bool?
     {
-        return try getInternalAssignment(subjectKey, flagKey, subjectAttributes)?.boolValue()
+        return try getInternalAssignment(subjectKey, flagKey, subjectAttributes, true)?.boolValue()
     }
     
     public func getJSONStringAssignment(
@@ -66,7 +66,7 @@ public class EppoClient {
         _ flagKey: String,
         _ subjectAttributes: SubjectAttributes = SubjectAttributes()) throws -> String?
     {
-        return try getInternalAssignment(subjectKey, flagKey, subjectAttributes, true)?.stringValue()
+        return try getInternalAssignment(subjectKey, flagKey, subjectAttributes, false)?.stringValue()
     }
     
     public func getNumericAssignment(
@@ -74,7 +74,7 @@ public class EppoClient {
         _ flagKey: String,
         _ subjectAttributes: SubjectAttributes = SubjectAttributes()) throws -> Double?
     {
-        return try getInternalAssignment(subjectKey, flagKey, subjectAttributes)?.doubleValue()
+        return try getInternalAssignment(subjectKey, flagKey, subjectAttributes, true)?.doubleValue()
     }
     
     public func getStringAssignment(
@@ -82,14 +82,14 @@ public class EppoClient {
         _ flagKey: String,
         _ subjectAttributes: SubjectAttributes = SubjectAttributes()) throws -> String?
     {
-        return try getInternalAssignment(subjectKey, flagKey, subjectAttributes)?.stringValue()
+        return try getInternalAssignment(subjectKey, flagKey, subjectAttributes, true)?.stringValue()
     }
     
     private func getInternalAssignment(
         _ subjectKey: String,
         _ flagKey: String,
         _ subjectAttributes: SubjectAttributes,
-        _ isJson: Bool = false) throws -> EppoValue?
+        _ useTypedVariationValue: Bool) throws -> EppoValue?
     {
         try self.validate();
 
@@ -135,11 +135,13 @@ public class EppoClient {
             return nil;
         }
 
-        // Access the stringified JSON from `value` field until support for native JSON is available.
-        if (isJson) {
+        if (useTypedVariationValue) {
+            return assignedVariation.typedValue;
+        } else {
+            // Access the stringified JSON from `value` field until support for native JSON is available.
+            // The legacy getAssignment method accesses the existing field to consistency return a stringified value.
             return EppoValue(value: assignedVariation.value, type: EppoValueType.String);
         }
-        return assignedVariation.typedValue;
     }
 
     public func validate() throws {
