@@ -1,5 +1,3 @@
-import Foundation
-
 public enum EppoValueType {
     case Number
     case String
@@ -134,7 +132,6 @@ public class EppoValue : Decodable, Equatable {
     }
 
     public func stringValue() throws -> String {
-        //print("string")
         if self.value == nil {
             throw Errors.valueNotSet;
         }

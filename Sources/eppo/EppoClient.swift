@@ -135,6 +135,7 @@ public class EppoClient {
             return nil;
         }
 
+        // Access the stringified JSON from `value` field until support for native JSON is available.
         if (isJson) {
             return EppoValue(value: assignedVariation.value, type: EppoValueType.String);
         }
