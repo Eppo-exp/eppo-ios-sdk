@@ -27,11 +27,7 @@ struct SubjectWithAttributes : Decodable {
 
 struct AssignmentTestCase : Decodable {
     var experiment: String = "";
-
-    // valueType is optional as its not always present in the test data
-    // but we need it to determine which assignment function to call
-    var valueType: String { return _valueType ?? "string" }
-    private var _valueType: String?
+    var valueType: String;
 
     var subjectsWithAttributes: [SubjectWithAttributes]?
     var subjects: [String]?;
@@ -48,6 +44,22 @@ struct AssignmentTestCase : Decodable {
 
         if self.subjects != nil {
             return try self.subjects!.map({ try client.getBoolAssignment($0, self.experiment); })
+        }
+
+        return [];
+    }
+
+    func jsonAssignments(_ client: EppoClient) throws -> [String?] {
+        if self.subjectsWithAttributes != nil {
+            return try self.subjectsWithAttributes!.map({
+                try client.getJSONStringAssignment(
+                    $0.subjectKey, self.experiment, $0.subjectAttributes
+                )
+            });
+        }
+
+        if self.subjects != nil {
+            return try self.subjects!.map({ try client.getJSONStringAssignment($0, self.experiment); })
         }
 
         return [];
@@ -120,9 +132,13 @@ final class eppoClientTests: XCTestCase {
             let testCase = try JSONDecoder().decode(AssignmentTestCase.self, from: caseData);
 
             switch (testCase.valueType) {
-                case "bool":
+                case "boolean":
                     let assignments = try testCase.boolAssignments(self.eppoClient);
                     let expectedAssignments = testCase.expectedAssignments.map { try? $0?.boolValue() }
+                    XCTAssertEqual(assignments, expectedAssignments);
+                case "json":
+                    let assignments = try testCase.jsonAssignments(self.eppoClient);
+                    let expectedAssignments = testCase.expectedAssignments.map { try? $0?.stringValue() }
                     XCTAssertEqual(assignments, expectedAssignments);
                 case "numeric":
                     let assignments = try testCase.numericAssignments(self.eppoClient);

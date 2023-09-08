@@ -51,7 +51,7 @@ public class EppoValue : Decodable, Equatable {
 
     required public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer();
-
+        
         try? self.array = container.decode([String].self);
         if self.array != nil {
             self.type = EppoValueType.ArrayOfStrings;
