@@ -1,5 +1,7 @@
 public class Assignment : CustomStringConvertible {
+    var allocation: String = "";
     var experiment: String = "";
+    var featureFlag: String = "";
     var variation: String = "";
     var subject: String = "";
     var timestamp: String = "";
@@ -10,14 +12,17 @@ public class Assignment : CustomStringConvertible {
     }
 
     public init(
-        _ experiment: String,
+        _ flagKey: String,
+        _ allocationKey: String,
         _ variation: String,
         _ subject: String,
         _ timestamp: String,
         _ subjectAttributes: SubjectAttributes
     )
     {
-        self.experiment = experiment;
+        self.allocation = allocationKey;
+        self.experiment = flagKey + "-" + allocationKey;
+        self.featureFlag = flagKey;
         self.variation = variation;
         self.subject = subject;
         self.timestamp = timestamp;

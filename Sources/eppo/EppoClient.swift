@@ -1,6 +1,6 @@
 import Foundation;
 
-public let version = "1.0.0"
+public let version = "1.0.1"
 
 public struct FlagConfigJSON : Decodable {
     var flags: [String : FlagConfig];
@@ -156,12 +156,12 @@ public class EppoClient {
 
     private func isInExperimentSample(
         _ subjectKey: String,
-        _ experimentKey: String,
+        _ flagKey: String,
         _ subjectShards: Int,
         _ percentageExposure: Float
     ) -> Bool
     {
-        let shard = Utils.getShard("exposure-" + subjectKey + "-" + experimentKey, subjectShards);
+        let shard = Utils.getShard("exposure-" + subjectKey + "-" + flagKey, subjectShards);
         return shard <= Int(percentageExposure * Float(subjectShards));
     }
 
@@ -176,12 +176,12 @@ public class EppoClient {
 
     private func getAssignedVariation(
         _ subjectKey: String,
-        _ experimentKey: String,
+        _ flagKey: String,
         _ subjectShards: Int,
         _ variations: [Variation]
     ) -> Variation?
     {
-        let shard = Utils.getShard("assignment-" + subjectKey + "-" + experimentKey, subjectShards);
+        let shard = Utils.getShard("assignment-" + subjectKey + "-" + flagKey, subjectShards);
 
         for variation in variations {
             if Utils.isShardInRange(shard, variation.shardRange) {
