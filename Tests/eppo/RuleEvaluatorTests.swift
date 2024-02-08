@@ -38,17 +38,19 @@ final class ruleEvaluatorTests: XCTestCase {
     public func testMatchesAnyRuleWhenRuleMatches() throws {
         var targetingRule: TargetingRule = TargetingRule();
         targetingRule.conditions.append(contentsOf: self.getNumericConditions());
+        targetingRule.conditions.append(contentsOf: self.getSemVerConditions());
         let targetingRules: [TargetingRule] = [targetingRule];
         
         var subjectAttributes: SubjectAttributes = SubjectAttributes();
         subjectAttributes["price"] = EppoValue.valueOf(15);
+        subjectAttributes["appVersion"] = EppoValue.valueOf("2.3.5");
         
         XCTAssertEqual(
             targetingRule,
             try RuleEvaluator.findMatchingRule(subjectAttributes, targetingRules)
         );
     }
-
+    
     public func testMatchesAnyRuleWhenThrowInvalidSubjectAttribute() {
         var targetingRule: TargetingRule = self.createRule([]);
         targetingRule.conditions.append(contentsOf: self.getNumericConditions());
@@ -131,6 +133,20 @@ final class ruleEvaluatorTests: XCTestCase {
         var condition2: TargetingCondition = TargetingCondition();
         condition2.value = EppoValue.valueOf(20);
         condition2.attribute = "price";
+        condition2.targetingOperator = OperatorType.LessThanEqualTo;
+        
+        return [condition1, condition2];
+    }
+    
+    private func getSemVerConditions() -> [TargetingCondition] {
+        var condition1: TargetingCondition = TargetingCondition();
+        condition1.value = EppoValue.valueOf("2.0.0");
+        condition1.attribute = "appVersion";
+        condition1.targetingOperator = OperatorType.GreaterThanEqualTo;
+        
+        var condition2: TargetingCondition = TargetingCondition();
+        condition2.value = EppoValue.valueOf("3.5.0");
+        condition2.attribute = "appVersion";
         condition2.targetingOperator = OperatorType.LessThanEqualTo;
         
         return [condition1, condition2];
