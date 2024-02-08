@@ -117,6 +117,20 @@ final class ruleEvaluatorTests: XCTestCase {
             try RuleEvaluator.findMatchingRule(subjectAttributes, targetingRules)
         );
     }
+    
+    public func testMatchesInValidSemVer() {
+        var targetingRule: TargetingRule = TargetingRule();
+        //targetingRule.conditions.append(self.getNotOneOfCondition());
+        targetingRule.conditions.append(self.getInvalidSemVerConditions());
+        let targetingRules: [TargetingRule] = [targetingRule];
+        
+        var subjectAttributes: SubjectAttributes = SubjectAttributes();
+        subjectAttributes["appVersion"] = EppoValue.valueOf("2.3.5");
+        
+        XCTAssertNil(
+            try RuleEvaluator.findMatchingRule(subjectAttributes, targetingRules)
+        );
+    }
 
     private func createRule(_ conditions: [TargetingCondition]) -> TargetingRule {
         var targetingRule: TargetingRule = TargetingRule();
@@ -150,6 +164,15 @@ final class ruleEvaluatorTests: XCTestCase {
         condition2.targetingOperator = OperatorType.LessThanEqualTo;
         
         return [condition1, condition2];
+    }
+    
+    private func getInvalidSemVerConditions() -> TargetingCondition {
+        var condition1: TargetingCondition = TargetingCondition();
+        condition1.value = EppoValue.valueOf("xyz.2.0.0");
+        condition1.attribute = "appVersion";
+        condition1.targetingOperator = OperatorType.GreaterThanEqualTo;
+        
+        return condition1;
     }
     
     private func getRegexCondition() -> TargetingCondition {
