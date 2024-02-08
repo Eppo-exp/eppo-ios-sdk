@@ -54,7 +54,6 @@ public class RuleEvaluator {
         }
         
         do {
-            let comparisonResult: Bool
             switch condition.targetingOperator {
             case .GreaterThanEqualTo, .GreaterThan, .LessThanEqualTo, .LessThan:
                 do {
@@ -64,13 +63,13 @@ public class RuleEvaluator {
                         // If both strings are valid Semver strings, perform a Semver comparison
                         switch condition.targetingOperator {
                         case .GreaterThanEqualTo:
-                            comparisonResult = valueVersion >= conditionVersion
+                            return valueVersion >= conditionVersion
                         case .GreaterThan:
-                            comparisonResult = valueVersion > conditionVersion
+                            return valueVersion > conditionVersion
                         case .LessThanEqualTo:
-                            comparisonResult = valueVersion <= conditionVersion
+                            return valueVersion <= conditionVersion
                         case .LessThan:
-                            comparisonResult = valueVersion < conditionVersion
+                            return valueVersion < conditionVersion
                         default:
                             throw Errors.UnexpectedValue
                         }
@@ -80,13 +79,13 @@ public class RuleEvaluator {
                         let conditionDouble = try condition.value.doubleValue()
                         switch condition.targetingOperator {
                         case .GreaterThanEqualTo:
-                            comparisonResult = valueDouble >= conditionDouble
+                            return valueDouble >= conditionDouble
                         case .GreaterThan:
-                            comparisonResult = valueDouble > conditionDouble
+                            return valueDouble > conditionDouble
                         case .LessThanEqualTo:
-                            comparisonResult = valueDouble <= conditionDouble
+                            return valueDouble <= conditionDouble
                         case .LessThan:
-                            comparisonResult = valueDouble < conditionDouble
+                            return valueDouble < conditionDouble
                         default:
                             throw Errors.UnexpectedValue
                         }
@@ -96,24 +95,23 @@ public class RuleEvaluator {
                     return false
                 }
             case .Matches:
-                comparisonResult = try Compare.compareRegex(
+                return try Compare.compareRegex(
                     value.stringValue(),
                     condition.value.stringValue()
                 )
             case .OneOf:
-                comparisonResult = try Compare.isOneOf(
+                return try Compare.isOneOf(
                     value.stringValue(),
                     condition.value.arrayValue()
                 )
             case .NotOneOf:
-                comparisonResult = try !Compare.isOneOf(
+                return try !Compare.isOneOf(
                     value.stringValue(),
                     condition.value.arrayValue()
                 )
             default:
                 throw Errors.UnexpectedValue
             }
-            return comparisonResult
         } catch {
             // Handle or log the error
             return false
