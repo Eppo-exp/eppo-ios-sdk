@@ -118,9 +118,8 @@ final class ruleEvaluatorTests: XCTestCase {
         );
     }
     
-    public func testMatchesInValidSemVer() {
+    public func testMatchesInvalidSemVer() {
         var targetingRule: TargetingRule = TargetingRule();
-        //targetingRule.conditions.append(self.getNotOneOfCondition());
         targetingRule.conditions.append(self.getInvalidSemVerConditions());
         let targetingRules: [TargetingRule] = [targetingRule];
         
