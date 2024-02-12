@@ -20,6 +20,16 @@ class EppoMockHttpClient: EppoHttpClient {
     public func post() throws {}
 }
 
+class AssignmentLoggerSpy {
+    var wasCalled = false
+    var lastAssignment: Assignment?
+
+    func logger(assignment: Assignment) {
+        wasCalled = true
+        lastAssignment = assignment
+    }
+}
+
 struct SubjectWithAttributes : Decodable {
     var subjectKey: String;
     var subjectAttributes: SubjectAttributes;
@@ -99,8 +109,18 @@ struct AssignmentTestCase : Decodable {
 }
 
 final class eppoClientTests: XCTestCase {
-    private var eppoClient: EppoClient = EppoClient("mock-api-key",
-                                                    host: "http://localhost:4001");
+    var loggerSpy: AssignmentLoggerSpy!
+    var eppoClient: EppoClient!
+    
+    override func setUp() {
+        super.setUp()
+        // Initialize loggerSpy here
+        loggerSpy = AssignmentLoggerSpy()
+        // Now that loggerSpy is initialized, we can use it to initialize eppoClient
+        eppoClient = EppoClient("mock-api-key",
+                                host: "http://localhost:4001",
+                                assignmentLogger: loggerSpy.logger)
+    }
     
     func testUnloadedClient() async throws {
         XCTAssertThrowsError(try self.eppoClient.getStringAssignment("badFlagRising", "allocation-experiment-1"))
@@ -151,6 +171,9 @@ final class eppoClientTests: XCTestCase {
                 default:
                     XCTFail("Unknown value type: \(testCase.valueType)");
             }
+            
+            XCTAssertTrue(loggerSpy.wasCalled, "Assignment logger was not called.")
+
         }
 
         XCTAssertGreaterThan(testFiles.count, 0);

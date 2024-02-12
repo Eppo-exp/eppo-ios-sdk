@@ -11,6 +11,11 @@ public class EppoClient {
     public private(set) var host: String = "";
     public private(set) var flagConfigs: FlagConfigJSON = FlagConfigJSON(flags: [:]);
     
+    public typealias AssignmentLogger = (Assignment) -> Void
+    // Add the callback function as an optional property of the class.
+    // It's optional because you might not always want to log assignments.
+    public var assignmentLogger: AssignmentLogger?
+
     enum Errors: Error {
         case apiKeyInvalid
         case hostInvalid
@@ -25,10 +30,12 @@ public class EppoClient {
 
     public init(
         _ apiKey: String,
-        host: String = "https://fscdn.eppo.cloud"
+        host: String = "https://fscdn.eppo.cloud",
+        assignmentLogger: AssignmentLogger? = nil
     ) {
         self.apiKey = apiKey;
         self.host = host;
+        self.assignmentLogger = assignmentLogger;
     }
 
     public func load(httpClient: EppoHttpClient = NetworkEppoHttpClient()) async throws {
@@ -134,7 +141,18 @@ public class EppoClient {
         ) else {
             return nil;
         }
-
+        
+        // optionally log assignment
+        let assignment = Assignment(
+            flagKey,
+            flagKey + "-" + rule.allocationKey,
+            assignedVariation.value,
+            subjectKey,
+            ISO8601DateFormatter().string(from: Date()),
+            subjectAttributes
+        )
+        self.assignmentLogger?(assignment);
+        
         if (useTypedVariationValue) {
             return assignedVariation.typedValue;
         } else {
