@@ -1,11 +1,11 @@
 public class Assignment : CustomStringConvertible {
-    var allocation: String = "";
-    var experiment: String = "";
-    var featureFlag: String = "";
-    var variation: String = "";
-    var subject: String = "";
-    var timestamp: String = "";
-    var subjectAttributes: SubjectAttributes;
+    public var allocation: String = "";
+    public var experiment: String = "";
+    public var featureFlag: String = "";
+    public var variation: String = "";
+    public var subject: String = "";
+    public var timestamp: String = "";
+    public var subjectAttributes: SubjectAttributes;
     
     public var description: String {
         return "Subject " + subject + " assigned to variation " + variation + " in experiment " + experiment;
