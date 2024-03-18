@@ -172,7 +172,14 @@ final class eppoClientTests: XCTestCase {
                     XCTFail("Unknown value type: \(testCase.valueType)");
             }
             
+
             XCTAssertTrue(loggerSpy.wasCalled, "Assignment logger was not called.")
+            if let lastAssignment = loggerSpy.lastAssignment {
+                XCTAssertTrue(lastAssignment.experiment.contains(lastAssignment.allocation))
+                XCTAssertTrue(lastAssignment.experiment.contains(lastAssignment.experiment))
+            } else {
+                XCTFail("No last assignment was logged.")
+            }
 
         }
 
