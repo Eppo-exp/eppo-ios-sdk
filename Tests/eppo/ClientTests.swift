@@ -176,7 +176,10 @@ final class eppoClientTests: XCTestCase {
             XCTAssertTrue(loggerSpy.wasCalled, "Assignment logger was not called.")
             if let lastAssignment = loggerSpy.lastAssignment {
                 XCTAssertTrue(lastAssignment.experiment.contains(lastAssignment.allocation))
-                XCTAssertTrue(lastAssignment.experiment.contains(lastAssignment.experiment))
+                XCTAssertTrue(lastAssignment.experiment.count > lastAssignment.allocation.count)
+
+                XCTAssertTrue(lastAssignment.experiment.contains(lastAssignment.featureFlag))
+                XCTAssertTrue(lastAssignment.experiment.count > lastAssignment.featureFlag.count)
             } else {
                 XCTFail("No last assignment was logged.")
             }
