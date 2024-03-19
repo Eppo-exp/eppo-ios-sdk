@@ -108,12 +108,19 @@ struct AssignmentTestCase : Decodable {
     }
 }
 
-final class eppoClientTests: XCTestCase {    
-    func testUnloadedClient() async throws {
-        let loggerSpy = AssignmentLoggerSpy()
-        let eppoClient = EppoClient("mock-api-key",
+final class eppoClientTests: XCTestCase {   
+    var loggerSpy: AssignmentLoggerSpy!
+    var eppoClient: EppoClient!
+
+    override func setUpWithError() throws {
+        try super.setUpWithError()
+        loggerSpy = AssignmentLoggerSpy()
+        eppoClient = EppoClient("mock-api-key",
                                 host: "http://localhost:4001",
                                 assignmentLogger: loggerSpy.logger)
+    }
+ 
+    func testUnloadedClient() async throws {
         XCTAssertThrowsError(try eppoClient.getStringAssignment("badFlagRising", "allocation-experiment-1"))
         {
             error in XCTAssertEqual(error as! EppoClient.Errors, EppoClient.Errors.configurationNotLoaded)
@@ -121,11 +128,6 @@ final class eppoClientTests: XCTestCase {
     }
 
     func testBadFlagKey() async throws {
-        let loggerSpy = AssignmentLoggerSpy()
-        let eppoClient = EppoClient("mock-api-key",
-                                host: "http://localhost:4001",
-                                assignmentLogger: loggerSpy.logger)
-
         try await eppoClient.load(httpClient: EppoMockHttpClient());
 
         XCTAssertThrowsError(try eppoClient.getStringAssignment("badFlagRising", "allocation-experiment-1"))
@@ -135,10 +137,6 @@ final class eppoClientTests: XCTestCase {
     }
 
     func testLogger() async throws {
-        let loggerSpy = AssignmentLoggerSpy()
-        let eppoClient = EppoClient("mock-api-key",
-                                    host: "http://localhost:4001",
-                                    assignmentLogger: loggerSpy.logger)
         try await eppoClient.load(httpClient: EppoMockHttpClient());
 
         let assignment = try eppoClient.getStringAssignment("6255e1a72a84e984aed55668", "randomization_algo")
@@ -163,11 +161,6 @@ final class eppoClientTests: XCTestCase {
             let caseString = try String(contentsOfFile: testFile);
             let caseData = caseString.data(using: .utf8)!;
             let testCase = try JSONDecoder().decode(AssignmentTestCase.self, from: caseData);
-
-            let loggerSpy = AssignmentLoggerSpy()
-            let eppoClient = EppoClient("mock-api-key",
-                                    host: "http://localhost:4001",
-                                    assignmentLogger: loggerSpy.logger)
 
             try await eppoClient.load(httpClient: EppoMockHttpClient());
 
