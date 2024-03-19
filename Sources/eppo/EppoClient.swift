@@ -151,7 +151,6 @@ public class EppoClient {
             timestamp: ISO8601DateFormatter().string(from: Date()),
             subjectAttributes: subjectAttributes
         )
-        //print("ASSIGNMENT", assignment)
         self.assignmentLogger?(assignment);
         
         if (useTypedVariationValue) {
