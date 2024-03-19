@@ -108,39 +108,50 @@ struct AssignmentTestCase : Decodable {
     }
 }
 
-final class eppoClientTests: XCTestCase {
+final class eppoClientTests: XCTestCase {   
     var loggerSpy: AssignmentLoggerSpy!
     var eppoClient: EppoClient!
-    
-    override func setUp() {
-        super.setUp()
-        // Initialize loggerSpy here
+
+    override func setUpWithError() throws {
+        try super.setUpWithError()
         loggerSpy = AssignmentLoggerSpy()
-        // Now that loggerSpy is initialized, we can use it to initialize eppoClient
         eppoClient = EppoClient("mock-api-key",
                                 host: "http://localhost:4001",
                                 assignmentLogger: loggerSpy.logger)
     }
-    
+ 
     func testUnloadedClient() async throws {
-        XCTAssertThrowsError(try self.eppoClient.getStringAssignment("badFlagRising", "allocation-experiment-1"))
+        XCTAssertThrowsError(try eppoClient.getStringAssignment("badFlagRising", "allocation-experiment-1"))
         {
             error in XCTAssertEqual(error as! EppoClient.Errors, EppoClient.Errors.configurationNotLoaded)
         };
     }
 
     func testBadFlagKey() async throws {
-        try await self.eppoClient.load(httpClient: EppoMockHttpClient());
+        try await eppoClient.load(httpClient: EppoMockHttpClient());
 
-        XCTAssertThrowsError(try self.eppoClient.getStringAssignment("badFlagRising", "allocation-experiment-1"))
+        XCTAssertThrowsError(try eppoClient.getStringAssignment("badFlagRising", "allocation-experiment-1"))
         {
             error in XCTAssertEqual(error as! EppoClient.Errors, EppoClient.Errors.flagConfigNotFound)
         };
     }
 
-    func testAssignments() async throws {
-        try await self.eppoClient.load(httpClient: EppoMockHttpClient());
+    func testLogger() async throws {
+        try await eppoClient.load(httpClient: EppoMockHttpClient());
 
+        let assignment = try eppoClient.getStringAssignment("6255e1a72a84e984aed55668", "randomization_algo")
+        XCTAssertEqual(assignment, "red")
+        XCTAssertTrue(loggerSpy.wasCalled)
+        if let lastAssignment = loggerSpy.lastAssignment {
+            XCTAssertEqual(lastAssignment.allocation, "allocation-experiment-1")
+            XCTAssertEqual(lastAssignment.experiment, "randomization_algo-allocation-experiment-1")
+            XCTAssertEqual(lastAssignment.subject, "6255e1a72a84e984aed55668")
+        } else {
+            XCTFail("No last assignment was logged.")
+        }
+    }
+
+    func testAssignments() async throws {
         let testFiles = Bundle.module.paths(
             forResourcesOfType: ".json",
             inDirectory: "Resources/test-data/assignment-v2"
@@ -151,29 +162,28 @@ final class eppoClientTests: XCTestCase {
             let caseData = caseString.data(using: .utf8)!;
             let testCase = try JSONDecoder().decode(AssignmentTestCase.self, from: caseData);
 
+            try await eppoClient.load(httpClient: EppoMockHttpClient());
+
             switch (testCase.valueType) {
                 case "boolean":
-                    let assignments = try testCase.boolAssignments(self.eppoClient);
+                    let assignments = try testCase.boolAssignments(eppoClient);
                     let expectedAssignments = testCase.expectedAssignments.map { try? $0?.boolValue() }
                     XCTAssertEqual(assignments, expectedAssignments);
                 case "json":
-                    let assignments = try testCase.jsonAssignments(self.eppoClient);
+                    let assignments = try testCase.jsonAssignments(eppoClient);
                     let expectedAssignments = testCase.expectedAssignments.map { try? $0?.stringValue() }
                     XCTAssertEqual(assignments, expectedAssignments);
                 case "numeric":
-                    let assignments = try testCase.numericAssignments(self.eppoClient);
+                    let assignments = try testCase.numericAssignments(eppoClient);
                     let expectedAssignments = testCase.expectedAssignments.map { try? $0?.doubleValue() }
                     XCTAssertEqual(assignments, expectedAssignments);
                 case "string":
-                    let assignments = try testCase.stringAssignments(self.eppoClient);
+                    let assignments = try testCase.stringAssignments(eppoClient);
                     let expectedAssignments = testCase.expectedAssignments.map { try? $0?.stringValue() }
                     XCTAssertEqual(assignments, expectedAssignments);
                 default:
                     XCTFail("Unknown value type: \(testCase.valueType)");
             }
-            
-            XCTAssertTrue(loggerSpy.wasCalled, "Assignment logger was not called.")
-
         }
 
         XCTAssertGreaterThan(testFiles.count, 0);

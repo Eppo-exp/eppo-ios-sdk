@@ -144,12 +144,12 @@ public class EppoClient {
         
         // optionally log assignment
         let assignment = Assignment(
-            flagKey,
-            flagKey + "-" + rule.allocationKey,
-            assignedVariation.value,
-            subjectKey,
-            ISO8601DateFormatter().string(from: Date()),
-            subjectAttributes
+            flagKey: flagKey,
+            allocationKey: rule.allocationKey,
+            variation: assignedVariation.value,
+            subject: subjectKey,
+            timestamp: ISO8601DateFormatter().string(from: Date()),
+            subjectAttributes: subjectAttributes
         )
         self.assignmentLogger?(assignment);
         

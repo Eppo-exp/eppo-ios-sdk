@@ -12,12 +12,12 @@ public class Assignment : CustomStringConvertible {
     }
 
     public init(
-        _ flagKey: String,
-        _ allocationKey: String,
-        _ variation: String,
-        _ subject: String,
-        _ timestamp: String,
-        _ subjectAttributes: SubjectAttributes
+        flagKey: String,
+        allocationKey: String,
+        variation: String,
+        subject: String,
+        timestamp: String,
+        subjectAttributes: SubjectAttributes
     )
     {
         self.allocation = allocationKey;
