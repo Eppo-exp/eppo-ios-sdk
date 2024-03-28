@@ -10,10 +10,9 @@ public class EppoClient {
     public private(set) var apiKey: String = "";
     public private(set) var host: String = "";
     public private(set) var flagConfigs: FlagConfigJSON = FlagConfigJSON(flags: [:]);
+    private var assignmentCache: AssignmentCache?;
     
     public typealias AssignmentLogger = (Assignment) -> Void
-    // Add the callback function as an optional property of the class.
-    // It's optional because you might not always want to log assignments.
     public var assignmentLogger: AssignmentLogger?
 
     enum Errors: Error {
@@ -31,11 +30,13 @@ public class EppoClient {
     public init(
         _ apiKey: String,
         host: String = "https://fscdn.eppo.cloud",
-        assignmentLogger: AssignmentLogger? = nil
+        assignmentLogger: AssignmentLogger? = nil,
+        assignmentCache: AssignmentCache? = InMemoryAssignmentCache()
     ) {
         self.apiKey = apiKey;
         self.host = host;
         self.assignmentLogger = assignmentLogger;
+        self.assignmentCache = assignmentCache
     }
 
     public func load(httpClient: EppoHttpClient = NetworkEppoHttpClient()) async throws {
@@ -142,16 +143,34 @@ public class EppoClient {
             return nil;
         }
         
-        // optionally log assignment
-        let assignment = Assignment(
-            flagKey: flagKey,
-            allocationKey: rule.allocationKey,
-            variation: assignedVariation.value,
-            subject: subjectKey,
-            timestamp: ISO8601DateFormatter().string(from: Date()),
-            subjectAttributes: subjectAttributes
-        )
-        self.assignmentLogger?(assignment);
+        // Optionally log assignment
+        if let assignmentLogger = self.assignmentLogger {
+            let assignment = Assignment(
+                flagKey: flagKey,
+                allocationKey: rule.allocationKey,
+                variation: assignedVariation.value,
+                subject: subjectKey,
+                timestamp: ISO8601DateFormatter().string(from: Date()),
+                subjectAttributes: subjectAttributes
+            )
+            
+            // Prepare the assignment cache key
+            let assignmentCacheKey = AssignmentCacheKey(
+                subjectKey: subjectKey,
+                flagKey: flagKey,
+                allocationKey: rule.allocationKey,
+                variationValue: assignedVariation.typedValue
+            )
+            
+            // Check if the assignment has already been logged, if the cache is defined
+            if let cache = self.assignmentCache, cache.hasLoggedAssignment(key: assignmentCacheKey) {
+                // The assignment has already been logged, do nothing
+            } else {
+                // Either the cache is not defined, or the assignment hasn't been logged yet
+                assignmentLogger(assignment)
+                self.assignmentCache?.setLastLoggedAssignment(key: assignmentCacheKey)
+            }
+        }
         
         if (useTypedVariationValue) {
             return assignedVariation.typedValue;

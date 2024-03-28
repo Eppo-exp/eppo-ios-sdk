@@ -1,3 +1,6 @@
+import Foundation
+import CryptoKit
+
 public enum EppoValueType {
     case Number
     case String
@@ -137,5 +140,20 @@ public class EppoValue : Decodable, Equatable {
         }
 
         return self.value!;
+    }
+
+    public func toHashedString() -> String {
+        var str = ""
+        if let value = self.value {
+            str = value
+        } else if let array = self.array {
+            str = array.joined(separator: ",")
+        }
+
+        // generate a sha256 hash of the string. this is a 32-byte signature which 
+        // will likely save space when using json values but will almost certainly be
+        // longer than typical string variation values such as "control" or "variant".
+        let sha256Data = SHA256.hash(data: str.data(using: .utf8) ?? Data())
+        return sha256Data.map { String(format: "%02x", $0) }.joined()
     }
 }
