@@ -1,32 +1,32 @@
 import Foundation;
 
-public let version = "1.0.1"
+// todo: make this a build argument (FF-1944)
+let sdkVersion = "1.0.1"
+let sdkName = "ios"
 
-public struct FlagConfigJSON : Decodable {
-    var flags: [String : FlagConfig];
+// todo: these exported errors could use some work. only ones here that are
+// user actionable should be public; all others are for internal communication.
+public enum Errors: Error {
+    case apiKeyInvalid
+    case hostInvalid
+    case subjectKeyRequired
+    case flagKeyRequired
+    case featureFlagDisabled
+    case allocationKeyNotDefined
+    case invalidURL
+    case configurationNotLoaded
+    case flagConfigNotFound
 }
 
 public class EppoClient {
     public private(set) var apiKey: String = "";
     public private(set) var host: String = "";
-    public private(set) var flagConfigs: FlagConfigJSON = FlagConfigJSON(flags: [:]);
+    private var configurationStore: ConfigurationStore;
     private var assignmentCache: AssignmentCache?;
     
     public typealias AssignmentLogger = (Assignment) -> Void
     public var assignmentLogger: AssignmentLogger?
-
-    enum Errors: Error {
-        case apiKeyInvalid
-        case hostInvalid
-        case subjectKeyRequired
-        case flagKeyRequired
-        case featureFlagDisabled
-        case allocationKeyNotDefined
-        case invalidURL
-        case configurationNotLoaded
-        case flagConfigNotFound
-    }
-
+    
     public init(
         _ apiKey: String,
         host: String = "https://fscdn.eppo.cloud",
@@ -37,20 +37,16 @@ public class EppoClient {
         self.host = host;
         self.assignmentLogger = assignmentLogger;
         self.assignmentCache = assignmentCache
+
+        let httpClient = NetworkEppoHttpClient(baseURL: host, apiKey: apiKey, sdkName: sdkName, sdkVersion: sdkVersion);
+        let configurationRequester = ConfigurationRequester(
+            httpClient: httpClient  
+        );
+        self.configurationStore = ConfigurationStore(requester: configurationRequester);
     }
 
-    public func load(httpClient: EppoHttpClient = NetworkEppoHttpClient()) async throws {
-        var urlString = self.host + "/api/randomized_assignment/v3/config";
-        urlString += "?sdkName=ios";
-        urlString += "&sdkVersion=" + version;
-        urlString += "&apiKey=" + self.apiKey;
-
-        guard let url = URL(string: urlString) else {
-            throw Errors.invalidURL;
-        }
-
-        let (urlData, _) = try await httpClient.get(url);
-        self.flagConfigs = try JSONDecoder().decode(FlagConfigJSON.self, from: urlData);
+    public func load() async throws {
+        try await self.configurationStore.fetchAndStoreConfigurations()
     }
     
     public func getAssignment(
@@ -103,9 +99,9 @@ public class EppoClient {
 
         if subjectKey.count == 0 { throw Errors.subjectKeyRequired }
         if flagKey.count == 0 { throw Errors.flagKeyRequired }
-        if self.flagConfigs.flags.count == 0 { throw Errors.configurationNotLoaded }
+        if !self.configurationStore.isInitialized() { throw Errors.configurationNotLoaded }
 
-        guard let flagConfig = self.flagConfigs.flags[flagKey] else {
+        guard let flagConfig = self.configurationStore.getConfiguration(flagKey: flagKey) else {
             throw Errors.flagConfigNotFound;
         }
 

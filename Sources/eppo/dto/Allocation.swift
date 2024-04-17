@@ -1,4 +1,4 @@
-public struct Allocation: Decodable {
+struct Allocation: Decodable {
     var percentExposure: Float;
     var variations: [Variation];
 }

@@ -1,4 +1,4 @@
-public struct ShardRange : Decodable {
+struct ShardRange : Decodable {
     var start: Int;
     var end: Int;
 }
