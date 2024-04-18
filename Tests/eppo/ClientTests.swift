@@ -99,6 +99,7 @@ struct AssignmentTestCase : Decodable {
                 try client.getJSONStringAssignment(
                     flagKey: self.experiment,
                     subjectKey: $0,
+                    subjectAttributes: SubjectAttributes(),
                     defaultValue: ""
                 );
             })
@@ -124,6 +125,7 @@ struct AssignmentTestCase : Decodable {
                 try client.getNumericAssignment(
                     flagKey: self.experiment,
                     subjectKey: $0,
+                    subjectAttributes: SubjectAttributes(),
                     defaultValue: 0
                 );
             })

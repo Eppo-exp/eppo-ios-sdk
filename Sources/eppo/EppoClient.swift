@@ -57,56 +57,56 @@ public class EppoClient {
         flagKey: String,
         subjectKey: String,
         subjectAttributes: SubjectAttributes = SubjectAttributes(),
-        defaultValue: Bool) throws -> Bool?
+        defaultValue: Bool) throws -> Bool
     {
         return try getInternalAssignment(
             flagKey: flagKey, 
             subjectKey: subjectKey, 
             subjectAttributes: subjectAttributes, 
             useTypedVariationValue: true
-        )?.boolValue()
+        )?.boolValue() ?? defaultValue
     }
     
     public func getJSONStringAssignment(
         flagKey: String,
         subjectKey: String,
-        subjectAttributes: SubjectAttributes = SubjectAttributes(),
-        defaultValue: String) throws -> String?
+        subjectAttributes: SubjectAttributes,
+        defaultValue: String) throws -> String
     {
         return try getInternalAssignment(
             flagKey: flagKey, 
             subjectKey: subjectKey, 
             subjectAttributes: subjectAttributes, 
             useTypedVariationValue: false
-        )?.stringValue()
+        )?.stringValue() ?? defaultValue
     }
     
     public func getNumericAssignment(
         flagKey: String,
         subjectKey: String,
-        subjectAttributes: SubjectAttributes = SubjectAttributes(),
-        defaultValue: Double) throws -> Double?
+        subjectAttributes: SubjectAttributes,
+        defaultValue: Double) throws -> Double
     {
         return try getInternalAssignment(
             flagKey: flagKey, 
             subjectKey: subjectKey, 
             subjectAttributes: subjectAttributes, 
             useTypedVariationValue: true
-        )?.doubleValue()
+        )?.doubleValue() ?? defaultValue
     }
     
     public func getStringAssignment(
         flagKey: String,
         subjectKey: String,
         subjectAttributes: SubjectAttributes = SubjectAttributes(),
-        defaultValue: String = "") throws -> String?
+        defaultValue: String) throws -> String
     {
         return try getInternalAssignment(
             flagKey: flagKey, 
             subjectKey: subjectKey, 
             subjectAttributes: subjectAttributes, 
             useTypedVariationValue: true
-        )?.stringValue()
+        )?.stringValue() ?? defaultValue
     }
     
     private func getInternalAssignment(
