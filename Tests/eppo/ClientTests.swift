@@ -140,13 +140,21 @@ struct AssignmentTestCase : Decodable {
                 try client.getStringAssignment(
                     flagKey: self.experiment,
                     subjectKey: $0.subjectKey,
-                    subjectAttributes: $0.subjectAttributes
+                    subjectAttributes: $0.subjectAttributes,
+                    defaultValue: ""
                 )
             });
         }
 
         if self.subjects != nil {
-            return try self.subjects!.map({ try client.getStringAssignment(flagKey: self.experiment, subjectKey: $0); })
+            return try self.subjects!.map({
+                try client.getStringAssignment(
+                    flagKey: self.experiment,
+                    subjectKey: $0,
+                    subjectAttributes: SubjectAttributes(),
+                    defaultValue: ""
+                );
+            })
         }
 
         return [];
@@ -166,7 +174,11 @@ final class eppoClientTests: XCTestCase {
    }
    
    func testUnloadedClient() async throws {
-       XCTAssertThrowsError(try eppoClient.getStringAssignment(flagKey: "badFlagRising", subjectKey: "abc"))
+       XCTAssertThrowsError(try eppoClient.getStringAssignment(
+            flagKey: "badFlagRising",
+            subjectKey: "abc",
+            subjectAttributes: SubjectAttributes(),
+            defaultValue: ""))
        {
            error in XCTAssertEqual(error as! EppoClient.Errors, EppoClient.Errors.configurationNotLoaded)
        };
@@ -175,7 +187,11 @@ final class eppoClientTests: XCTestCase {
    func testBadFlagKey() async throws {
        try await eppoClient.load(httpClient: EppoMockHttpClient());
        
-       XCTAssertThrowsError(try eppoClient.getStringAssignment(flagKey: "badFlagRising", subjectKey: "def"))
+       XCTAssertThrowsError(try eppoClient.getStringAssignment(
+            flagKey: "badFlagRising",
+            subjectKey: "def",
+            subjectAttributes: SubjectAttributes(),
+            defaultValue: ""))
        {
            error in XCTAssertEqual(error as! EppoClient.Errors, EppoClient.Errors.flagConfigNotFound)
        };
@@ -184,7 +200,11 @@ final class eppoClientTests: XCTestCase {
    func testLogger() async throws {
        try await eppoClient.load(httpClient: EppoMockHttpClient());
        
-       let assignment = try eppoClient.getStringAssignment(flagKey: "randomization_algo", subjectKey: "6255e1a72a84e984aed55668")
+       let assignment = try eppoClient.getStringAssignment(
+            flagKey: "randomization_algo",
+            subjectKey: "6255e1a72a84e984aed55668",
+            subjectAttributes: SubjectAttributes(),
+            defaultValue: "")
        XCTAssertEqual(assignment, "red")
        XCTAssertTrue(loggerSpy.wasCalled)
        if let lastAssignment = loggerSpy.lastAssignment {
@@ -259,8 +279,16 @@ final class EppoClientAssignmentCachingTests: XCTestCase {
                     assignmentCache: nil)
         try await eppoClient.load(httpClient: EppoMockHttpClient());
 
-        _ = try eppoClient.getStringAssignment(flagKey: "randomization_algo", subjectKey: "6255e1a72a84e984aed55668")
-        _ = try eppoClient.getStringAssignment(flagKey: "randomization_algo", subjectKey: "6255e1a72a84e984aed55668")
+        _ = try eppoClient.getStringAssignment(
+            flagKey: "randomization_algo",
+            subjectKey: "6255e1a72a84e984aed55668",
+            subjectAttributes: SubjectAttributes(),
+            defaultValue: "")
+        _ = try eppoClient.getStringAssignment(
+            flagKey: "randomization_algo",
+            subjectKey: "6255e1a72a84e984aed55668",
+            subjectAttributes: SubjectAttributes(),
+            defaultValue: "")
 
         XCTAssertEqual(loggerSpy.logCount, 2, "Should log twice since there is no cache.")
     }
@@ -268,8 +296,16 @@ final class EppoClientAssignmentCachingTests: XCTestCase {
     func testDoesNotLogDuplicateAssignmentsWithCache() async throws {
         try await eppoClient.load(httpClient: EppoMockHttpClient());
         
-        _ = try eppoClient.getStringAssignment(flagKey: "randomization_algo", subjectKey: "6255e1a72a84e984aed55668")
-        _ = try eppoClient.getStringAssignment(flagKey: "randomization_algo", subjectKey: "6255e1a72a84e984aed55668")
+        _ = try eppoClient.getStringAssignment(
+            flagKey: "randomization_algo",
+            subjectKey: "6255e1a72a84e984aed55668",
+            subjectAttributes: SubjectAttributes(),
+            defaultValue: "")
+        _ = try eppoClient.getStringAssignment(
+            flagKey: "randomization_algo",
+            subjectKey: "6255e1a72a84e984aed55668",
+            subjectAttributes: SubjectAttributes(),
+            defaultValue: "")
 
         XCTAssertEqual(loggerSpy.logCount, 1, "Should log once due to cache hit.")
     }
@@ -277,8 +313,16 @@ final class EppoClientAssignmentCachingTests: XCTestCase {
     func testLogsForEachUniqueFlag() async throws {
         try await eppoClient.load(httpClient: EppoMockHttpClient());
         
-        _ =  try eppoClient.getStringAssignment(flagKey: "randomization_algo", subjectKey: "6255e1a72a84e984aed55668")
-        _ = try eppoClient.getStringAssignment(flagKey: "new_user_onboarding", subjectKey: "6255e1a72a84e984aed55668")
+        _ =  try eppoClient.getStringAssignment(
+            flagKey: "randomization_algo",
+            subjectKey: "6255e1a72a84e984aed55668",
+            subjectAttributes: SubjectAttributes(),
+            defaultValue: "")
+        _ = try eppoClient.getStringAssignment(
+            flagKey: "new_user_onboarding",
+            subjectKey: "6255e1a72a84e984aed55668",
+            subjectAttributes: SubjectAttributes(),
+            defaultValue: "")
 
         XCTAssertEqual(loggerSpy.logCount, 2, "Should log 2 times due to changing flags.")
     }
@@ -345,8 +389,16 @@ final class EppoClientAssignmentCachingTests: XCTestCase {
         // Inject the mock HTTP client
         try await eppoClient.load(httpClient: mockHttpClient)
         
-        _ = try eppoClient.getStringAssignment(flagKey: "feature1", subjectKey: "6255e1a72a84e984aed55668")
-        _ = try eppoClient.getStringAssignment(flagKey: "feature1", subjectKey: "6255e1a72a84e984aed55668")
+        _ = try eppoClient.getStringAssignment(
+            flagKey: "feature1",
+            subjectKey: "6255e1a72a84e984aed55668",
+            subjectAttributes: SubjectAttributes(),
+            defaultValue: "")
+        _ = try eppoClient.getStringAssignment(
+            flagKey: "feature1",
+            subjectKey: "6255e1a72a84e984aed55668",
+            subjectAttributes: SubjectAttributes(),
+            defaultValue: "")
         XCTAssertEqual(loggerSpy.logCount, 1, "Should log once with the cache.")
 
         // update the allocation
@@ -440,7 +492,11 @@ final class EppoClientAssignmentCachingTests: XCTestCase {
         try await eppoClient.load(httpClient: EppoJSONAcceptorClient(jsonResponse: newTreatmentJson))
 
 
-        _ = try eppoClient.getStringAssignment(flagKey: "feature1", subjectKey: "6255e1a72a84e984aed55668")
+        _ = try eppoClient.getStringAssignment(
+            flagKey: "feature1",
+            subjectKey: "6255e1a72a84e984aed55668",
+            subjectAttributes: SubjectAttributes(),
+            defaultValue: "")
         XCTAssertEqual(loggerSpy.logCount, 2, "Should log again since the allocation changed.")
 
     }
