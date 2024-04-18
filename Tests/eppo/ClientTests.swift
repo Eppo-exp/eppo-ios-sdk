@@ -232,19 +232,19 @@ final class eppoClientTests: XCTestCase {
            switch (testCase.valueType) {
            case "boolean":
                let assignments = try testCase.boolAssignments(eppoClient);
-               let expectedAssignments = testCase.expectedAssignments.map { try? $0?.boolValue() }
+               let expectedAssignments = testCase.expectedAssignments.map { try? $0?.boolValue() ?? false }
                XCTAssertEqual(assignments, expectedAssignments);
            case "json":
                let assignments = try testCase.jsonAssignments(eppoClient);
-               let expectedAssignments = testCase.expectedAssignments.map { try? $0?.stringValue() }
+               let expectedAssignments = testCase.expectedAssignments.map { try? $0?.stringValue() ?? "" }
                XCTAssertEqual(assignments, expectedAssignments);
            case "numeric":
                let assignments = try testCase.numericAssignments(eppoClient);
-               let expectedAssignments = testCase.expectedAssignments.map { try? $0?.doubleValue() }
+               let expectedAssignments = testCase.expectedAssignments.map { try? $0?.doubleValue() ?? 0 }
                XCTAssertEqual(assignments, expectedAssignments);
            case "string":
                let assignments = try testCase.stringAssignments(eppoClient);
-               let expectedAssignments = testCase.expectedAssignments.map { try? $0?.stringValue() }
+               let expectedAssignments = testCase.expectedAssignments.map { try? $0?.stringValue() ?? "" }
                XCTAssertEqual(assignments, expectedAssignments);
            default:
                XCTFail("Unknown value type: \(testCase.valueType)");
