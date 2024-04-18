@@ -1,6 +1,6 @@
 import Foundation;
 
-public let version = "1.0.1"
+public let version = "3.0.0"
 
 public struct FlagConfigJSON : Decodable {
     var flags: [String : FlagConfig];
@@ -28,7 +28,7 @@ public class EppoClient {
     }
 
     public init(
-        _ apiKey: String,
+        apiKey: String,
         host: String = "https://fscdn.eppo.cloud",
         assignmentLogger: AssignmentLogger? = nil,
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache()
@@ -52,52 +52,68 @@ public class EppoClient {
         let (urlData, _) = try await httpClient.get(url);
         self.flagConfigs = try JSONDecoder().decode(FlagConfigJSON.self, from: urlData);
     }
-    
-    public func getAssignment(
-        _ subjectKey: String,
-        _ flagKey: String,
-        _ subjectAttributes: SubjectAttributes) throws -> String?
-    {
-        return try getInternalAssignment(subjectKey, flagKey, subjectAttributes, false)?.stringValue()
-    }
 
     public func getBoolAssignment(
-        _ subjectKey: String,
-        _ flagKey: String,
-        _ subjectAttributes: SubjectAttributes = SubjectAttributes()) throws -> Bool?
+        flagKey: String,
+        subjectKey: String,
+        subjectAttributes: SubjectAttributes = SubjectAttributes(),
+        defaultValue: Bool) throws -> Bool?
     {
-        return try getInternalAssignment(subjectKey, flagKey, subjectAttributes, true)?.boolValue()
+        return try getInternalAssignment(
+            flagKey: flagKey, 
+            subjectKey: subjectKey, 
+            subjectAttributes: subjectAttributes, 
+            useTypedVariationValue: true
+        )?.boolValue()
     }
     
     public func getJSONStringAssignment(
-        _ subjectKey: String,
-        _ flagKey: String,
-        _ subjectAttributes: SubjectAttributes = SubjectAttributes()) throws -> String?
+        flagKey: String,
+        subjectKey: String,
+        subjectAttributes: SubjectAttributes = SubjectAttributes(),
+        defaultValue: String) throws -> String?
     {
-        return try getInternalAssignment(subjectKey, flagKey, subjectAttributes, false)?.stringValue()
+        return try getInternalAssignment(
+            flagKey: flagKey, 
+            subjectKey: subjectKey, 
+            subjectAttributes: subjectAttributes, 
+            useTypedVariationValue: false
+        )?.stringValue()
     }
     
     public func getNumericAssignment(
-        _ subjectKey: String,
-        _ flagKey: String,
-        _ subjectAttributes: SubjectAttributes = SubjectAttributes()) throws -> Double?
+        flagKey: String,
+        subjectKey: String,
+        subjectAttributes: SubjectAttributes = SubjectAttributes(),
+        defaultValue: Double) throws -> Double?
     {
-        return try getInternalAssignment(subjectKey, flagKey, subjectAttributes, true)?.doubleValue()
+        return try getInternalAssignment(
+            flagKey: flagKey, 
+            subjectKey: subjectKey, 
+            subjectAttributes: subjectAttributes, 
+            useTypedVariationValue: true
+        )?.doubleValue()
     }
     
     public func getStringAssignment(
-        _ subjectKey: String,
-        _ flagKey: String,
-        _ subjectAttributes: SubjectAttributes = SubjectAttributes()) throws -> String?
+        flagKey: String,
+        subjectKey: String,
+        subjectAttributes: SubjectAttributes = SubjectAttributes(),
+        defaultValue: String = "") throws -> String?
     {
-        return try getInternalAssignment(subjectKey, flagKey, subjectAttributes, true)?.stringValue()
+        return try getInternalAssignment(
+            flagKey: flagKey, 
+            subjectKey: subjectKey, 
+            subjectAttributes: subjectAttributes, 
+            useTypedVariationValue: true
+        )?.stringValue()
     }
     
     private func getInternalAssignment(
-        _ subjectKey: String,
-        _ flagKey: String,
-        _ subjectAttributes: SubjectAttributes,
-        _ useTypedVariationValue: Bool) throws -> EppoValue?
+        flagKey: String,
+        subjectKey: String,
+        subjectAttributes: SubjectAttributes,
+        useTypedVariationValue: Bool) throws -> EppoValue?
     {
         try self.validate();
 
