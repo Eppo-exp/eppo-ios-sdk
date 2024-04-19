@@ -36,7 +36,7 @@ final class AssignmentCacheTests: XCTestCase {
             subjectKey: "Math", 
             flagKey: "TestFlag",
             allocationKey: "A1",
-            variationValue: EppoValue(value: "VariationA", type: EppoValueType.String)
+            variationValue: EppoValue(value: "VariationA")
         )
         
         XCTAssertFalse(cache.hasLoggedAssignment(key: assignmentKey), "Cache should return false for an assignment that has not been logged.")

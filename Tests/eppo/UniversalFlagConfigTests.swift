@@ -39,7 +39,7 @@ final class UniversalFlagConfigTest: XCTestCase {
         XCTAssertEqual(variationFlag?.variationType, UFC_VariationType.numeric, "The 'numeric_flag' flag should have a variation type of 'NUMERIC'.")
         XCTAssertEqual(variationFlag?.variations.count, 2, "The 'numeric_flag' flag should have 2 variations.")
         XCTAssertEqual(variationFlag?.variations["e"]?.key, "e", "The 'numeric_flag' flag should have a variation key of 'e'.")
-        XCTAssertEqual(try variationFlag?.variations["e"]?.value.doubleValue(), 2.7182818, "The 'numeric_flag' flag should have a variation value of '100'.")
+        XCTAssertEqual(try variationFlag?.variations["e"]?.value.getDoubleValue(), 2.7182818)
 
         // total shards
         XCTAssertEqual(variationFlag?.totalShards, 10000, "The total shards should be 10000.")

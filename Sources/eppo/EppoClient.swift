@@ -4,19 +4,19 @@ import Foundation;
 public let sdkName = "ios"
 public let sdkVersion = "3.0.0"
 
-// todo: these exported errors could use some work. only ones here that are
-// user actionable should be public; all others are for internal communication.
 public enum Errors: Error {
     case apiKeyInvalid
     case hostInvalid
     case subjectKeyRequired
     case flagKeyRequired
-    case featureFlagDisabled
-    case allocationKeyNotDefined
+    case variationTypeMismatch
+    case variationWrongType
     case invalidURL
     case configurationNotLoaded
     case flagConfigNotFound
 }
+
+public typealias SubjectAttributes = [String: EppoValue];
 
 public class EppoClient {
     public private(set) var apiKey: String = "";
@@ -26,7 +26,9 @@ public class EppoClient {
     
     public typealias AssignmentLogger = (Assignment) -> Void
     public var assignmentLogger: AssignmentLogger?
-    
+
+    private var flagEvaluator: FlagEvaluator = FlagEvaluator(sharder: MD5Sharder())
+
     public init(
         apiKey: String,
         host: String = "https://fscdn.eppo.cloud",
@@ -55,40 +57,71 @@ public class EppoClient {
         subjectAttributes: SubjectAttributes = SubjectAttributes(),
         defaultValue: Bool) throws -> Bool
     {
-        return try getInternalAssignment(
-            flagKey: flagKey, 
-            subjectKey: subjectKey, 
-            subjectAttributes: subjectAttributes, 
-            useTypedVariationValue: true
-        )?.boolValue() ?? defaultValue
+        do {
+            return try getInternalAssignment(
+                flagKey: flagKey, 
+                subjectKey: subjectKey, 
+                subjectAttributes: subjectAttributes,
+                expectedVariationType: UFC_VariationType.boolean
+            )?.variation?.value.getBoolValue() ?? defaultValue
+        } catch {
+            // todo: implement graceful mode
+            return defaultValue
+        }
     }
     
-    public func getJSONStringAssignment(
+    // todo: add back when supporting JSON
+//    public func getJSONAssignment(
+//        flagKey: String,
+//        subjectKey: String,
+//        subjectAttributes: SubjectAttributes,
+//        defaultValue: [String: EppoValue]) throws -> [String: EppoValue]
+//    {
+//        return try getInternalAssignment(
+//            flagKey: flagKey, 
+//            subjectKey: subjectKey, 
+//            subjectAttributes: subjectAttributes
+//        )?.variation?.value?.objectValue() ?? defaultValue
+//    }
+//    
+    
+    public func getIntegerAssignment(
         flagKey: String,
         subjectKey: String,
-        subjectAttributes: SubjectAttributes,
-        defaultValue: String) throws -> String
+        subjectAttributes: SubjectAttributes = SubjectAttributes(),
+        defaultValue: Int) throws -> Int
     {
-        return try getInternalAssignment(
-            flagKey: flagKey, 
-            subjectKey: subjectKey, 
-            subjectAttributes: subjectAttributes, 
-            useTypedVariationValue: false
-        )?.stringValue() ?? defaultValue
+        do {
+            let assignment = try getInternalAssignment(
+                flagKey: flagKey,
+            subjectKey: subjectKey,
+            subjectAttributes: subjectAttributes,
+            expectedVariationType: UFC_VariationType.integer
+            )
+            return Int(try assignment?.variation?.value.getDoubleValue() ?? Double(defaultValue))
+        } catch {
+            // todo: implement graceful mode
+            return defaultValue
+        }
     }
     
-    public func getNumericAssignment(
+    public func getDoubleAssignment(
         flagKey: String,
         subjectKey: String,
-        subjectAttributes: SubjectAttributes,
+        subjectAttributes: SubjectAttributes = SubjectAttributes(),
         defaultValue: Double) throws -> Double
     {
-        return try getInternalAssignment(
-            flagKey: flagKey, 
-            subjectKey: subjectKey, 
-            subjectAttributes: subjectAttributes, 
-            useTypedVariationValue: true
-        )?.doubleValue() ?? defaultValue
+        do {
+            return try getInternalAssignment(
+                flagKey: flagKey, 
+                subjectKey: subjectKey, 
+            subjectAttributes: subjectAttributes,
+                expectedVariationType: UFC_VariationType.numeric
+            )?.variation?.value.getDoubleValue() ?? defaultValue
+        } catch {
+            // todo: implement graceful mode
+            return defaultValue
+        }
     }
     
     public func getStringAssignment(
@@ -97,147 +130,100 @@ public class EppoClient {
         subjectAttributes: SubjectAttributes = SubjectAttributes(),
         defaultValue: String) throws -> String
     {
-        return try getInternalAssignment(
-            flagKey: flagKey, 
-            subjectKey: subjectKey, 
-            subjectAttributes: subjectAttributes, 
-            useTypedVariationValue: true
-        )?.stringValue() ?? defaultValue
+        do {
+            return try getInternalAssignment(
+                flagKey: flagKey, 
+                subjectKey: subjectKey, 
+            subjectAttributes: subjectAttributes,
+                expectedVariationType: UFC_VariationType.string
+            )?.variation?.value.getStringValue() ?? defaultValue
+        } catch {
+            // todo: implement graceful mode
+            return defaultValue
+        }
     }
     
     private func getInternalAssignment(
         flagKey: String,
         subjectKey: String,
         subjectAttributes: SubjectAttributes,
-        useTypedVariationValue: Bool) throws -> EppoValue?
+        expectedVariationType: UFC_VariationType) throws -> FlagEvaluation?
     {
-        try self.validate();
+        if (self.apiKey.count == 0) {
+            throw Errors.apiKeyInvalid;
+        }
+
+        if (self.host.count == 0) {
+            throw Errors.hostInvalid;
+        }
 
         if subjectKey.count == 0 { throw Errors.subjectKeyRequired }
         if flagKey.count == 0 { throw Errors.flagKeyRequired }
         if !self.configurationStore.isInitialized() { throw Errors.configurationNotLoaded }
 
         guard let flagConfig = self.configurationStore.getConfiguration(flagKey: flagKey) else {
-            throw Errors.flagConfigNotFound;
+            throw Errors.flagConfigNotFound
         }
 
-        if let subjectVariationOverride = self.getSubjectVariationOverrides(subjectKey, flagConfig) {
-            return subjectVariationOverride;
+        if flagConfig.variationType != expectedVariationType {
+            throw Errors.variationTypeMismatch
         }
 
-        if !flagConfig.enabled {
-            //TODO: Log something here?
-            return nil;
-        }
-
-        guard let rule = try RuleEvaluator.findMatchingRule(subjectAttributes, flagConfig.rules) else {
-            //TODO: Log that no assigned variation exists?
-            return nil;
-        }
-
-        guard let allocation = flagConfig.allocations[rule.allocationKey] else {
-            throw Errors.allocationKeyNotDefined;
-        }
-        if !isInExperimentSample(
-            subjectKey,
-            flagKey,
-            flagConfig.subjectShards,
-            allocation.percentExposure
-        )
-        {
-            //TODO: Log that no variation is assigned?
-            return nil;
-        }
-
-        guard let assignedVariation = getAssignedVariation(
-            subjectKey, flagKey, flagConfig.subjectShards, allocation.variations
-        ) else {
-            return nil;
+        let flagEvaluation = flagEvaluator.evaluateFlag(flag: flagConfig, subjectKey: subjectKey, subjectAttributes: subjectAttributes)
+        
+        if let variation = flagEvaluation.variation, !isValueOfType(expectedType: expectedVariationType, variationValue: variation.value) {
+            throw Errors.variationWrongType
         }
         
         // Optionally log assignment
-        if let assignmentLogger = self.assignmentLogger {
-            let assignment = Assignment(
-                flagKey: flagKey,
-                allocationKey: rule.allocationKey,
-                variation: assignedVariation.value,
-                subject: subjectKey,
-                timestamp: ISO8601DateFormatter().string(from: Date()),
-                subjectAttributes: subjectAttributes
-            )
-            
-            // Prepare the assignment cache key
-            let assignmentCacheKey = AssignmentCacheKey(
-                subjectKey: subjectKey,
-                flagKey: flagKey,
-                allocationKey: rule.allocationKey,
-                variationValue: assignedVariation.typedValue
-            )
-            
-            // Check if the assignment has already been logged, if the cache is defined
-            if let cache = self.assignmentCache, cache.hasLoggedAssignment(key: assignmentCacheKey) {
-                // The assignment has already been logged, do nothing
-            } else {
-                // Either the cache is not defined, or the assignment hasn't been logged yet
-                assignmentLogger(assignment)
-                self.assignmentCache?.setLastLoggedAssignment(key: assignmentCacheKey)
+        if flagEvaluation.doLog {
+            if let allocationKey = flagEvaluation.allocationKey,
+               let variation = flagEvaluation.variation,
+               let assignmentLogger = self.assignmentLogger {
+                
+                // Prepare the assignment cache key
+                let assignmentCacheKey = AssignmentCacheKey(
+                    subjectKey: subjectKey,
+                    flagKey: flagKey,
+                    allocationKey: allocationKey,
+                    variationValue: variation.value
+                )
+                
+                // Check if the assignment has already been logged, if the cache is defined
+                if let cache = self.assignmentCache, cache.hasLoggedAssignment(key: assignmentCacheKey) {
+                    // The assignment has already been logged, do nothing
+                } else {
+                    // Either the cache is not defined, or the assignment hasn't been logged yet
+                    // Perform assignment.
+                    let assignment = Assignment(
+                        flagKey: flagKey,
+                        allocationKey: allocationKey,
+                        variation: variation.key,
+                        subject: subjectKey,
+                        timestamp: ISO8601DateFormatter().string(from: Date()),
+                        subjectAttributes: subjectAttributes
+                    )
+                    
+                    assignmentLogger(assignment)
+                    self.assignmentCache?.setLastLoggedAssignment(key: assignmentCacheKey)
+                }
             }
         }
         
-        if (useTypedVariationValue) {
-            return assignedVariation.typedValue;
-        } else {
-            // Access the stringified JSON from `value` field until support for native JSON is available.
-            // The legacy getAssignment method accesses the existing field to consistency return a stringified value.
-            return EppoValue(value: assignedVariation.value, type: EppoValueType.String);
-        }
+        return flagEvaluation;
     }
+}
 
-    public func validate() throws {
-        if(self.apiKey.count == 0) {
-            throw Errors.apiKeyInvalid;
-        }
-
-        if(self.host.count == 0) {
-            throw Errors.hostInvalid;
-        }
-    }
-
-    private func isInExperimentSample(
-        _ subjectKey: String,
-        _ flagKey: String,
-        _ subjectShards: Int,
-        _ percentageExposure: Float
-    ) -> Bool
-    {
-        let shard = Utils.getShard("exposure-" + subjectKey + "-" + flagKey, subjectShards);
-        return shard <= Int(percentageExposure * Float(subjectShards));
-    }
-
-    private func getSubjectVariationOverrides(_ subjectKey: String, _ flagConfig: FlagConfig) -> EppoValue? {
-        let subjectHash = Utils.getMD5Hex(input: subjectKey);
-        if let occurence = flagConfig.typedOverrides[subjectHash] {
-            return occurence;
-        }
-
-        return nil;
-    }
-
-    private func getAssignedVariation(
-        _ subjectKey: String,
-        _ flagKey: String,
-        _ subjectShards: Int,
-        _ variations: [Variation]
-    ) -> Variation?
-    {
-        let shard = Utils.getShard("assignment-" + subjectKey + "-" + flagKey, subjectShards);
-
-        for variation in variations {
-            if Utils.isShardInRange(shard, variation.shardRange) {
-                return variation;
-            }
-        }
-
-        return nil;
+func isValueOfType(expectedType: UFC_VariationType, variationValue: EppoValue) -> Bool {
+    switch expectedType {
+    case .json, .string:
+        return variationValue.isString()
+    case .integer:
+        let doubleValue = try? variationValue.getDoubleValue()
+        return variationValue.isNumeric() && doubleValue != nil && floor(doubleValue!) == doubleValue!
+    case .numeric:
+        return variationValue.isNumeric()
+    case .boolean:
+        return variationValue.isBool()
     }
 }

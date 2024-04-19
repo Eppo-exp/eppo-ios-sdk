@@ -3,131 +3,259 @@ import Semver
 
 typealias ConditionFunc = (Double, Double) -> Bool;
 
-class Compare {
-    public static func compareNumber(_ a: Double, _ b: Double, _ conditionFunc: ConditionFunc) -> Bool {
-        return conditionFunc(a, b);
-    }
-
+class Compare {    
     public static func compareRegex(_ a: String, _ pattern: String) -> Bool {
         return a.range(of: pattern, options:.regularExpression) != nil;
     }
-
+    
     public static func isOneOf(_ a: String, _ values: [String]) -> Bool {
         return values.map({ $0.lowercased() })
-                     .contains(a.lowercased());
+            .contains(a.lowercased());
     }
 }
 
-public class RuleEvaluator {
+struct FlagEvaluation {
+    let flagKey: String
+    let subjectKey: String
+    let subjectAttributes: SubjectAttributes
+    let allocationKey: Optional<String>
+    let variation: Optional<UFC_Variation>
+    let variationType: [UFC_VariationType]
+    let extraLogging: [String: String]
+    let doLog: Bool
+    
+    static func matchedResult(
+        flagKey: String,
+        subjectKey: String,
+        subjectAttributes: SubjectAttributes, 
+        allocationKey: Optional<String>, 
+        variation: Optional<UFC_Variation>,
+        variationType: [UFC_VariationType],
+        extraLogging: [String: String],
+        doLog: Bool
+    ) -> FlagEvaluation {
+        return FlagEvaluation(
+            flagKey: flagKey,
+            subjectKey: subjectKey,
+            subjectAttributes: subjectAttributes,
+            allocationKey: allocationKey,
+            variation: variation,
+            variationType: variationType,
+            extraLogging: extraLogging,
+            doLog: doLog
+        )
+    }
+    
+    static func noneResult(flagKey: String, subjectKey: String, subjectAttributes: SubjectAttributes) -> FlagEvaluation {
+        return FlagEvaluation(
+            flagKey: flagKey,
+            subjectKey: subjectKey,
+            subjectAttributes: subjectAttributes,
+            allocationKey: Optional<String>.none,
+            variation: Optional<UFC_Variation>.none,
+            variationType: [],
+            extraLogging: [:],
+            doLog: false
+        )
+    }
+}
+
+
+public class FlagEvaluator {
+    
+    let sharder: Sharder
+    
+    init(sharder: Sharder) {
+        self.sharder = sharder
+    }
+    
     enum Errors : Error {
         case UnexpectedValue
     }
-
-    static func findMatchingRule(
-        _ subjectAttributes: SubjectAttributes,
-        _ rules: [TargetingRule]) throws -> TargetingRule?
-    {
-        for rule in rules {
-            if try matchesRule(subjectAttributes, rule) {
-                return rule;
+    
+    func evaluateFlag(
+        flag: UFC_Flag,
+        subjectKey: String,
+        subjectAttributes: SubjectAttributes
+    ) -> FlagEvaluation {
+        if (!flag.enabled) {
+            return FlagEvaluation.noneResult(
+                flagKey: flag.key,
+                subjectKey: subjectKey,
+                subjectAttributes: subjectAttributes
+            )
+        }
+        
+        let now = Date()
+        for allocation in flag.allocations {
+            // # Skip allocations that are not active
+            if let startAt = allocation.startAt, now < startAt {
+                continue
+            }
+            if let endAt = allocation.endAt, now > endAt {
+                continue
+            }
+            
+            if matchesRules(subjectAttributes: subjectAttributes, rules: allocation.rules ?? []) {
+                // Split needs to match all shards
+                for split in allocation.splits {
+                    let allShardsMatch = split.shards.allSatisfy { shard in
+                        matchesShard(shard: shard, subjectKey: subjectKey, totalShards: flag.totalShards)
+                    }
+                    if allShardsMatch {
+                        return FlagEvaluation.matchedResult(
+                            flagKey: flag.key,
+                            subjectKey: subjectKey,
+                            subjectAttributes: subjectAttributes,
+                            allocationKey: Optional<String>.some(allocation.key),
+                            variation: flag.variations[split.variationKey],
+                            variationType: [flag.variationType],
+                            extraLogging: [:],
+                            doLog: allocation.doLog
+                        )
+                    }
+                }
             }
         }
         
-        return nil;
+        return FlagEvaluation.noneResult(
+            flagKey: flag.key,
+            subjectKey: subjectKey,
+            subjectAttributes: subjectAttributes
+        )
     }
     
-    static func matchesRule(
-        _ subjectAttributes: SubjectAttributes,
-        _ rule: TargetingRule) throws -> Bool
+    private func matchesShard(
+        shard: UFC_Shard,
+        subjectKey: String,
+        totalShards: Int
+    ) -> Bool {
+        assert(totalShards > 0, "Expect totalShards to be strictly positive")
+        let h = self.sharder.getShard(input: hashKey(salt: shard.salt, subjectKey: subjectKey), totalShards: totalShards)
+        return shard.ranges.contains { range in
+            isInShardRange(shard: h, range: range)
+        }
+    }
+    
+    private func matchesRules(
+        subjectAttributes: SubjectAttributes,
+        rules: [UFC_Rule]
+    ) -> Bool {
+        if rules.isEmpty {
+            return true
+        }
+
+        // If any rule matches, return true.
+        return rules.contains { rule in
+            return matchesRule(subjectAttributes: subjectAttributes, rule: rule)
+        }
+    }
+    
+    private func matchesRule(
+        subjectAttributes: SubjectAttributes,
+        rule: UFC_Rule) -> Bool
     {
-        let conditionEvaluations = try evaluateRuleConditions(subjectAttributes, rule.conditions);
-        return !conditionEvaluations.contains(false);
+        // Check that all conditions within the rule are met
+        return rule.conditions.allSatisfy { condition in
+            // If the condition throws an error, consider this not matching.
+            return (try? evaluateCondition(subjectAttributes: subjectAttributes, condition: condition)) ?? false
+        }
     }
     
-    static func evaluateCondition(
-        _ subjectAttributes: SubjectAttributes,
-        _ condition: TargetingCondition
+    private func isInShardRange(shard: Int, range: UFC_Range) -> Bool {
+        return range.start <= shard && shard < range.end
+    }
+    
+    private func hashKey(salt: String, subjectKey: String) -> String {
+        return salt + "-" + subjectKey
+    }
+    
+    private func evaluateCondition(
+        subjectAttributes: SubjectAttributes,
+        condition: UFC_TargetingRuleCondition
     ) throws -> Bool
     {
-        guard let value = subjectAttributes[condition.attribute] else {
-           return false
+
+        let attributeValue: EppoValue? = subjectAttributes[condition.attribute]
+
+        // First we do any NULL check
+        let attributeValueIsNull = attributeValue?.isNull() ?? true
+        if condition.operator == .isNull {
+            let expectNull: Bool = try condition.value.getBoolValue()
+            return (expectNull && attributeValueIsNull) || (!expectNull && !attributeValueIsNull)
+        } else if attributeValueIsNull {
+            // Any check other than IS NULL should fail if the attribute value is null
+            return false
         }
-        
+
+        // Safely unwrap attributeValue for further use
+        guard let value = attributeValue else {
+            // Handle the nil case, perhaps throw an error or return a default value
+            return false
+        }
+
         do {
-            switch condition.targetingOperator {
-            case .GreaterThanEqualTo, .GreaterThan, .LessThanEqualTo, .LessThan:
+            switch condition.operator {
+            case .greaterThanEqual, .greaterThan, .lessThanEqual, .lessThan:
                 do {
-                    let valueStr = try value.stringValue()
-                    let conditionValueStr = try condition.value.stringValue()
-                    if let valueVersion = Semver(valueStr), let conditionVersion = Semver(conditionValueStr) {
+                    let valueStr = try? value.getStringValue()
+                    let conditionValueStr = try? condition.value.getStringValue()
+                    if let valueVersion = valueStr.flatMap(Semver.init), let conditionVersion = conditionValueStr.flatMap(Semver.init) {
                         // If both strings are valid Semver strings, perform a Semver comparison
-                        switch condition.targetingOperator {
-                        case .GreaterThanEqualTo:
+                        switch condition.operator {
+                        case .greaterThanEqual:
                             return valueVersion >= conditionVersion
-                        case .GreaterThan:
+                        case .greaterThan:
                             return valueVersion > conditionVersion
-                        case .LessThanEqualTo:
+                        case .lessThanEqual:
                             return valueVersion <= conditionVersion
-                        case .LessThan:
+                        case .lessThan:
                             return valueVersion < conditionVersion
                         default:
                             throw Errors.UnexpectedValue
                         }
                     } else {
                         // If either string is not a valid Semver, fall back to double comparison
-                        let valueDouble = try value.doubleValue()
-                        let conditionDouble = try condition.value.doubleValue()
-                        switch condition.targetingOperator {
-                        case .GreaterThanEqualTo:
+                        let valueDouble = try value.getDoubleValue()
+                        let conditionDouble = try condition.value.getDoubleValue()
+                        switch condition.operator {
+                        case .greaterThanEqual:
                             return valueDouble >= conditionDouble
-                        case .GreaterThan:
+                        case .greaterThan:
                             return valueDouble > conditionDouble
-                        case .LessThanEqualTo:
+                        case .lessThanEqual:
                             return valueDouble <= conditionDouble
-                        case .LessThan:
+                        case .lessThan:
                             return valueDouble < conditionDouble
                         default:
                             throw Errors.UnexpectedValue
                         }
                     }
-                } catch {
+                } catch let e {
                     // If stringValue() or doubleValue() throws, or Semver creation fails
                     return false
                 }
-            case .Matches:
+            case .matches:
                 return try Compare.compareRegex(
-                    value.stringValue(),
-                    condition.value.stringValue()
+                    value.getStringValue(),
+                    condition.value.getStringValue()
                 )
-            case .OneOf:
+            case .oneOf:
                 return try Compare.isOneOf(
-                    value.stringValue(),
-                    condition.value.arrayValue()
+                    value.getStringValue(),
+                    condition.value.getStringArrayValue()
                 )
-            case .NotOneOf:
+            case .notOneOf:
                 return try !Compare.isOneOf(
-                    value.stringValue(),
-                    condition.value.arrayValue()
+                    value.getStringValue(),
+                    condition.value.getStringArrayValue()
                 )
             default:
-                throw Errors.UnexpectedValue
+                return false;
             }
         } catch {
             // Handle or log the error
             return false
         }
-    }
-    
-    static func evaluateRuleConditions(
-        _ subjectAttributes: SubjectAttributes,
-        _ conditions: [TargetingCondition]
-    ) throws -> [Bool]
-    {
-        var evaluations = [Bool]();
-        for condition in conditions {
-            try evaluations.append(evaluateCondition(subjectAttributes, condition));
-        }
-        
-        return evaluations;
     }
 }

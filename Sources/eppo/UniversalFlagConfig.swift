@@ -73,7 +73,7 @@ enum UFC_VariationType: String, Decodable {
       case integer = "INTEGER"
       case json = "JSON"
       case numeric = "NUMERIC"
-      case string = "STRING"    
+      case string = "STRING"
 }
 
 enum UFC_AlgorithmType: String, Decodable {
