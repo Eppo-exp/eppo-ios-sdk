@@ -6,12 +6,16 @@ class SharderTests: XCTestCase {
     
     func testMD5Sharder() {
         let sharder = MD5Sharder()
-        let input = "testInput"
-        let totalShards = 10
-        let shard = sharder.getShard(input: input, totalShards: totalShards)
-        
-        XCTAssertGreaterThanOrEqual(shard, 0)
-        XCTAssertLessThan(shard, totalShards)
+        let inputs: [(String, Int)] = [
+            ("test-input", 5619),
+            ("alice", 3170),
+            ("bob", 7420),
+            ("charlie", 7497),
+        ];
+        let totalShards = 10000
+        inputs.forEach { (input, expectedShard) in
+            XCTAssertEqual(sharder.getShard(input: input, totalShards: totalShards), expectedShard)
+        }
     }
     
     func testDeterministicSharder() {
