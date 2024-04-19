@@ -72,8 +72,8 @@ struct AssignmentTestCase : Decodable {
             });
         }
 
-        if self.subjects != nil {
-            return try self.subjects!.map({ try client.getBoolAssignment(
+        if let subjects = self.subjects {
+            return try subjects.map({ try client.getBoolAssignment(
                 flagKey: self.experiment,
                 subjectKey: $0,
                 defaultValue: false); })
@@ -94,8 +94,8 @@ struct AssignmentTestCase : Decodable {
             });
         }
 
-        if self.subjects != nil {
-            return try self.subjects!.map({
+        if let subjects = self.subjects {
+            return try subjects.map({
                 try client.getJSONStringAssignment(
                     flagKey: self.experiment,
                     subjectKey: $0,
@@ -120,8 +120,8 @@ struct AssignmentTestCase : Decodable {
             });
         }
 
-        if self.subjects != nil {
-            return try self.subjects!.map({
+        if let subjects = self.subjects {
+            return try subjects.map({
                 try client.getNumericAssignment(
                     flagKey: self.experiment,
                     subjectKey: $0,
@@ -146,8 +146,8 @@ struct AssignmentTestCase : Decodable {
             });
         }
 
-        if self.subjects != nil {
-            return try self.subjects!.map({
+        if let subjects = self.subjects {
+            return try subjects.map({
                 try client.getStringAssignment(
                     flagKey: self.experiment,
                     subjectKey: $0,
