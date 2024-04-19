@@ -64,13 +64,19 @@ struct AssignmentTestCase : Decodable {
         if self.subjectsWithAttributes != nil {
             return try self.subjectsWithAttributes!.map({
                 try client.getBoolAssignment(
-                    $0.subjectKey, self.experiment, $0.subjectAttributes
+                    flagKey: self.experiment, 
+                    subjectKey: $0.subjectKey,
+                    subjectAttributes: $0.subjectAttributes,
+                    defaultValue: false
                 )
             });
         }
 
-        if self.subjects != nil {
-            return try self.subjects!.map({ try client.getBoolAssignment($0, self.experiment); })
+        if let subjects = self.subjects {
+            return try subjects.map({ try client.getBoolAssignment(
+                flagKey: self.experiment,
+                subjectKey: $0,
+                defaultValue: false); })
         }
 
         return [];
@@ -80,13 +86,23 @@ struct AssignmentTestCase : Decodable {
         if self.subjectsWithAttributes != nil {
             return try self.subjectsWithAttributes!.map({
                 try client.getJSONStringAssignment(
-                    $0.subjectKey, self.experiment, $0.subjectAttributes
+                    flagKey: self.experiment,
+                    subjectKey: $0.subjectKey,
+                    subjectAttributes: $0.subjectAttributes,
+                    defaultValue: ""
                 )
             });
         }
 
-        if self.subjects != nil {
-            return try self.subjects!.map({ try client.getJSONStringAssignment($0, self.experiment); })
+        if let subjects = self.subjects {
+            return try subjects.map({
+                try client.getJSONStringAssignment(
+                    flagKey: self.experiment,
+                    subjectKey: $0,
+                    subjectAttributes: SubjectAttributes(),
+                    defaultValue: ""
+                );
+            })
         }
 
         return [];
@@ -96,13 +112,23 @@ struct AssignmentTestCase : Decodable {
         if self.subjectsWithAttributes != nil {
             return try self.subjectsWithAttributes!.map({
                 try client.getNumericAssignment(
-                    $0.subjectKey, self.experiment, $0.subjectAttributes
+                    flagKey: self.experiment,
+                    subjectKey: $0.subjectKey,
+                    subjectAttributes: $0.subjectAttributes,
+                    defaultValue: 0
                 )
             });
         }
 
-        if self.subjects != nil {
-            return try self.subjects!.map({ try client.getNumericAssignment($0, self.experiment); })
+        if let subjects = self.subjects {
+            return try subjects.map({
+                try client.getNumericAssignment(
+                    flagKey: self.experiment,
+                    subjectKey: $0,
+                    subjectAttributes: SubjectAttributes(),
+                    defaultValue: 0
+                );
+            })
         }
 
         return [];
@@ -112,13 +138,23 @@ struct AssignmentTestCase : Decodable {
         if self.subjectsWithAttributes != nil {
             return try self.subjectsWithAttributes!.map({
                 try client.getStringAssignment(
-                    $0.subjectKey, self.experiment, $0.subjectAttributes
+                    flagKey: self.experiment,
+                    subjectKey: $0.subjectKey,
+                    subjectAttributes: $0.subjectAttributes,
+                    defaultValue: ""
                 )
             });
         }
 
-        if self.subjects != nil {
-            return try self.subjects!.map({ try client.getStringAssignment($0, self.experiment); })
+        if let subjects = self.subjects {
+            return try subjects.map({
+                try client.getStringAssignment(
+                    flagKey: self.experiment,
+                    subjectKey: $0,
+                    subjectAttributes: SubjectAttributes(),
+                    defaultValue: ""
+                );
+            })
         }
 
         return [];
@@ -132,13 +168,17 @@ final class eppoClientTests: XCTestCase {
    override func setUpWithError() throws {
        try super.setUpWithError()
        loggerSpy = AssignmentLoggerSpy()
-       eppoClient = EppoClient("mock-api-key",
+       eppoClient = EppoClient(apiKey: "mock-api-key",
                                host: "http://localhost:4001",
                                assignmentLogger: loggerSpy.logger)
    }
    
    func testUnloadedClient() async throws {
-       XCTAssertThrowsError(try eppoClient.getStringAssignment("badFlagRising", "allocation-experiment-1"))
+       XCTAssertThrowsError(try eppoClient.getStringAssignment(
+            flagKey: "badFlagRising",
+            subjectKey: "abc",
+            subjectAttributes: SubjectAttributes(),
+            defaultValue: ""))
        {
            error in XCTAssertEqual(error as! EppoClient.Errors, EppoClient.Errors.configurationNotLoaded)
        };
@@ -147,7 +187,11 @@ final class eppoClientTests: XCTestCase {
    func testBadFlagKey() async throws {
        try await eppoClient.load(httpClient: EppoMockHttpClient());
        
-       XCTAssertThrowsError(try eppoClient.getStringAssignment("badFlagRising", "allocation-experiment-1"))
+       XCTAssertThrowsError(try eppoClient.getStringAssignment(
+            flagKey: "badFlagRising",
+            subjectKey: "def",
+            subjectAttributes: SubjectAttributes(),
+            defaultValue: ""))
        {
            error in XCTAssertEqual(error as! EppoClient.Errors, EppoClient.Errors.flagConfigNotFound)
        };
@@ -156,7 +200,11 @@ final class eppoClientTests: XCTestCase {
    func testLogger() async throws {
        try await eppoClient.load(httpClient: EppoMockHttpClient());
        
-       let assignment = try eppoClient.getStringAssignment("6255e1a72a84e984aed55668", "randomization_algo")
+       let assignment = try eppoClient.getStringAssignment(
+            flagKey: "randomization_algo",
+            subjectKey: "6255e1a72a84e984aed55668",
+            subjectAttributes: SubjectAttributes(),
+            defaultValue: "")
        XCTAssertEqual(assignment, "red")
        XCTAssertTrue(loggerSpy.wasCalled)
        if let lastAssignment = loggerSpy.lastAssignment {
@@ -184,19 +232,19 @@ final class eppoClientTests: XCTestCase {
            switch (testCase.valueType) {
            case "boolean":
                let assignments = try testCase.boolAssignments(eppoClient);
-               let expectedAssignments = testCase.expectedAssignments.map { try? $0?.boolValue() }
+               let expectedAssignments = testCase.expectedAssignments.map { try? $0?.boolValue() ?? false }
                XCTAssertEqual(assignments, expectedAssignments);
            case "json":
                let assignments = try testCase.jsonAssignments(eppoClient);
-               let expectedAssignments = testCase.expectedAssignments.map { try? $0?.stringValue() }
+               let expectedAssignments = testCase.expectedAssignments.map { try? $0?.stringValue() ?? "" }
                XCTAssertEqual(assignments, expectedAssignments);
            case "numeric":
                let assignments = try testCase.numericAssignments(eppoClient);
-               let expectedAssignments = testCase.expectedAssignments.map { try? $0?.doubleValue() }
+               let expectedAssignments = testCase.expectedAssignments.map { try? $0?.doubleValue() ?? 0 }
                XCTAssertEqual(assignments, expectedAssignments);
            case "string":
                let assignments = try testCase.stringAssignments(eppoClient);
-               let expectedAssignments = testCase.expectedAssignments.map { try? $0?.stringValue() }
+               let expectedAssignments = testCase.expectedAssignments.map { try? $0?.stringValue() ?? "" }
                XCTAssertEqual(assignments, expectedAssignments);
            default:
                XCTFail("Unknown value type: \(testCase.valueType)");
@@ -214,7 +262,8 @@ final class EppoClientAssignmentCachingTests: XCTestCase {
     override func setUpWithError() throws {
         try super.setUpWithError()
         loggerSpy = AssignmentLoggerSpy()
-        eppoClient = EppoClient("mock-api-key",
+        eppoClient = EppoClient(
+                    apiKey: "mock-api-key",
                     host: "http://localhost:4001",
                     assignmentLogger: loggerSpy.logger
                     // InMemoryAssignmentCache is default enabled.
@@ -223,14 +272,23 @@ final class EppoClientAssignmentCachingTests: XCTestCase {
     
     func testLogsDuplicateAssignmentsWithoutCache() async throws {
         // Disable the assignment cache.
-        eppoClient = EppoClient("mock-api-key",
+        eppoClient = EppoClient(
+                    apiKey: "mock-api-key",
                     host: "http://localhost:4001",
                     assignmentLogger: loggerSpy.logger,
                     assignmentCache: nil)
         try await eppoClient.load(httpClient: EppoMockHttpClient());
 
-        _ = try eppoClient.getStringAssignment("6255e1a72a84e984aed55668", "randomization_algo")
-        _ = try eppoClient.getStringAssignment("6255e1a72a84e984aed55668", "randomization_algo")
+        _ = try eppoClient.getStringAssignment(
+            flagKey: "randomization_algo",
+            subjectKey: "6255e1a72a84e984aed55668",
+            subjectAttributes: SubjectAttributes(),
+            defaultValue: "")
+        _ = try eppoClient.getStringAssignment(
+            flagKey: "randomization_algo",
+            subjectKey: "6255e1a72a84e984aed55668",
+            subjectAttributes: SubjectAttributes(),
+            defaultValue: "")
 
         XCTAssertEqual(loggerSpy.logCount, 2, "Should log twice since there is no cache.")
     }
@@ -238,8 +296,16 @@ final class EppoClientAssignmentCachingTests: XCTestCase {
     func testDoesNotLogDuplicateAssignmentsWithCache() async throws {
         try await eppoClient.load(httpClient: EppoMockHttpClient());
         
-        _ = try eppoClient.getStringAssignment("6255e1a72a84e984aed55668", "randomization_algo")
-        _ = try eppoClient.getStringAssignment("6255e1a72a84e984aed55668", "randomization_algo")
+        _ = try eppoClient.getStringAssignment(
+            flagKey: "randomization_algo",
+            subjectKey: "6255e1a72a84e984aed55668",
+            subjectAttributes: SubjectAttributes(),
+            defaultValue: "")
+        _ = try eppoClient.getStringAssignment(
+            flagKey: "randomization_algo",
+            subjectKey: "6255e1a72a84e984aed55668",
+            subjectAttributes: SubjectAttributes(),
+            defaultValue: "")
 
         XCTAssertEqual(loggerSpy.logCount, 1, "Should log once due to cache hit.")
     }
@@ -247,8 +313,16 @@ final class EppoClientAssignmentCachingTests: XCTestCase {
     func testLogsForEachUniqueFlag() async throws {
         try await eppoClient.load(httpClient: EppoMockHttpClient());
         
-        _ =  try eppoClient.getStringAssignment("6255e1a72a84e984aed55668", "randomization_algo")
-        _ = try eppoClient.getStringAssignment("6255e1a72a84e984aed55668", "new_user_onboarding")
+        _ =  try eppoClient.getStringAssignment(
+            flagKey: "randomization_algo",
+            subjectKey: "6255e1a72a84e984aed55668",
+            subjectAttributes: SubjectAttributes(),
+            defaultValue: "")
+        _ = try eppoClient.getStringAssignment(
+            flagKey: "new_user_onboarding",
+            subjectKey: "6255e1a72a84e984aed55668",
+            subjectAttributes: SubjectAttributes(),
+            defaultValue: "")
 
         XCTAssertEqual(loggerSpy.logCount, 2, "Should log 2 times due to changing flags.")
     }
@@ -311,12 +385,20 @@ final class EppoClientAssignmentCachingTests: XCTestCase {
             }
         """
         let mockHttpClient = EppoJSONAcceptorClient(jsonResponse: mockJson)
-        let eppoClient = EppoClient("your_api_key", host: "http://localhost:4001", assignmentLogger: loggerSpy.logger)
+        let eppoClient = EppoClient(apiKey: "your_api_key", host: "http://localhost:4001", assignmentLogger: loggerSpy.logger)
         // Inject the mock HTTP client
         try await eppoClient.load(httpClient: mockHttpClient)
         
-        _ = try eppoClient.getStringAssignment("6255e1a72a84e984aed55668", "feature1")
-        _ = try eppoClient.getStringAssignment("6255e1a72a84e984aed55668", "feature1")
+        _ = try eppoClient.getStringAssignment(
+            flagKey: "feature1",
+            subjectKey: "6255e1a72a84e984aed55668",
+            subjectAttributes: SubjectAttributes(),
+            defaultValue: "")
+        _ = try eppoClient.getStringAssignment(
+            flagKey: "feature1",
+            subjectKey: "6255e1a72a84e984aed55668",
+            subjectAttributes: SubjectAttributes(),
+            defaultValue: "")
         XCTAssertEqual(loggerSpy.logCount, 1, "Should log once with the cache.")
 
         // update the allocation
@@ -410,7 +492,11 @@ final class EppoClientAssignmentCachingTests: XCTestCase {
         try await eppoClient.load(httpClient: EppoJSONAcceptorClient(jsonResponse: newTreatmentJson))
 
 
-        _ = try eppoClient.getStringAssignment("6255e1a72a84e984aed55668", "feature1")
+        _ = try eppoClient.getStringAssignment(
+            flagKey: "feature1",
+            subjectKey: "6255e1a72a84e984aed55668",
+            subjectAttributes: SubjectAttributes(),
+            defaultValue: "")
         XCTAssertEqual(loggerSpy.logCount, 2, "Should log again since the allocation changed.")
 
     }
