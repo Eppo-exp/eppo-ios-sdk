@@ -196,7 +196,13 @@ public class FlagEvaluator {
             // Handle the nil case, perhaps throw an error or return a default value
             return false
         }
-        
+
+        // Safely unwrap attributeValue for further use
+        guard let value = attributeValue else {
+            // Handle the nil case, perhaps throw an error or return a default value
+            return false
+        }
+
         do {
             switch condition.operator {
             case .greaterThanEqual, .greaterThan, .lessThanEqual, .lessThan:
@@ -234,7 +240,7 @@ public class FlagEvaluator {
                             throw Errors.UnexpectedValue
                         }
                     }
-                } catch {
+                } catch let e {
                     // If stringValue() or doubleValue() throws, or Semver creation fails
                     return false
                 }
