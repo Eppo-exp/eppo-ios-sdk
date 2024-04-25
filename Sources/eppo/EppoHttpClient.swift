@@ -27,12 +27,20 @@ public class NetworkEppoHttpClient : EppoHttpClient {
     }
 
     public func get(_ path: String) async throws -> (Data, URLResponse) {
-        var urlString = self.baseURL + path
-        urlString += "?sdkName=ios";
-        urlString += "&sdkVersion=" + sdkVersion;
-        urlString += "&apiKey=" + self.apiKey;
+        var components = URLComponents(string: self.baseURL)
 
-        guard let url = URL(string: urlString) else {
+        // Assuming `path` does not start with a "/", append it conditionally
+        components?.path += path
+
+        // Set up the query items
+        let queryItems = [
+            URLQueryItem(name: "sdkName", value: "ios"),
+            URLQueryItem(name: "sdkVersion", value: sdkVersion),
+            URLQueryItem(name: "apiKey", value: self.apiKey)
+        ]
+        components?.queryItems = queryItems
+
+        guard let url = components?.url else {
             throw Errors.invalidURL;
         }
 
