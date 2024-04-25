@@ -151,7 +151,7 @@ final class eppoClientTests: XCTestCase {
        }
        
        loggerSpy = AssignmentLoggerSpy()
-       eppoClient = EppoClient("mock-api-key", assignmentLogger: loggerSpy.logger)
+       eppoClient = EppoClient(apiKey: "mock-api-key", assignmentLogger: loggerSpy.logger)
     
    }
    
@@ -244,7 +244,7 @@ final class EppoClientAssignmentCachingTests: XCTestCase {
     override func setUpWithError() throws {
         try super.setUpWithError()
         loggerSpy = AssignmentLoggerSpy()
-        eppoClient = EppoClient("mock-api-key",
+        eppoClient = EppoClient(apiKey: "mock-api-key",
                     assignmentLogger: loggerSpy.logger
                     // InMemoryAssignmentCache is default enabled.
         )
@@ -252,7 +252,7 @@ final class EppoClientAssignmentCachingTests: XCTestCase {
     
     func testLogsDuplicateAssignmentsWithoutCache() async throws {
         // Disable the assignment cache.
-        eppoClient = EppoClient("mock-api-key",
+        eppoClient = EppoClient(apiKey: "mock-api-key",
                     assignmentLogger: loggerSpy.logger,
                     assignmentCache: nil)
 
@@ -262,8 +262,16 @@ final class EppoClientAssignmentCachingTests: XCTestCase {
         }
         try await eppoClient.load()
         
-        _ = try eppoClient.getStringAssignment("6255e1a72a84e984aed55668", "randomization_algo")
-        _ = try eppoClient.getStringAssignment("6255e1a72a84e984aed55668", "randomization_algo")
+        _ = try eppoClient.getStringAssignment(
+            flagKey: "randomization_algo",
+            subjectKey: "6255e1a72a84e984aed55668",
+            defaultValue: ""
+        )
+        _ = try eppoClient.getStringAssignment(
+            flagKey: "randomization_algo",
+            subjectKey: "6255e1a72a84e984aed55668",
+            defaultValue: ""
+        )
 
         XCTAssertEqual(loggerSpy.logCount, 2, "Should log twice since there is no cache.")
     }
@@ -296,8 +304,16 @@ final class EppoClientAssignmentCachingTests: XCTestCase {
         }
         try await eppoClient.load()
         
-        _ = try eppoClient.getStringAssignment("6255e1a72a84e984aed55668", "randomization_algo")
-        _ = try eppoClient.getStringAssignment("6255e1a72a84e984aed55668", "new_user_onboarding")
+        _ = try eppoClient.getStringAssignment(
+            flagKey: "randomization_algo",
+            subjectKey: "6255e1a72a84e984aed55668",
+            defaultValue: ""
+        )
+        _ = try eppoClient.getStringAssignment(
+            flagKey: "new_user_onboarding",
+            subjectKey: "6255e1a72a84e984aed55668",
+            defaultValue: ""
+        )
 
         XCTAssertEqual(loggerSpy.logCount, 2, "Should log 2 times due to changing flags.")
     }
