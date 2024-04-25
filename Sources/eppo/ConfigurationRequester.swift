@@ -25,7 +25,12 @@ class ConfigurationRequester {
         self.httpClient = httpClient
     }
 
-    public static func decodeRACConfig(from jsonString: String) throws -> RACConfig {
+    public func fetchConfigurations() async throws -> RACConfig {
+        let (urlData, _) = try await httpClient.get(RAC_CONFIG_URL);
+        return try ConfigurationRequester.decodeRACConfig(from: String(data: urlData, encoding: .utf8) ?? "");    
+    }
+
+    internal static func decodeRACConfig(from jsonString: String) throws -> RACConfig {
         do {
             guard let jsonData = jsonString.data(using: .utf8) else {
                 throw ConfigurationRequesterError.invalidJSON("Cannot be encoded into UTF-8")
@@ -54,10 +59,5 @@ class ConfigurationRequester {
         } catch let error {
             throw ConfigurationRequesterError.invalidJSON("JSON cannot be parsed: \(error.localizedDescription)")
         }
-    }
-
-    public func fetchConfigurations() async throws -> RACConfig {
-        let (urlData, _) = try await httpClient.get(RAC_CONFIG_URL);
-        return try ConfigurationRequester.decodeRACConfig(from: String(data: urlData, encoding: .utf8) ?? "");    
     }
 }
