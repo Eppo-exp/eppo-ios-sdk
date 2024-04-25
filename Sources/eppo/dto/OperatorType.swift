@@ -1,4 +1,4 @@
-public enum OperatorType : String, Decodable {
+enum OperatorType : String, Decodable {
     case Matches = "MATCHES"
     case GreaterThanEqualTo = "GTE"
     case GreaterThan = "GT"

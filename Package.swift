@@ -18,7 +18,9 @@ let package = Package(
     dependencies: [
         // Dependencies declare other packages that this package depends on.
         // .package(url: /* package url */, from: "1.0.0"),
-        .package(url: "https://github.com/ddddxxx/Semver", from: "0.2.1")
+        .package(url: "https://github.com/ddddxxx/Semver", from: "0.2.1"),
+        .package(url: "https://github.com/AliSoftware/OHHTTPStubs", .upToNextMajor(from: "9.0.0"))
+        
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
@@ -30,7 +32,11 @@ let package = Package(
         ),
         .testTarget(
             name: "eppo-flagging-tests",
-            dependencies: ["eppo-flagging"],
+            dependencies: [
+                "eppo-flagging",
+                .product(name: "OHHTTPStubs", package: "OHHTTPStubs"),
+                .product(name: "OHHTTPStubsSwift", package: "OHHTTPStubs")
+            ],
             path: "./Tests/eppo",
             resources: [
                 .copy("Resources")

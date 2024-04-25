@@ -1,39 +1,16 @@
 import XCTest
 
 import Foundation
+import OHHTTPStubs
+import OHHTTPStubsSwift
 
 @testable import eppo_flagging
 
-class EppoMockHttpClient: EppoHttpClient {
-    public init() {}
-
-    public func get(_ url: URL) async throws -> (Data, URLResponse) {
-        let fileURL = Bundle.module.url(
-            forResource: "Resources/test-data/rac-experiments-v3.json",
-            withExtension: ""
-        );
-
-        let stringData = try String(contentsOfFile: fileURL!.path);
-        return (stringData.data(using: .utf8)!, URLResponse());
-    }
-
-    public func post() throws {}
-}
-
-class EppoJSONAcceptorClient: EppoHttpClient {
-    var jsonResponse: Data?
-    
-    init(jsonResponse: String) {
-        self.jsonResponse = jsonResponse.data(using: .utf8)
-    }
-    
-    func get(_ url: URL) async throws -> (Data, URLResponse) {
-        guard let jsonData = jsonResponse else {
-            throw URLError(.badServerResponse)
-        }
-        return (jsonData, URLResponse(url: url, mimeType: "application/json", expectedContentLength: jsonData.count, textEncodingName: nil))
-    }
-}
+let fileURL = Bundle.module.url(
+    forResource: "Resources/test-data/rac-experiments-v3.json",
+    withExtension: ""
+);
+let RacTestJSON: String = try! String(contentsOfFile: fileURL!.path);
 
 public class AssignmentLoggerSpy {
     var wasCalled = false
@@ -126,35 +103,40 @@ struct AssignmentTestCase : Decodable {
 }
 
 final class eppoClientTests: XCTestCase {
-   var loggerSpy: AssignmentLoggerSpy!
-   var eppoClient: EppoClient!
-   
-   override func setUpWithError() throws {
-       try super.setUpWithError()
+    var loggerSpy: AssignmentLoggerSpy!
+    var eppoClient: EppoClient!
+    
+    override func setUpWithError() throws {
+        try super.setUpWithError()
+    
+       stub(condition: isHost("fscdn.eppo.cloud")) { _ in
+           let stubData = RacTestJSON.data(using: .utf8)!
+           return HTTPStubsResponse(data: stubData, statusCode: 200, headers: ["Content-Type": "application/json"])
+       }
+       
        loggerSpy = AssignmentLoggerSpy()
-       eppoClient = EppoClient("mock-api-key",
-                               host: "http://localhost:4001",
-                               assignmentLogger: loggerSpy.logger)
+       eppoClient = EppoClient("mock-api-key", assignmentLogger: loggerSpy.logger)
+    
    }
    
    func testUnloadedClient() async throws {
        XCTAssertThrowsError(try eppoClient.getStringAssignment("badFlagRising", "allocation-experiment-1"))
        {
-           error in XCTAssertEqual(error as! EppoClient.Errors, EppoClient.Errors.configurationNotLoaded)
+           error in XCTAssertEqual(error as! Errors, Errors.configurationNotLoaded)
        };
    }
    
    func testBadFlagKey() async throws {
-       try await eppoClient.load(httpClient: EppoMockHttpClient());
+       try await eppoClient.load()
        
        XCTAssertThrowsError(try eppoClient.getStringAssignment("badFlagRising", "allocation-experiment-1"))
        {
-           error in XCTAssertEqual(error as! EppoClient.Errors, EppoClient.Errors.flagConfigNotFound)
+           error in XCTAssertEqual(error as! Errors, Errors.flagConfigNotFound)
        };
    }
    
    func testLogger() async throws {
-       try await eppoClient.load(httpClient: EppoMockHttpClient());
+       try await eppoClient.load()
        
        let assignment = try eppoClient.getStringAssignment("6255e1a72a84e984aed55668", "randomization_algo")
        XCTAssertEqual(assignment, "red")
@@ -174,12 +156,12 @@ final class eppoClientTests: XCTestCase {
            inDirectory: "Resources/test-data/assignment-v2"
        );
        
+       try await eppoClient.load();
+       
        for testFile in testFiles {
            let caseString = try String(contentsOfFile: testFile);
            let caseData = caseString.data(using: .utf8)!;
            let testCase = try JSONDecoder().decode(AssignmentTestCase.self, from: caseData);
-           
-           try await eppoClient.load(httpClient: EppoMockHttpClient());
            
            switch (testCase.valueType) {
            case "boolean":
@@ -215,7 +197,6 @@ final class EppoClientAssignmentCachingTests: XCTestCase {
         try super.setUpWithError()
         loggerSpy = AssignmentLoggerSpy()
         eppoClient = EppoClient("mock-api-key",
-                    host: "http://localhost:4001",
                     assignmentLogger: loggerSpy.logger
                     // InMemoryAssignmentCache is default enabled.
         )
@@ -224,11 +205,15 @@ final class EppoClientAssignmentCachingTests: XCTestCase {
     func testLogsDuplicateAssignmentsWithoutCache() async throws {
         // Disable the assignment cache.
         eppoClient = EppoClient("mock-api-key",
-                    host: "http://localhost:4001",
                     assignmentLogger: loggerSpy.logger,
                     assignmentCache: nil)
-        try await eppoClient.load(httpClient: EppoMockHttpClient());
 
+        stub(condition: isHost("fscdn.eppo.cloud")) { _ in
+            let stubData = RacTestJSON.data(using: .utf8)!
+            return HTTPStubsResponse(data: stubData, statusCode: 200, headers: ["Content-Type": "application/json"])
+        }
+        try await eppoClient.load()
+        
         _ = try eppoClient.getStringAssignment("6255e1a72a84e984aed55668", "randomization_algo")
         _ = try eppoClient.getStringAssignment("6255e1a72a84e984aed55668", "randomization_algo")
 
@@ -236,7 +221,11 @@ final class EppoClientAssignmentCachingTests: XCTestCase {
     }
 
     func testDoesNotLogDuplicateAssignmentsWithCache() async throws {
-        try await eppoClient.load(httpClient: EppoMockHttpClient());
+        stub(condition: isHost("fscdn.eppo.cloud")) { _ in
+            let stubData = RacTestJSON.data(using: .utf8)!
+            return HTTPStubsResponse(data: stubData, statusCode: 200, headers: ["Content-Type": "application/json"])
+        }
+        try await eppoClient.load()
         
         _ = try eppoClient.getStringAssignment("6255e1a72a84e984aed55668", "randomization_algo")
         _ = try eppoClient.getStringAssignment("6255e1a72a84e984aed55668", "randomization_algo")
@@ -245,9 +234,13 @@ final class EppoClientAssignmentCachingTests: XCTestCase {
     }
     
     func testLogsForEachUniqueFlag() async throws {
-        try await eppoClient.load(httpClient: EppoMockHttpClient());
+        stub(condition: isHost("fscdn.eppo.cloud")) { _ in
+            let stubData = RacTestJSON.data(using: .utf8)!
+            return HTTPStubsResponse(data: stubData, statusCode: 200, headers: ["Content-Type": "application/json"])
+        }
+        try await eppoClient.load()
         
-        _ =  try eppoClient.getStringAssignment("6255e1a72a84e984aed55668", "randomization_algo")
+        _ = try eppoClient.getStringAssignment("6255e1a72a84e984aed55668", "randomization_algo")
         _ = try eppoClient.getStringAssignment("6255e1a72a84e984aed55668", "new_user_onboarding")
 
         XCTAssertEqual(loggerSpy.logCount, 2, "Should log 2 times due to changing flags.")
@@ -310,10 +303,10 @@ final class EppoClientAssignmentCachingTests: XCTestCase {
                 }
             }
         """
-        let mockHttpClient = EppoJSONAcceptorClient(jsonResponse: mockJson)
-        let eppoClient = EppoClient("your_api_key", host: "http://localhost:4001", assignmentLogger: loggerSpy.logger)
-        // Inject the mock HTTP client
-        try await eppoClient.load(httpClient: mockHttpClient)
+        stub(condition: isHost("fscdn.eppo.cloud")) { _ in
+            return HTTPStubsResponse(data: mockJson.data(using: .utf8)!, statusCode: 200, headers: ["Content-Type": "application/json"])
+        }
+        try await eppoClient.load()
         
         _ = try eppoClient.getStringAssignment("6255e1a72a84e984aed55668", "feature1")
         _ = try eppoClient.getStringAssignment("6255e1a72a84e984aed55668", "feature1")
@@ -367,7 +360,10 @@ final class EppoClientAssignmentCachingTests: XCTestCase {
             }
         """
         // Reload the EppoClient with the updated configuration
-        try await eppoClient.load(httpClient:  EppoJSONAcceptorClient(jsonResponse: updatedVariationsJson))
+        stub(condition: isHost("fscdn.eppo.cloud")) { _ in
+            return HTTPStubsResponse(data: updatedVariationsJson.data(using: .utf8)!, statusCode: 200, headers: ["Content-Type": "application/json"])
+        }
+        try await eppoClient.load()
 
         // update the allocation
         let newTreatmentJson = """
@@ -407,11 +403,12 @@ final class EppoClientAssignmentCachingTests: XCTestCase {
             }
         """
         // Reload the EppoClient with the updated configuration
-        try await eppoClient.load(httpClient: EppoJSONAcceptorClient(jsonResponse: newTreatmentJson))
-
+        stub(condition: isHost("fscdn.eppo.cloud")) { _ in
+            return HTTPStubsResponse(data: newTreatmentJson.data(using: .utf8)!, statusCode: 200, headers: ["Content-Type": "application/json"])
+        }
+        try await eppoClient.load()
 
         _ = try eppoClient.getStringAssignment("6255e1a72a84e984aed55668", "feature1")
         XCTAssertEqual(loggerSpy.logCount, 2, "Should log again since the allocation changed.")
-
     }
 }
