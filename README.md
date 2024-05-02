@@ -11,17 +11,16 @@
 - Progressive rollouts
 - A/B/n experiments
 - Mutually exclusive experiments (Layers)
-- Global holdouts
 - Dynamic configuration
 
 ## Installation
 
 While in XCode:
 
-> 1. Choose `Package Dependencies`
-> 2. Click `+` and enter package URL: `git@github.com:Eppo-exp/eppo-ios-sdk.git`
-> 3. Set dependency rule to `Up to Next Minor Version` and select `Add Package`
-> 4. Add to your project's target.
+1. Choose `Package Dependencies`
+2. Click `+` and enter package URL: `git@github.com:Eppo-exp/eppo-ios-sdk.git`
+3. Set dependency rule to `Up to Next Minor Version` and select `Add Package`
+4. Add to your project's target.
 
 ## Quick start
 
@@ -85,7 +84,7 @@ class AssignmentObserver : ObservableObject {
 Every Eppo flag has a return type that is set once on creation in the dashboard. Once a flag is created, assignments in code should be made using the corresponding typed function: 
 
 ```
-getBoolAssignment(...)
+getBooleanAssignment(...)
 getNumericAssignment(...)
 getIntegerAssignment(...)
 getStringAssignment(...)
@@ -132,11 +131,5 @@ eppoClient = EppoClient("mock-sdk-key", assignmentLogger: segmentAssignmentLogge
 
 ## Philosophy
 
-Eppo's SDKs are built for simplicity, speed and reliability. Flag configurations are compressed and distributed over a global CDN (Fastly), typically reaching end users in under 15ms. Those configurations are then cached locally, ensuring that each assignment is made instantly. Each SDK is as light as possible, with evaluation logic at around [25 simple lines of code](https://github.com/Eppo-exp/js-client-sdk-common/blob/b903bbbca21ca75c0ab49d894951eb2f1fc6c85b/src/evaluator.ts#L34-L59). The simple typed functions listed above are all developers need to know about, abstracting away the complexity of the underlying set of features. 
-
-## React
-
-Visit the [Eppo docs](https://docs.geteppo.com/sdks/client-sdks/#usage-in-react) for best practices when using this SDK within a React context.
-
-
+Eppo's SDKs are built for simplicity, speed and reliability. Flag configurations are compressed and distributed over a global CDN (Fastly), typically reaching your servers in under 15ms. Server SDKs continue polling Eppo’s API at 30-second intervals. Configurations are then cached locally, ensuring that each assignment is made instantly. Evaluation logic within each SDK consists of a few lines of simple numeric and string comparisons. The typed functions listed above are all developers need to understand, abstracting away the complexity of the Eppo's underlying (and expanding) feature set.
 
