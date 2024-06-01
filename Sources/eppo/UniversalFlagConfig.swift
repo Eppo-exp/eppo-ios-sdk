@@ -81,6 +81,17 @@ enum UFC_AlgorithmType: String, Decodable {
     case contextualBandit = "CONTEXTUAL_BANDIT"
 }
 
+enum UFC_RuleConditionOperator: String, Decodable {
+  case lessThan = "LT"
+  case lessThanEqual = "LTE"
+  case greaterThan = "GT"
+  case greaterThanEqual = "GTE"
+  case matches = "MATCHES"
+  case oneOf = "ONE_OF"
+  case notOneOf = "NOT_ONE_OF"
+  case isNull = "IS_NULL"
+}
+
 // models
 
 public struct UFC_Flag : Decodable {
@@ -112,7 +123,7 @@ public struct UFC_Rule : Decodable {
 }
 
 public struct UFC_TargetingRuleCondition : Decodable {
-    let `operator`: String;
+    let `operator`: UFC_RuleConditionOperator;
     let attribute: String;
     let value: EppoValue;
 }
