@@ -10,9 +10,9 @@ public enum EppoValueType {
 }
 
 public class EppoValue : Decodable, Equatable {
-    public var value: String?;
-    public var type: EppoValueType = EppoValueType.Null;
-    public var array: [String]?;
+    private var value: String?;
+    private var type: EppoValueType = EppoValueType.Null;
+    private var array: [String]?;
 
     enum Errors : Error {
         case NotImplemented
@@ -54,32 +54,28 @@ public class EppoValue : Decodable, Equatable {
 
     required public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer();
-        
-        try? self.array = container.decode([String].self);
-        if self.array != nil {
-            self.type = EppoValueType.ArrayOfStrings;
-            return;
-        }
 
-        try? self.value = String(container.decode(Int.self));
-        if self.value != nil {
-            self.type = EppoValueType.Number;
-            return;
+        if let array = try? container.decode([String].self) {
+            self.type = .ArrayOfStrings
+            self.array = array
+            self.value = nil
+        } else if let numericValue = try? container.decode(Double.self) {
+            // decode double handles both integers and floating-point numbers.
+            //
+            // todo: this class is clunky with storing ints and doubles as strings.
+            // add support for storing them natively to avoid repeated conversions.
+            self.type = .Number
+            self.value = String(numericValue)
+        } else if let boolValue = try? container.decode(Bool.self) {
+            self.type = .Boolean
+            self.value = String(boolValue)
+        } else if let stringValue = try? container.decode(String.self) {
+                self.type = .String
+                self.value = stringValue
+            } else {
+            self.type = .Null
+            self.value = nil
         }
-
-        try? self.value = String(container.decode(Bool.self));
-        if self.value != nil {
-            self.type = EppoValueType.Boolean;
-            return;
-        }
-
-        try? self.value = container.decode(String.self);
-        if self.value != nil {
-            self.type = EppoValueType.String;
-            return;
-        }
-
-        self.type = EppoValueType.Null;
     }
 
     public static func valueOf() -> EppoValue {
