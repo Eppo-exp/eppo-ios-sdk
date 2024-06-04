@@ -3,7 +3,6 @@ import Foundation
 public struct UniversalFlagConfig : Decodable {
     let createdAt: Date?;
     let flags: [String: UFC_Flag];
-    // todo: add bandits
     
     static func decodeFromJSON(from jsonString: String) throws -> UniversalFlagConfig {
         guard let jsonData = jsonString.data(using: .utf8) else {
@@ -76,11 +75,6 @@ enum UFC_VariationType: String, Decodable {
       case string = "STRING"    
 }
 
-enum UFC_AlgorithmType: String, Decodable {
-    case constant = "CONSTANT"
-    case contextualBandit = "CONTEXTUAL_BANDIT"
-}
-
 enum UFC_RuleConditionOperator: String, Decodable {
   case lessThan = "LT"
   case lessThanEqual = "LTE"
@@ -106,7 +100,6 @@ public struct UFC_Flag : Decodable {
 public struct UFC_Variation : Decodable  {
     let key: String;
     let value: EppoValue;
-    let algorithmType: UFC_AlgorithmType?
 }
 
 public struct UFC_Allocation : Decodable {
