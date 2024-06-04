@@ -9,8 +9,8 @@ class Compare {
     }
     
     public static func isOneOf(_ a: String, _ values: [String]) -> Bool {
-        return values.map({ $0.lowercased() })
-            .contains(a.lowercased());
+        // the comparison is case-sensitive
+        return values.contains(a);
     }
 }
 
