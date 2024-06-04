@@ -44,6 +44,7 @@ final class flagEvaluatorTests: XCTestCase {
         let flagEvaluation = flagEvaluator.evaluateFlag(flag: flag, subjectKey: "subject_key", subjectAttributes: SubjectAttributes());
 
         XCTAssertFalse(flagEvaluation.doLog)
+        XCTAssertNil(flagEvaluation.variation)
     }
 
     public func testMatchesAnyRuleWithEmptyConditions() throws {
@@ -56,6 +57,7 @@ final class flagEvaluatorTests: XCTestCase {
 
         let evaluationResult = flagEvaluator.evaluateFlag(flag: testFlag, subjectKey: "subject_key", subjectAttributes: subjectAttributes)
         XCTAssertTrue(evaluationResult.doLog)
+        XCTAssertEqual(try evaluationResult.variation?.value.getStringValue(), "Control")
     }
     
     public func testMatchesAnyRuleWithEmptyRules() throws {
@@ -67,6 +69,7 @@ final class flagEvaluatorTests: XCTestCase {
         
         let evaluationResult = flagEvaluator.evaluateFlag(flag: testFlag, subjectKey: "subject_key", subjectAttributes: subjectAttributes)
         XCTAssertTrue(evaluationResult.doLog)
+        XCTAssertEqual(try evaluationResult.variation?.value.getStringValue(), "Control")
     }
     
     public func testMatchesAnyRuleWhenNoRuleMatches() throws {
@@ -78,6 +81,7 @@ final class flagEvaluatorTests: XCTestCase {
 
         let evaluationResult = flagEvaluator.evaluateFlag(flag: testFlag, subjectKey: "subject_key", subjectAttributes: subjectAttributes)
         XCTAssertFalse(evaluationResult.doLog)
+        XCTAssertNil(evaluationResult.variation)
     }
 
     public func testMatchesAnyRuleWhenRuleMatches() throws {
@@ -91,10 +95,9 @@ final class flagEvaluatorTests: XCTestCase {
         
         let evaluationResult = flagEvaluator.evaluateFlag(flag: testFlag, subjectKey: "subject_key", subjectAttributes: subjectAttributes)
         XCTAssertTrue(evaluationResult.doLog)
+        XCTAssertEqual(try evaluationResult.variation?.value.getStringValue(), "Control")
     }
     
-    // TODO: what is the behavior here? I think it should not match numeric
-    // but then it wants to perform logging.
     public func testNotMatchesAnyRuleWhenThrowInvalidSubjectAttribute() {
         let targetingRule = UFC_Rule(conditions: self.getNumericConditions());
         let testFlag = createFlag(flag: baseFlag, rules: [targetingRule]);
@@ -102,8 +105,9 @@ final class flagEvaluatorTests: XCTestCase {
         var subjectAttributes: SubjectAttributes = SubjectAttributes();
         subjectAttributes["price"] = EppoValue.valueOf("abcd");
         
-       let evaluationResult = flagEvaluator.evaluateFlag(flag: testFlag, subjectKey: "subject_key", subjectAttributes: subjectAttributes)
-       XCTAssertFalse(evaluationResult.doLog)
+        let evaluationResult = flagEvaluator.evaluateFlag(flag: testFlag, subjectKey: "subject_key", subjectAttributes: subjectAttributes)
+        XCTAssertFalse(evaluationResult.doLog)
+        XCTAssertNil(evaluationResult.variation)
     }
     
     public func testMatchesAnyRuleWithRegexCondition() throws {
@@ -115,6 +119,7 @@ final class flagEvaluatorTests: XCTestCase {
         
         let evaluationResult = flagEvaluator.evaluateFlag(flag: testFlag, subjectKey: "subject_key", subjectAttributes: subjectAttributes)
         XCTAssertTrue(evaluationResult.doLog)
+        XCTAssertEqual(try evaluationResult.variation?.value.getStringValue(), "Control")
     }
 
     public func testMatchesAnyRuleWithRegexConditionNotMatched() throws {
@@ -126,6 +131,7 @@ final class flagEvaluatorTests: XCTestCase {
         
         let evaluationResult = flagEvaluator.evaluateFlag(flag: testFlag, subjectKey: "subject_key", subjectAttributes: subjectAttributes)
         XCTAssertFalse(evaluationResult.doLog)
+        XCTAssertNil(evaluationResult.variation)
     }
 
     public func testMatchesAnyRuleWithNotOneOfRule() throws {
@@ -137,6 +143,7 @@ final class flagEvaluatorTests: XCTestCase {
         
         let evaluationResult = flagEvaluator.evaluateFlag(flag: testFlag, subjectKey: "subject_key", subjectAttributes: subjectAttributes)
         XCTAssertTrue(evaluationResult.doLog)
+        XCTAssertEqual(try evaluationResult.variation?.value.getStringValue(), "Control")
     }
     
     public func testMatchesAnyRuleWithNotOneOfRuleNotPassed() {
@@ -148,6 +155,7 @@ final class flagEvaluatorTests: XCTestCase {
         
         let evaluationResult = flagEvaluator.evaluateFlag(flag: testFlag, subjectKey: "subject_key", subjectAttributes: subjectAttributes)
         XCTAssertFalse(evaluationResult.doLog)
+        XCTAssertNil(evaluationResult.variation)
     }
     
     public func testMatchesInvalidSemVer() {
@@ -159,6 +167,7 @@ final class flagEvaluatorTests: XCTestCase {
         
         let evaluationResult = flagEvaluator.evaluateFlag(flag: testFlag, subjectKey: "subject_key", subjectAttributes: subjectAttributes)
         XCTAssertFalse(evaluationResult.doLog)
+        XCTAssertNil(evaluationResult.variation)
     }
 
     private func getNumericConditions() -> [UFC_TargetingRuleCondition] {
