@@ -4,7 +4,7 @@ import Semver
 typealias ConditionFunc = (Double, Double) -> Bool;
 
 class Compare {    
-    public static func compareRegex(_ a: String, _ pattern: String) -> Bool {
+    public static func matchesRegex(_ a: String, _ pattern: String) -> Bool {
         return a.range(of: pattern, options:.regularExpression) != nil;
     }
     
@@ -236,7 +236,7 @@ public class FlagEvaluator {
                     return false
                 }
             case .matches:
-                return try Compare.compareRegex(
+                return try Compare.matchesRegex(
                     value.getStringValue(),
                     condition.value.getStringValue()
                 )
