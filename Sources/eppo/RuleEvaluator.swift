@@ -190,19 +190,13 @@ public class FlagEvaluator {
             // Any check other than IS NULL should fail if the attribute value is null
             return false
         }
+
+        // Safely unwrap attributeValue for further use
+        guard let value = attributeValue else {
+            // Handle the nil case, perhaps throw an error or return a default value
+            return false
+        }
         
-        // Safely unwrap attributeValue for further use
-        guard let value = attributeValue else {
-            // Handle the nil case, perhaps throw an error or return a default value
-            return false
-        }
-
-        // Safely unwrap attributeValue for further use
-        guard let value = attributeValue else {
-            // Handle the nil case, perhaps throw an error or return a default value
-            return false
-        }
-
         do {
             switch condition.operator {
             case .greaterThanEqual, .greaterThan, .lessThanEqual, .lessThan:
