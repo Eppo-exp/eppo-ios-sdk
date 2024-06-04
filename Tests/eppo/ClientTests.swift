@@ -102,10 +102,14 @@ final class eppoClientTests: XCTestCase {
                         "FlagKey: \(testCase.flag), SubjectKey: \(subject.subjectKey)"
                     )
                 case UFC_VariationType.json:
-                    print("json not supported")
-                    //               let assignments = try testCase.jsonAssignments(eppoClient);
-                    // //               let expectedAssignments = testCase.expectedAssignments.map { try? $0?.stringValue() ?? "" }
-                    // //               XCTAssertEqual(assignments, expectedAssignments);
+                    let assignment = try? eppoClient.getJSONAssignment(
+                        flagKey: testCase.flag,
+                        subjectKey: subject.subjectKey,
+                        subjectAttributes: subject.subjectAttributes,
+                        defaultValue: testCase.defaultValue.getStringValue()
+                    );
+                    let expectedAssignment = try? subject.assignment.getStringValue()
+                    XCTAssertEqual(assignment, expectedAssignment)
                 case UFC_VariationType.integer:
                     let assignment = try? eppoClient.getIntegerAssignment(
                         flagKey: testCase.flag,
