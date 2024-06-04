@@ -231,7 +231,7 @@ public class FlagEvaluator {
                             throw Errors.UnexpectedValue
                         }
                     }
-                } catch let e {
+                } catch {
                     // If stringValue() or doubleValue() throws, or Semver creation fails
                     return false
                 }
