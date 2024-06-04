@@ -96,7 +96,11 @@ final class eppoClientTests: XCTestCase {
                         defaultValue: testCase.defaultValue.getBoolValue()
                     );
                     let expectedAssignment = try? subject.assignment.getBoolValue()
-                    XCTAssertEqual(assignment, expectedAssignment)
+                    XCTAssertEqual(
+                        assignment,
+                        expectedAssignment,
+                        "FlagKey: \(testCase.flag), SubjectKey: \(subject.subjectKey)"
+                    )
                 case UFC_VariationType.json:
                     print("json not supported")
                     //               let assignments = try testCase.jsonAssignments(eppoClient);
@@ -110,7 +114,11 @@ final class eppoClientTests: XCTestCase {
                         defaultValue: Int(testCase.defaultValue.getDoubleValue())
                     );
                     let expectedAssignment = try? Int(subject.assignment.getDoubleValue())
-                    XCTAssertEqual(assignment, expectedAssignment)
+                    XCTAssertEqual(
+                        assignment,
+                        expectedAssignment,
+                        "FlagKey: \(testCase.flag), SubjectKey: \(subject.subjectKey)"
+                    )
                 case UFC_VariationType.numeric:
                     let assignment = try? eppoClient.getDoubleAssignment(
                         flagKey: testCase.flag,
@@ -119,7 +127,11 @@ final class eppoClientTests: XCTestCase {
                         defaultValue: testCase.defaultValue.getDoubleValue()
                     );
                     let expectedAssignment = try? subject.assignment.getDoubleValue()
-                    XCTAssertEqual(assignment, expectedAssignment)
+                    XCTAssertEqual(
+                        assignment,
+                        expectedAssignment,
+                        "FlagKey: \(testCase.flag), SubjectKey: \(subject.subjectKey)"
+                    )
                 case UFC_VariationType.string:
                     let assignment = try? eppoClient.getStringAssignment(
                         flagKey: testCase.flag,
@@ -128,7 +140,11 @@ final class eppoClientTests: XCTestCase {
                         defaultValue: testCase.defaultValue.getStringValue()
                     );
                     let expectedAssignment = try? subject.assignment.getStringValue()
-                    XCTAssertEqual(assignment, expectedAssignment)
+                    XCTAssertEqual(
+                        assignment,
+                        expectedAssignment,
+                        "FlagKey: \(testCase.flag), SubjectKey: \(subject.subjectKey)"
+                    )
                 }
             }
         }

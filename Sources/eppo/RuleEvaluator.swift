@@ -3,7 +3,7 @@ import Semver
 
 typealias ConditionFunc = (Double, Double) -> Bool;
 
-class Compare {    
+class Compare {
     public static func matchesRegex(_ a: String, _ pattern: String) -> Bool {
         return a.range(of: pattern, options:.regularExpression) != nil;
     }
@@ -27,8 +27,8 @@ struct FlagEvaluation {
     static func matchedResult(
         flagKey: String,
         subjectKey: String,
-        subjectAttributes: SubjectAttributes, 
-        allocationKey: Optional<String>, 
+        subjectAttributes: SubjectAttributes,
+        allocationKey: Optional<String>,
         variation: Optional<UFC_Variation>,
         variationType: [UFC_VariationType],
         extraLogging: [String: String],
@@ -96,7 +96,10 @@ public class FlagEvaluator {
                 continue
             }
             
-            if matchesRules(subjectAttributes: subjectAttributes, rules: allocation.rules ?? []) {
+            // Add the subject key as an attribute so rules can use it
+            // If the "id" attribute is already present, keep the existing value
+            let subjectAttributesWithID = subjectAttributes.merging(["id": EppoValue.valueOf(subjectKey)]) { (old, _) in old }
+            if matchesRules(subjectAttributes: subjectAttributesWithID, rules: allocation.rules ?? []) {
                 // Split needs to match all shards
                 for split in allocation.splits {
                     let allShardsMatch = split.shards.allSatisfy { shard in
@@ -144,7 +147,7 @@ public class FlagEvaluator {
         if rules.isEmpty {
             return true
         }
-
+        
         // If any rule matches, return true.
         return rules.contains { rule in
             return matchesRule(subjectAttributes: subjectAttributes, rule: rule)
@@ -175,9 +178,9 @@ public class FlagEvaluator {
         condition: UFC_TargetingRuleCondition
     ) throws -> Bool
     {
-
+        
         let attributeValue: EppoValue? = subjectAttributes[condition.attribute]
-
+        
         // First we do any NULL check
         let attributeValueIsNull = attributeValue?.isNull() ?? true
         if condition.operator == .isNull {
@@ -187,13 +190,13 @@ public class FlagEvaluator {
             // Any check other than IS NULL should fail if the attribute value is null
             return false
         }
-
+        
         // Safely unwrap attributeValue for further use
         guard let value = attributeValue else {
             // Handle the nil case, perhaps throw an error or return a default value
             return false
         }
-
+        
         do {
             switch condition.operator {
             case .greaterThanEqual, .greaterThan, .lessThanEqual, .lessThan:
