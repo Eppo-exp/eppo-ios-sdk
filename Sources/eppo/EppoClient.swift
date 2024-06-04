@@ -201,7 +201,9 @@ public class EppoClient {
                         variation: variation.key,
                         subject: subjectKey,
                         timestamp: ISO8601DateFormatter().string(from: Date()),
-                        subjectAttributes: subjectAttributes
+                        subjectAttributes: subjectAttributes,
+                        metaData: ["sdkName": sdkName, "sdkVersion": sdkVersion],
+                        extraLogging: flagEvaluation.extraLogging
                     )
                     
                     assignmentLogger(assignment)
