@@ -11,7 +11,7 @@ final class flagEvaluationTests: XCTestCase {
         );
         XCTAssertEqual(flagEvaluation.flagKey, "test");
         XCTAssertEqual(flagEvaluation.subjectKey, "test");
-        //XCTAssertEqual(flagEvaluation.subjectAttributes, SubjectAttributes());
+        XCTAssertEqual(flagEvaluation.subjectAttributes, SubjectAttributes());
         XCTAssertNil(flagEvaluation.allocationKey);
         XCTAssertNil(flagEvaluation.variation);
         XCTAssertEqual(flagEvaluation.extraLogging, [:]);
@@ -22,7 +22,7 @@ final class flagEvaluationTests: XCTestCase {
 final class flagEvaluatorTests: XCTestCase {
     var flagEvaluator: FlagEvaluator!
 
-    let flag = UFC_Flag(
+    let baseFlag = UFC_Flag(
         key: "test",
         enabled: true,
         variationType: UFC_VariationType.string,
@@ -40,7 +40,7 @@ final class flagEvaluatorTests: XCTestCase {
     }
 
     public func testDisabledFlag() {
-        let flag = createFlag(flag: flag, rules: [], enabled: false);
+        let flag = createFlag(flag: baseFlag, rules: [], enabled: false);
         let flagEvaluation = flagEvaluator.evaluateFlag(flag: flag, subjectKey: "subject_key", subjectAttributes: SubjectAttributes());
 
         XCTAssertFalse(flagEvaluation.doLog)
@@ -49,7 +49,7 @@ final class flagEvaluatorTests: XCTestCase {
     public func testMatchesAnyRuleWithEmptyConditions() throws {
         let targetingRuleWithEmptyConditions: UFC_Rule = UFC_Rule(conditions: []);
         let targetingRules: [UFC_Rule] = [targetingRuleWithEmptyConditions];
-        let testFlag = createFlag(flag: flag, rules: targetingRules);
+        let testFlag = createFlag(flag: baseFlag, rules: targetingRules);
         
         var subjectAttributes: SubjectAttributes = SubjectAttributes();
         subjectAttributes["name"] = EppoValue.valueOf("test");
@@ -60,7 +60,7 @@ final class flagEvaluatorTests: XCTestCase {
     
     public func testMatchesAnyRuleWithEmptyRules() throws {
         let targetingRules: [UFC_Rule] = [];
-        let testFlag = createFlag(flag: flag, rules: targetingRules);
+        let testFlag = createFlag(flag: baseFlag, rules: targetingRules);
 
         var subjectAttributes: SubjectAttributes = SubjectAttributes();
         subjectAttributes["name"] = EppoValue.valueOf("test");
@@ -71,7 +71,7 @@ final class flagEvaluatorTests: XCTestCase {
     
     public func testMatchesAnyRuleWhenNoRuleMatches() throws {
         let targetingRule: UFC_Rule = UFC_Rule(conditions: self.getNumericConditions());
-        let testFlag = createFlag(flag: flag, rules: [targetingRule]);
+        let testFlag = createFlag(flag: baseFlag, rules: [targetingRule]);
 
         var subjectAttributes: SubjectAttributes = SubjectAttributes();
         subjectAttributes["price"] = EppoValue.valueOf("30");
@@ -83,7 +83,7 @@ final class flagEvaluatorTests: XCTestCase {
     public func testMatchesAnyRuleWhenRuleMatches() throws {
         let targetingRule = UFC_Rule(conditions: self.getNumericConditions() + self.getSemVerConditions());
         let targetingRules = [targetingRule];
-        let testFlag = createFlag(flag: flag, rules: targetingRules);
+        let testFlag = createFlag(flag: baseFlag, rules: targetingRules);
 
         var subjectAttributes: SubjectAttributes = SubjectAttributes();
         subjectAttributes["price"] = EppoValue.valueOf(15);
@@ -97,7 +97,7 @@ final class flagEvaluatorTests: XCTestCase {
     // but then it wants to perform logging.
     public func testNotMatchesAnyRuleWhenThrowInvalidSubjectAttribute() {
         let targetingRule = UFC_Rule(conditions: self.getNumericConditions());
-        let testFlag = createFlag(flag: flag, rules: [targetingRule]);
+        let testFlag = createFlag(flag: baseFlag, rules: [targetingRule]);
 
         var subjectAttributes: SubjectAttributes = SubjectAttributes();
         subjectAttributes["price"] = EppoValue.valueOf("abcd");
@@ -108,7 +108,7 @@ final class flagEvaluatorTests: XCTestCase {
     
     public func testMatchesAnyRuleWithRegexCondition() throws {
         let targetingRule = UFC_Rule(conditions: [self.getRegexCondition()]);
-        let testFlag = createFlag(flag: flag, rules: [targetingRule]);
+        let testFlag = createFlag(flag: baseFlag, rules: [targetingRule]);
         
         var subjectAttributes: SubjectAttributes = SubjectAttributes();
         subjectAttributes["match"] = EppoValue.valueOf("abcd");
@@ -119,7 +119,7 @@ final class flagEvaluatorTests: XCTestCase {
 
     public func testMatchesAnyRuleWithRegexConditionNotMatched() throws {
         let targetingRule = UFC_Rule(conditions: [self.getRegexCondition()]);
-        let testFlag = createFlag(flag: flag, rules: [targetingRule]);
+        let testFlag = createFlag(flag: baseFlag, rules: [targetingRule]);
         
         var subjectAttributes: SubjectAttributes = SubjectAttributes();
         subjectAttributes["match"] = EppoValue.valueOf("123");
@@ -130,7 +130,7 @@ final class flagEvaluatorTests: XCTestCase {
 
     public func testMatchesAnyRuleWithNotOneOfRule() throws {
         let targetingRule = UFC_Rule(conditions: [self.getNotOneOfCondition()]);
-        let testFlag = createFlag(flag: flag, rules: [targetingRule]);
+        let testFlag = createFlag(flag: baseFlag, rules: [targetingRule]);
         
         var subjectAttributes: SubjectAttributes = SubjectAttributes();
         subjectAttributes["oneOf"] = EppoValue.valueOf("value3");
@@ -141,7 +141,7 @@ final class flagEvaluatorTests: XCTestCase {
     
     public func testMatchesAnyRuleWithNotOneOfRuleNotPassed() {
         let targetingRule = UFC_Rule(conditions: [self.getNotOneOfCondition()]);
-        let testFlag = createFlag(flag: flag, rules: [targetingRule]);
+        let testFlag = createFlag(flag: baseFlag, rules: [targetingRule]);
         
         var subjectAttributes: SubjectAttributes = SubjectAttributes();
         subjectAttributes["oneOf"] = EppoValue.valueOf("value1");
@@ -152,7 +152,7 @@ final class flagEvaluatorTests: XCTestCase {
     
     public func testMatchesInvalidSemVer() {
         let targetingRule = UFC_Rule(conditions: [self.getInvalidSemVerConditions()]);
-        let testFlag = createFlag(flag: flag, rules: [targetingRule]);
+        let testFlag = createFlag(flag: baseFlag, rules: [targetingRule]);
         
         var subjectAttributes: SubjectAttributes = SubjectAttributes();
         subjectAttributes["appVersion"] = EppoValue.valueOf("2.3.5");
