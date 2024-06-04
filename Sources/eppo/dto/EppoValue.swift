@@ -155,7 +155,7 @@ public class EppoValue : Decodable, Equatable {
         if let value = self.stringValue {
             str = value
         } else if let array = self.stringArrayValue {
-            str = array.joined(separator: ",")
+            str = array.joined(separator: " ,")
         }
 
         // generate a sha256 hash of the string. this is a 32-byte signature which
