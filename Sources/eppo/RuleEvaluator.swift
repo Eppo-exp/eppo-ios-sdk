@@ -76,7 +76,8 @@ public class FlagEvaluator {
     func evaluateFlag(
         flag: UFC_Flag,
         subjectKey: String,
-        subjectAttributes: SubjectAttributes
+        subjectAttributes: SubjectAttributes,
+        isObfuscated: Bool
     ) -> FlagEvaluation {
         if (!flag.enabled) {
             return FlagEvaluation.noneResult(
@@ -99,11 +100,16 @@ public class FlagEvaluator {
             // Add the subject key as an attribute so rules can use it
             // If the "id" attribute is already present, keep the existing value
             let subjectAttributesWithID = subjectAttributes.merging(["id": EppoValue.valueOf(subjectKey)]) { (old, _) in old }
-            if matchesRules(subjectAttributes: subjectAttributesWithID, rules: allocation.rules ?? []) {
+            if matchesRules(subjectAttributes: subjectAttributesWithID, rules: allocation.rules ?? [], isObfuscated: isObfuscated) {
                 // Split needs to match all shards
                 for split in allocation.splits {
                     let allShardsMatch = split.shards.allSatisfy { shard in
-                        matchesShard(shard: shard, subjectKey: subjectKey, totalShards: flag.totalShards)
+                        matchesShard(
+                            shard: shard, 
+                            subjectKey: subjectKey, 
+                            totalShards: flag.totalShards, 
+                            isObfuscated: isObfuscated
+                        )
                     }
                     if allShardsMatch {
                         return FlagEvaluation.matchedResult(
@@ -131,10 +137,17 @@ public class FlagEvaluator {
     private func matchesShard(
         shard: UFC_Shard,
         subjectKey: String,
-        totalShards: Int
+        totalShards: Int,
+        isObfuscated: Bool
     ) -> Bool {
         assert(totalShards > 0, "Expect totalShards to be strictly positive")
-        let h = self.sharder.getShard(input: hashKey(salt: shard.salt, subjectKey: subjectKey), totalShards: totalShards)
+
+        var salt = shard.salt
+        if (isObfuscated) {
+            salt = Utils.base64Decode(salt);
+        }
+
+        let h = self.sharder.getShard(input: hashKey(salt: salt, subjectKey: subjectKey), totalShards: totalShards)
         return shard.ranges.contains { range in
             isInShardRange(shard: h, range: range)
         }
@@ -142,7 +155,8 @@ public class FlagEvaluator {
     
     private func matchesRules(
         subjectAttributes: SubjectAttributes,
-        rules: [UFC_Rule]
+        rules: [UFC_Rule],
+        isObfuscated: Bool
     ) -> Bool {
         if rules.isEmpty {
             return true
@@ -150,18 +164,23 @@ public class FlagEvaluator {
         
         // If any rule matches, return true.
         return rules.contains { rule in
-            return matchesRule(subjectAttributes: subjectAttributes, rule: rule)
+            return matchesRule(subjectAttributes: subjectAttributes, rule: rule, isObfuscated: isObfuscated)
         }
     }
     
     private func matchesRule(
         subjectAttributes: SubjectAttributes,
-        rule: UFC_Rule) -> Bool
-    {
+        rule: UFC_Rule,
+        isObfuscated: Bool
+    ) -> Bool {
         // Check that all conditions within the rule are met
         return rule.conditions.allSatisfy { condition in
             // If the condition throws an error, consider this not matching.
-            return (try? evaluateCondition(subjectAttributes: subjectAttributes, condition: condition)) ?? false
+            return (try? evaluateCondition(
+                subjectAttributes: subjectAttributes, 
+                condition: condition, 
+                isObfuscated: isObfuscated
+            )) ?? false
         }
     }
     
@@ -175,16 +194,31 @@ public class FlagEvaluator {
     
     private func evaluateCondition(
         subjectAttributes: SubjectAttributes,
-        condition: UFC_TargetingRuleCondition
+        condition: UFC_TargetingRuleCondition,
+        isObfuscated: Bool
     ) throws -> Bool
     {
         
-        let attributeValue: EppoValue? = subjectAttributes[condition.attribute]
+        var attributeValue: EppoValue?;
+        if (isObfuscated) {
+            // attribute names are hashed
+            for (key, value) in subjectAttributes {
+                if Utils.getMD5Hex(key) == condition.attribute {
+                    attributeValue = value
+                    break
+                }
+            }
+        } else {
+            attributeValue = subjectAttributes[condition.attribute]
+        }
         
         // First we do any NULL check
         let attributeValueIsNull = attributeValue?.isNull() ?? true
+        let conditionValue = try condition.value.getStringValue()
+        let expectNull: Bool = isObfuscated
+            ? Utils.getMD5Hex("true") == conditionValue
+            : try condition.value.getBoolValue()
         if condition.operator == .isNull {
-            let expectNull: Bool = try condition.value.getBoolValue()
             return (expectNull && attributeValueIsNull) || (!expectNull && !attributeValueIsNull)
         } else if attributeValueIsNull {
             // Any check other than IS NULL should fail if the attribute value is null
@@ -201,6 +235,23 @@ public class FlagEvaluator {
             switch condition.operator {
             case .greaterThanEqual, .greaterThan, .lessThanEqual, .lessThan:
                 do {
+                    var conditionNumber: Double? = nil;
+                    if (isObfuscated && condition.value.isString()) {
+                        // it may be an encoded number
+                        let decodedString = try Utils.base64Decode(condition.value.getStringValue())
+                        if let unwrappedConditionNumber = try Double(decodedString) {
+                            conditionNumber = unwrappedConditionNumber
+                        } else {
+                            throw Errors.UnexpectedValue // Handle the case where the string cannot be converted to Double
+                        }
+                    } else if (condition.value.isNumeric()) {
+                        conditionNumber = try condition.value.getDoubleValue()
+                    }
+
+                    let numericComparison: Bool = value.isNumeric() && conditionNumber != nil;
+
+                    // todo: stopped here
+                    
                     let valueStr = try? value.getStringValue()
                     let conditionValueStr = try? condition.value.getStringValue()
                     if let valueVersion = valueStr.flatMap(Semver.init), let conditionVersion = conditionValueStr.flatMap(Semver.init) {
@@ -220,16 +271,15 @@ public class FlagEvaluator {
                     } else {
                         // If either string is not a valid Semver, fall back to double comparison
                         let valueDouble = try value.getDoubleValue()
-                        let conditionDouble = try condition.value.getDoubleValue()
                         switch condition.operator {
                         case .greaterThanEqual:
-                            return valueDouble >= conditionDouble
+                            return valueDouble >= conditionNumber!
                         case .greaterThan:
-                            return valueDouble > conditionDouble
+                            return valueDouble > conditionNumber!
                         case .lessThanEqual:
-                            return valueDouble <= conditionDouble
+                            return valueDouble <= conditionNumber!
                         case .lessThan:
-                            return valueDouble < conditionDouble
+                            return valueDouble < conditionNumber!
                         default:
                             throw Errors.UnexpectedValue
                         }
