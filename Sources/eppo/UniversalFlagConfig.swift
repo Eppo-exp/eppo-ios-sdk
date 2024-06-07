@@ -87,6 +87,7 @@ enum UFC_RuleConditionOperator: String, Decodable {
   case greaterThan = "GT"
   case greaterThanEqual = "GTE"
   case matches = "MATCHES"
+  case notMatches = "NOT_MATCHES"
   case oneOf = "ONE_OF"
   case notOneOf = "NOT_ONE_OF"
   case isNull = "IS_NULL"

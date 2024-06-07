@@ -152,21 +152,52 @@ public class EppoValue : Decodable, Equatable {
         return value;
     }
 
-    public func toHashedString() -> String {
-        // todo: this is a bit of a hack. we should probably just use a switch
-        // to handle the different types.
-        var str = ""
-        if let value = self.stringValue {
-            str = value
-        } else if let array = self.stringArrayValue {
-            str = array.joined(separator: " ,")
+    public func toEppoString() -> String {
+        switch self.type {
+        case .Boolean:
+            return try! self.getBoolValue() ? "true" : "false"
+        case .Numeric:
+            if let doubleVal = try? self.getDoubleValue() {
+                if floor(doubleVal) == doubleVal {
+                    // If the double value is an integer, return as integer string
+                    return String(format: "%.0f", doubleVal)
+                } else {
+                    // Otherwise, return the double as is
+                    return String(doubleVal)
+                }
+            } else {
+                // todo: should this throw?
+                return "null"
+            }
+        case .String:
+            // todo: should this throw?
+            // it should not since we checked the type is a string above
+            // but to be true to the type system we should throw here
+            if let value = try? self.getStringValue() {
+                return value
+            } else {
+                // todo: should this throw?
+                return "null"
+            }
+        case .ArrayOfStrings:
+            if let value = try? self.getStringArrayValue() {
+                return value.joined(separator: " ,")
+            } else {
+                // todo: should this throw?
+                return "null"
+            }
+        case .Null:
+            return "null"
         }
+    }
 
+    public func toHashedString() -> String {
+        let str = self.toEppoString()
         // generate a sha256 hash of the string. this is a 32-byte signature which
         // will likely save space when using json values but will almost certainly be
         // longer than typical string variation values such as "control" or "variant".
         let sha256Data = SHA256.hash(data: str.data(using: .utf8) ?? Data())
         return sha256Data.map { String(format: "%02x", $0) }.joined()
+       
     }
 }
-
