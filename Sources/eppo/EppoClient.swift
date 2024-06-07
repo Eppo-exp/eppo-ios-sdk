@@ -70,20 +70,20 @@ public class EppoClient {
         }
     }
     
-    // todo: add back when supporting JSON
-//    public func getJSONAssignment(
-//        flagKey: String,
-//        subjectKey: String,
-//        subjectAttributes: SubjectAttributes,
-//        defaultValue: [String: EppoValue]) throws -> [String: EppoValue]
-//    {
-//        return try getInternalAssignment(
-//            flagKey: flagKey, 
-//            subjectKey: subjectKey, 
-//            subjectAttributes: subjectAttributes
-//        )?.variation?.value?.objectValue() ?? defaultValue
-//    }
-//    
+    public func getJSONStringAssignment(
+        flagKey: String,
+        subjectKey: String,
+        subjectAttributes: SubjectAttributes,
+        defaultValue: String) throws -> String
+    {
+        return try getInternalAssignment(
+            flagKey: flagKey, 
+            subjectKey: subjectKey, 
+            subjectAttributes: subjectAttributes,
+            expectedVariationType: UFC_VariationType.json
+        )?.variation?.value.getStringValue() ?? defaultValue
+    }
+    
     
     public func getIntegerAssignment(
         flagKey: String,
