@@ -105,7 +105,7 @@ public class EppoClient {
         }
     }
     
-    public func getDoubleAssignment(
+    public func getNumericAssignment(
         flagKey: String,
         subjectKey: String,
         subjectAttributes: SubjectAttributes = SubjectAttributes(),

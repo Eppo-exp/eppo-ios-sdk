@@ -57,7 +57,7 @@ final class eppoClientTests: XCTestCase {
     func testLogger() async throws {
         try await eppoClient.load()
         
-        let assignment = try eppoClient.getDoubleAssignment(
+        let assignment = try eppoClient.getNumericAssignment(
             flagKey: "numeric_flag",
             subjectKey: "6255e1a72a84e984aed55668",
             subjectAttributes: SubjectAttributes(),
@@ -120,7 +120,7 @@ final class eppoClientTests: XCTestCase {
                         "FlagKey: \(testCase.flag), SubjectKey: \(subject.subjectKey)"
                     )
                 case UFC_VariationType.numeric:
-                    let assignment = try? eppoClient.getDoubleAssignment(
+                    let assignment = try? eppoClient.getNumericAssignment(
                         flagKey: testCase.flag,
                         subjectKey: subject.subjectKey,
                         subjectAttributes: subject.subjectAttributes,
@@ -178,13 +178,13 @@ final class EppoClientAssignmentCachingTests: XCTestCase {
         }
         try await eppoClient.load()
         
-        _ = try eppoClient.getDoubleAssignment(
+        _ = try eppoClient.getNumericAssignment(
             flagKey: "numeric_flag",
             subjectKey: "6255e1a72a84e984aed55668",
             defaultValue: 0
         )
         
-        _ = try eppoClient.getDoubleAssignment(
+        _ = try eppoClient.getNumericAssignment(
             flagKey: "numeric_flag",
             subjectKey: "6255e1a72a84e984aed55668",
             defaultValue: 0
@@ -200,12 +200,12 @@ final class EppoClientAssignmentCachingTests: XCTestCase {
         }
         try await eppoClient.load()
         
-        _ = try eppoClient.getDoubleAssignment(
+        _ = try eppoClient.getNumericAssignment(
             flagKey: "numeric_flag",
             subjectKey: "6255e1a72a84e984aed55668",
             defaultValue: 0
         )
-        _ = try eppoClient.getDoubleAssignment(
+        _ = try eppoClient.getNumericAssignment(
             flagKey: "numeric_flag",
             subjectKey: "6255e1a72a84e984aed55668",
             defaultValue: 0
@@ -226,7 +226,7 @@ final class EppoClientAssignmentCachingTests: XCTestCase {
             subjectKey: "6255e1a72a84e984aed55668",
             subjectAttributes: SubjectAttributes(),
             defaultValue: "")
-        _ = try eppoClient.getDoubleAssignment(
+        _ = try eppoClient.getNumericAssignment(
             flagKey: "numeric_flag",
             subjectKey: "6255e1a72a84e984aed55668",
             defaultValue: 0
