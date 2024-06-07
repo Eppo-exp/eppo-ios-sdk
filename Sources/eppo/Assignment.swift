@@ -6,6 +6,8 @@ public class Assignment : CustomStringConvertible {
     public var subject: String = "";
     public var timestamp: String = "";
     public var subjectAttributes: SubjectAttributes;
+    public var metaData: [String: String];
+    public var extraLogging: [String: String];
     
     public var description: String {
         return "Subject " + subject + " assigned to variation " + variation + " in experiment " + experiment;
@@ -17,7 +19,9 @@ public class Assignment : CustomStringConvertible {
         variation: String,
         subject: String,
         timestamp: String,
-        subjectAttributes: SubjectAttributes
+        subjectAttributes: SubjectAttributes,
+        metaData: [String: String] = [:],
+        extraLogging: [String: String] = [:]
     )
     {
         self.allocation = allocationKey;
@@ -27,5 +31,7 @@ public class Assignment : CustomStringConvertible {
         self.subject = subject;
         self.timestamp = timestamp;
         self.subjectAttributes = subjectAttributes;
+        self.metaData = metaData;
+        self.extraLogging = extraLogging
     }
 }
