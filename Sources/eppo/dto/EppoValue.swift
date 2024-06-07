@@ -21,19 +21,23 @@ public class EppoValue : Decodable, Equatable {
     }
 
     public static func == (lhs: EppoValue, rhs: EppoValue) -> Bool {
-        if lhs.toHashedString() != rhs.toHashedString() { return false; }
         if lhs.type != rhs.type { return false; }
 
-        if lhs.stringArrayValue == nil && rhs.stringArrayValue != nil { return false }
-        if rhs.stringArrayValue == nil && lhs.stringArrayValue != nil { return false; }
-
-        for lhItem in lhs.stringArrayValue! {
-            if !rhs.stringArrayValue!.contains(where: { (rhItem) in return rhItem == lhItem }) {
-                return false;
-            }
+        switch lhs.type {
+            case .Boolean:
+                return lhs.boolValue == rhs.boolValue
+            case .Numeric:
+                return lhs.doubleValue == rhs.doubleValue
+            case .String:
+                return lhs.stringValue == rhs.stringValue
+            case .ArrayOfStrings:
+                // Convert arrays to sets and compare, ignoring order and duplicates
+                let lhsSet = Set(lhs.stringArrayValue ?? [])
+                let rhsSet = Set(rhs.stringArrayValue ?? [])
+                return lhsSet == rhsSet
+            case .Null:
+                return true // Both are null
         }
-
-        return true;
     }
 
     public init(value: Bool) {

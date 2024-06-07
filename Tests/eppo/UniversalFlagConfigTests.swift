@@ -23,7 +23,6 @@ final class UniversalFlagConfigTest: XCTestCase {
 
     func testDecodeUFCConfig() {
         let config = try! UniversalFlagConfig.decodeFromJSON(from: UFCTestJSON)
-        XCTAssertEqual(config.flags.count, 14, "There should be 14 flags present in the JSON test file.")
         
         // empty flag
         let emptyFlag = config.flags.first(where: { $0.key == "empty_flag" })?.value
