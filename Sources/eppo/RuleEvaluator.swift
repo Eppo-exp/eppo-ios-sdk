@@ -113,7 +113,7 @@ public class FlagEvaluator {
                             allocationKey: Optional<String>.some(allocation.key),
                             variation: flag.variations[split.variationKey],
                             variationType: [flag.variationType],
-                            extraLogging: [:],
+                            extraLogging: split.extraLogging ?? [:],
                             doLog: allocation.doLog
                         )
                     }
