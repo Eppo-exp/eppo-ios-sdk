@@ -89,7 +89,7 @@ final class eppoClientTests: XCTestCase {
             testCase.subjects.forEach { subject in
                 switch testCase.variationType {
                 case UFC_VariationType.boolean:
-                    let assignment = try? eppoClient.getBoolAssignment(
+                    let assignment = try? eppoClient.getBooleanAssignment(
                         flagKey: testCase.flag,
                         subjectKey: subject.subjectKey,
                         subjectAttributes: subject.subjectAttributes,

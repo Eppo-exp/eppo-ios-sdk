@@ -51,7 +51,7 @@ public class EppoClient {
         try await self.configurationStore.fetchAndStoreConfigurations()
     }
 
-    public func getBoolAssignment(
+    public func getBooleanAssignment(
         flagKey: String,
         subjectKey: String,
         subjectAttributes: SubjectAttributes = SubjectAttributes(),
