@@ -102,7 +102,7 @@ final class eppoClientTests: XCTestCase {
                         "FlagKey: \(testCase.flag), SubjectKey: \(subject.subjectKey)"
                     )
                 case UFC_VariationType.json:
-                    let assignment = try? eppoClient.getJSONAssignment(
+                    let assignment = try? eppoClient.getJSONStringAssignment(
                         flagKey: testCase.flag,
                         subjectKey: subject.subjectKey,
                         subjectAttributes: subject.subjectAttributes,

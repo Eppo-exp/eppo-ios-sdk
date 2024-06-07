@@ -70,7 +70,7 @@ public class EppoClient {
         }
     }
     
-    public func getJSONAssignment(
+    public func getJSONStringAssignment(
         flagKey: String,
         subjectKey: String,
         subjectAttributes: SubjectAttributes,
