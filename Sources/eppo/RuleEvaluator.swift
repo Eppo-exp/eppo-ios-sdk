@@ -241,16 +241,21 @@ public class FlagEvaluator {
             case .matches:
                 return try Compare.matchesRegex(
                     value.getStringValue(),
-                    condition.value.getStringValue()
+                    condition.value.toEppoString()
+                )
+            case .notMatches:
+                return try !Compare.matchesRegex(
+                    value.getStringValue(),
+                    condition.value.toEppoString()
                 )
             case .oneOf:
                 return try Compare.isOneOf(
-                    value.getStringValue(),
+                    value.toEppoString(),
                     condition.value.getStringArrayValue()
                 )
             case .notOneOf:
                 return try !Compare.isOneOf(
-                    value.getStringValue(),
+                    value.toEppoString(),
                     condition.value.getStringArrayValue()
                 )
             default:

@@ -68,6 +68,23 @@ class EppoValueTests: XCTestCase {
         XCTAssertFalse(arrayValue1 == arrayValueDifferent, "Arrays with different elements or counts should not be equal")
     }
 
+    func testToString() {
+        // boolean
+        XCTAssertEqual(EppoValue(value: true).toEppoString(), "true")
+        XCTAssertEqual(EppoValue(value: false).toEppoString(), "false")
+
+        // float
+        XCTAssertEqual(EppoValue(value: 10.5).toEppoString(), "10.5")
+        XCTAssertEqual(EppoValue(value: 10.0).toEppoString(), "10")
+        XCTAssertEqual(EppoValue(value: 123456789.0).toEppoString(), "123456789")
+
+        // int
+        XCTAssertEqual(EppoValue(value: 10).toEppoString(), "10")
+
+        // string
+        XCTAssertEqual(EppoValue(value: "test").toEppoString(), "test")
+    }
+    
     private func jsonData(from jsonString: String) throws -> Data {
         guard let jsonData = jsonString.data(using: .utf8) else {
             throw NSError(domain: "JSONError", code: 1001, userInfo: [NSLocalizedDescriptionKey: "Invalid JSON string"])

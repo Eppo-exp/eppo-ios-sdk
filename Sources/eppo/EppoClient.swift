@@ -26,9 +26,9 @@ public class EppoClient {
     
     public typealias AssignmentLogger = (Assignment) -> Void
     public var assignmentLogger: AssignmentLogger?
-
+    
     private var flagEvaluator: FlagEvaluator = FlagEvaluator(sharder: MD5Sharder())
-
+    
     public init(
         apiKey: String,
         host: String = "https://fscdn.eppo.cloud",
@@ -39,18 +39,18 @@ public class EppoClient {
         self.host = host;
         self.assignmentLogger = assignmentLogger;
         self.assignmentCache = assignmentCache
-
+        
         let httpClient = NetworkEppoHttpClient(baseURL: host, apiKey: apiKey, sdkName: sdkName, sdkVersion: sdkVersion);
         let configurationRequester = ConfigurationRequester(
-            httpClient: httpClient  
+            httpClient: httpClient
         );
         self.configurationStore = ConfigurationStore(requester: configurationRequester);
     }
-
+    
     public func load() async throws {
         try await self.configurationStore.fetchAndStoreConfigurations()
     }
-
+    
     public func getBooleanAssignment(
         flagKey: String,
         subjectKey: String,
@@ -59,8 +59,8 @@ public class EppoClient {
     {
         do {
             return try getInternalAssignment(
-                flagKey: flagKey, 
-                subjectKey: subjectKey, 
+                flagKey: flagKey,
+                subjectKey: subjectKey,
                 subjectAttributes: subjectAttributes,
                 expectedVariationType: UFC_VariationType.boolean
             )?.variation?.value.getBoolValue() ?? defaultValue
@@ -70,20 +70,24 @@ public class EppoClient {
         }
     }
     
-    // todo: add back when supporting JSON
-//    public func getJSONAssignment(
-//        flagKey: String,
-//        subjectKey: String,
-//        subjectAttributes: SubjectAttributes,
-//        defaultValue: [String: EppoValue]) throws -> [String: EppoValue]
-//    {
-//        return try getInternalAssignment(
-//            flagKey: flagKey, 
-//            subjectKey: subjectKey, 
-//            subjectAttributes: subjectAttributes
-//        )?.variation?.value?.objectValue() ?? defaultValue
-//    }
-//    
+    public func getJSONStringAssignment(
+        flagKey: String,
+        subjectKey: String,
+        subjectAttributes: SubjectAttributes,
+        defaultValue: String) throws -> String
+    {
+        do {
+            return try getInternalAssignment(
+                flagKey: flagKey,
+                subjectKey: subjectKey,
+                subjectAttributes: subjectAttributes,
+                expectedVariationType: UFC_VariationType.json
+            )?.variation?.value.getStringValue() ?? defaultValue
+        } catch {
+            // todo: implement graceful mode
+            return defaultValue
+        }
+    }
     
     public func getIntegerAssignment(
         flagKey: String,
@@ -94,9 +98,9 @@ public class EppoClient {
         do {
             let assignment = try getInternalAssignment(
                 flagKey: flagKey,
-            subjectKey: subjectKey,
-            subjectAttributes: subjectAttributes,
-            expectedVariationType: UFC_VariationType.integer
+                subjectKey: subjectKey,
+                subjectAttributes: subjectAttributes,
+                expectedVariationType: UFC_VariationType.integer
             )
             return Int(try assignment?.variation?.value.getDoubleValue() ?? Double(defaultValue))
         } catch {
@@ -105,7 +109,7 @@ public class EppoClient {
         }
     }
     
-    public func getDoubleAssignment(
+    public func getNumericAssignment(
         flagKey: String,
         subjectKey: String,
         subjectAttributes: SubjectAttributes = SubjectAttributes(),
@@ -113,9 +117,9 @@ public class EppoClient {
     {
         do {
             return try getInternalAssignment(
-                flagKey: flagKey, 
-                subjectKey: subjectKey, 
-            subjectAttributes: subjectAttributes,
+                flagKey: flagKey,
+                subjectKey: subjectKey,
+                subjectAttributes: subjectAttributes,
                 expectedVariationType: UFC_VariationType.numeric
             )?.variation?.value.getDoubleValue() ?? defaultValue
         } catch {
@@ -132,9 +136,9 @@ public class EppoClient {
     {
         do {
             return try getInternalAssignment(
-                flagKey: flagKey, 
-                subjectKey: subjectKey, 
-            subjectAttributes: subjectAttributes,
+                flagKey: flagKey,
+                subjectKey: subjectKey,
+                subjectAttributes: subjectAttributes,
                 expectedVariationType: UFC_VariationType.string
             )?.variation?.value.getStringValue() ?? defaultValue
         } catch {
@@ -152,23 +156,23 @@ public class EppoClient {
         if (self.apiKey.count == 0) {
             throw Errors.apiKeyInvalid;
         }
-
+        
         if (self.host.count == 0) {
             throw Errors.hostInvalid;
         }
-
+        
         if subjectKey.count == 0 { throw Errors.subjectKeyRequired }
         if flagKey.count == 0 { throw Errors.flagKeyRequired }
         if !self.configurationStore.isInitialized() { throw Errors.configurationNotLoaded }
-
+        
         guard let flagConfig = self.configurationStore.getConfiguration(flagKey: flagKey) else {
             throw Errors.flagConfigNotFound
         }
-
+        
         if flagConfig.variationType != expectedVariationType {
             throw Errors.variationTypeMismatch
         }
-
+        
         let flagEvaluation = flagEvaluator.evaluateFlag(flag: flagConfig, subjectKey: subjectKey, subjectAttributes: subjectAttributes)
         
         if let variation = flagEvaluation.variation, !isValueOfType(expectedType: expectedVariationType, variationValue: variation.value) {
