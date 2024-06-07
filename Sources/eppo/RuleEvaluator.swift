@@ -185,7 +185,7 @@ public class FlagEvaluator {
         let attributeValueIsNull = attributeValue?.isNull() ?? true
         if condition.operator == .isNull {
             let expectNull: Bool = try condition.value.getBoolValue()
-            return (expectNull && attributeValueIsNull) || (!expectNull && !attributeValueIsNull)
+            return expectNull == attributeValueIsNull
         } else if attributeValueIsNull {
             // Any check other than IS NULL should fail if the attribute value is null
             return false
