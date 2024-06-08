@@ -196,7 +196,7 @@ public class FlagEvaluator {
             // Handle the nil case, perhaps throw an error or return a default value
             return false
         }
-        
+
         do {
             switch condition.operator {
             case .greaterThanEqual, .greaterThan, .lessThanEqual, .lessThan:
@@ -239,18 +239,23 @@ public class FlagEvaluator {
                     return false
                 }
             case .matches:
-                return try Compare.matchesRegex(
-                    value.getStringValue(),
-                    condition.value.getStringValue()
+                return Compare.matchesRegex(
+                    try value.toEppoString(),
+                    try condition.value.toEppoString()
+                )
+            case .notMatches:
+                return !Compare.matchesRegex(
+                    try value.toEppoString(),
+                    try condition.value.toEppoString()
                 )
             case .oneOf:
                 return try Compare.isOneOf(
-                    value.getStringValue(),
+                    value.toEppoString(),
                     condition.value.getStringArrayValue()
                 )
             case .notOneOf:
                 return try !Compare.isOneOf(
-                    value.getStringValue(),
+                    value.toEppoString(),
                     condition.value.getStringArrayValue()
                 )
             default:

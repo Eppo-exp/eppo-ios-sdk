@@ -14,14 +14,14 @@ public class EppoValue : Decodable, Equatable {
     private var boolValue: Bool?;
     private var doubleValue: Double?
     private var stringValue: String?
-    private var stringArrayValue: [String]?;
+    private var stringArrayValue: [String]?
 
     enum Errors : Error {
         case valueNotSet;
     }
 
     public static func == (lhs: EppoValue, rhs: EppoValue) -> Bool {
-        if lhs.type != rhs.type { return false; }
+        if lhs.type != rhs.type { return false }
 
         switch lhs.type {
             case .Boolean:
@@ -66,13 +66,12 @@ public class EppoValue : Decodable, Equatable {
     }
 
     required public init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer();
+        let container = try decoder.singleValueContainer()
 
         if let array = try? container.decode([String].self) {
             self.type = .ArrayOfStrings
             self.stringArrayValue = array
         } else if let doubleValue = try? container.decode(Double.self) {
-            // decode double handles both integers and floating-point numbers.
             self.type = .Numeric
             self.doubleValue = doubleValue
         } else if let boolValue = try? container.decode(Bool.self) {
@@ -83,6 +82,10 @@ public class EppoValue : Decodable, Equatable {
             self.stringValue = stringValue
         } else {
             self.type = .Null
+            self.boolValue = nil
+            self.doubleValue = nil
+            self.stringValue = nil
+            self.stringArrayValue = nil
         }
     }
 
@@ -152,21 +155,38 @@ public class EppoValue : Decodable, Equatable {
         return value;
     }
 
-    public func toHashedString() -> String {
-        // todo: this is a bit of a hack. we should probably just use a switch
-        // to handle the different types.
-        var str = ""
-        if let value = self.stringValue {
-            str = value
-        } else if let array = self.stringArrayValue {
-            str = array.joined(separator: ", ")
+    public func toEppoString() throws -> String {
+        switch self.type {
+        case .Boolean:
+            return try self.getBoolValue() ? "true" : "false"
+            
+        case .Numeric:
+            let doubleValue = try self.getDoubleValue()
+            if floor(doubleValue) == doubleValue {
+                return String(format: "%.0f", doubleValue)
+            } else {
+                return String(doubleValue)
+            }
+            
+        case .String:
+            return try self.getStringValue()
+            
+        case .ArrayOfStrings:
+            let arrayValue = try self.getStringArrayValue()
+            return arrayValue.joined(separator: ", ")
+            
+        default:
+            throw Errors.valueNotSet
         }
+    }
 
+    public func toHashedString() throws -> String {
+        let str = try self.toEppoString()
         // generate a sha256 hash of the string. this is a 32-byte signature which
         // will likely save space when using json values but will almost certainly be
         // longer than typical string variation values such as "control" or "variant".
         let sha256Data = SHA256.hash(data: str.data(using: .utf8) ?? Data())
         return sha256Data.map { String(format: "%02x", $0) }.joined()
+       
     }
 }
-

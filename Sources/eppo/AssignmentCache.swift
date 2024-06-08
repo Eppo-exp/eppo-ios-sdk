@@ -27,12 +27,18 @@ public class InMemoryAssignmentCache: AssignmentCache {
             return false
         }
 
-        return get(key: cacheKey) == key.variationValue.toHashedString()
+        guard let variationValue = try? key.variationValue.toHashedString() else {
+            return false
+        }
+        return get(key: cacheKey) == variationValue
     }
 
     public func setLastLoggedAssignment(key: AssignmentCacheKey) {
         let cacheKey = getCacheKey(key: key)
-        set(key: cacheKey, value: key.variationValue.toHashedString())
+        guard let variationValue = try? key.variationValue.toHashedString() else {
+            return
+        }
+        set(key: cacheKey, value: variationValue)
     }
 
     internal func get(key: String) -> String? {
