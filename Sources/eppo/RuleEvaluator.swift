@@ -240,13 +240,13 @@ public class FlagEvaluator {
                 }
             case .matches:
                 return Compare.matchesRegex(
-                    value.toEppoString(),
-                    condition.value.toEppoString()
+                    try value.toEppoString(),
+                    try condition.value.toEppoString()
                 )
             case .notMatches:
                 return !Compare.matchesRegex(
-                    value.toEppoString(),
-                    condition.value.toEppoString()
+                    try value.toEppoString(),
+                    try condition.value.toEppoString()
                 )
             case .oneOf:
                 return try Compare.isOneOf(

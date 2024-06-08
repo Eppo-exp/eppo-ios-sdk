@@ -14,14 +14,15 @@ public class EppoValue : Decodable, Equatable {
     private var boolValue: Bool?;
     private var doubleValue: Double?
     private var stringValue: String?
-    private var stringArrayValue: [String]?;
+    private var stringArrayValue: [String]?
+    private var objectValue: [String: JSONValue]?
 
     enum Errors : Error {
         case valueNotSet;
     }
 
     public static func == (lhs: EppoValue, rhs: EppoValue) -> Bool {
-        if lhs.type != rhs.type { return false; }
+        if lhs.type != rhs.type { return false }
 
         switch lhs.type {
             case .Boolean:
@@ -66,13 +67,12 @@ public class EppoValue : Decodable, Equatable {
     }
 
     required public init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer();
+        let container = try decoder.singleValueContainer()
 
         if let array = try? container.decode([String].self) {
             self.type = .ArrayOfStrings
             self.stringArrayValue = array
         } else if let doubleValue = try? container.decode(Double.self) {
-            // decode double handles both integers and floating-point numbers.
             self.type = .Numeric
             self.doubleValue = doubleValue
         } else if let boolValue = try? container.decode(Bool.self) {
@@ -83,6 +83,11 @@ public class EppoValue : Decodable, Equatable {
             self.stringValue = stringValue
         } else {
             self.type = .Null
+            self.boolValue = nil
+            self.doubleValue = nil
+            self.stringValue = nil
+            self.stringArrayValue = nil
+            self.objectValue = nil
         }
     }
 
@@ -152,52 +157,67 @@ public class EppoValue : Decodable, Equatable {
         return value;
     }
 
-    public func toEppoString() -> String {
+    public func toEppoString() throws -> String {
         switch self.type {
         case .Boolean:
-            return try! self.getBoolValue() ? "true" : "false"
+            return try self.getBoolValue() ? "true" : "false"
+            
         case .Numeric:
-            if let doubleVal = try? self.getDoubleValue() {
-                if floor(doubleVal) == doubleVal {
-                    // If the double value is an integer, return as integer string
-                    return String(format: "%.0f", doubleVal)
-                } else {
-                    // Otherwise, return the double as is
-                    return String(doubleVal)
-                }
+            let doubleValue = try self.getDoubleValue()
+            if floor(doubleValue) == doubleValue {
+                return String(format: "%.0f", doubleValue)
             } else {
-                // todo: should this throw?
-                return "null"
+                return String(doubleValue)
             }
+            
         case .String:
-            // todo: should this throw?
-            // it should not since we checked the type is a string above
-            // but to be true to the type system we should throw here
-            if let value = try? self.getStringValue() {
-                return value
-            } else {
-                // todo: should this throw?
-                return "null"
-            }
+            return try self.getStringValue()
+            
         case .ArrayOfStrings:
-            if let value = try? self.getStringArrayValue() {
-                return value.joined(separator: " ,")
-            } else {
-                // todo: should this throw?
-                return "null"
-            }
-        case .Null:
-            return "null"
+            let arrayValue = try self.getStringArrayValue()
+            return arrayValue.joined(separator: ", ")
+            
+        default:
+            throw Errors.valueNotSet
         }
     }
 
-    public func toHashedString() -> String {
-        let str = self.toEppoString()
+    public func toHashedString() throws -> String {
+        let str = try self.toEppoString()
         // generate a sha256 hash of the string. this is a 32-byte signature which
         // will likely save space when using json values but will almost certainly be
         // longer than typical string variation values such as "control" or "variant".
         let sha256Data = SHA256.hash(data: str.data(using: .utf8) ?? Data())
         return sha256Data.map { String(format: "%02x", $0) }.joined()
        
+    }
+}
+
+enum JSONValue: Decodable {
+    case string(String)
+    case int(Int)
+    case double(Double)
+    case bool(Bool)
+    case object([String: JSONValue])
+    case array([JSONValue])
+    case null
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if let value = try? container.decode(String.self) {
+            self = .string(value)
+        } else if let value = try? container.decode(Int.self) {
+            self = .int(value)
+        } else if let value = try? container.decode(Double.self) {
+            self = .double(value)
+        } else if let value = try? container.decode(Bool.self) {
+            self = .bool(value)
+        } else if let value = try? container.decode([JSONValue].self) {
+            self = .array(value)
+        } else if let value = try? container.decode([String: JSONValue].self) {
+            self = .object(value)
+        } else {
+            self = .null
+        }
     }
 }
