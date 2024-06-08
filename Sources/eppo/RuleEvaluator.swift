@@ -239,13 +239,13 @@ public class FlagEvaluator {
                     return false
                 }
             case .matches:
-                return try Compare.matchesRegex(
-                    value.getStringValue(),
+                return Compare.matchesRegex(
+                    value.toEppoString(),
                     condition.value.toEppoString()
                 )
             case .notMatches:
-                return try !Compare.matchesRegex(
-                    value.getStringValue(),
+                return !Compare.matchesRegex(
+                    value.toEppoString(),
                     condition.value.toEppoString()
                 )
             case .oneOf:
