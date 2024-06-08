@@ -15,7 +15,6 @@ public class EppoValue : Decodable, Equatable {
     private var doubleValue: Double?
     private var stringValue: String?
     private var stringArrayValue: [String]?
-    private var objectValue: [String: JSONValue]?
 
     enum Errors : Error {
         case valueNotSet;
@@ -87,7 +86,6 @@ public class EppoValue : Decodable, Equatable {
             self.doubleValue = nil
             self.stringValue = nil
             self.stringArrayValue = nil
-            self.objectValue = nil
         }
     }
 
@@ -190,34 +188,5 @@ public class EppoValue : Decodable, Equatable {
         let sha256Data = SHA256.hash(data: str.data(using: .utf8) ?? Data())
         return sha256Data.map { String(format: "%02x", $0) }.joined()
        
-    }
-}
-
-enum JSONValue: Decodable {
-    case string(String)
-    case int(Int)
-    case double(Double)
-    case bool(Bool)
-    case object([String: JSONValue])
-    case array([JSONValue])
-    case null
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
-        if let value = try? container.decode(String.self) {
-            self = .string(value)
-        } else if let value = try? container.decode(Int.self) {
-            self = .int(value)
-        } else if let value = try? container.decode(Double.self) {
-            self = .double(value)
-        } else if let value = try? container.decode(Bool.self) {
-            self = .bool(value)
-        } else if let value = try? container.decode([JSONValue].self) {
-            self = .array(value)
-        } else if let value = try? container.decode([String: JSONValue].self) {
-            self = .object(value)
-        } else {
-            self = .null
-        }
     }
 }
