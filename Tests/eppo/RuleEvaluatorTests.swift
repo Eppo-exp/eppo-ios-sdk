@@ -291,8 +291,8 @@ final class flagEvaluatorTests: XCTestCase {
             variations: [
                 "control": UFC_Variation(
                     key: "control", 
-                    value: EppoValue(value: "Control"),
-                    algorithmType: nil)
+                    value: EppoValue(value: "Control")
+                    )
             ],
             allocations: [
                 UFC_Allocation(

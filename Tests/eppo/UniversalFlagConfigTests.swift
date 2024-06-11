@@ -44,15 +44,15 @@ final class UniversalFlagConfigTest: XCTestCase {
         let config = try! UniversalFlagConfig.decodeFromJSON(from: UFCTestJSON)
         
         // empty flag
-        let emptyFlag = config.flags.first(where: { $0.key == "empty_flag" })?.value
+        let emptyFlag = config.flags.first(where: { $0.key == Utils.getMD5Hex("empty_flag") })?.value
         XCTAssertTrue(emptyFlag?.enabled == true, "The 'empty_flag' flag should be enabled.")
         
         // disabled flag
-        let disabledFlag = config.flags.first(where: { $0.key == "disabled_flag" })?.value
+        let disabledFlag = config.flags.first(where: { $0.key == Utils.getMD5Hex("disabled_flag") })?.value
         XCTAssertTrue(disabledFlag?.enabled == false, "The 'disabled_flag' flag should be disabled.")
         
         // variation type
-        let variationFlag = config.flags.first(where: { $0.key == "numeric_flag" })?.value
+        let variationFlag = config.flags.first(where: { $0.key == Utils.getMD5Hex("numeric_flag") })?.value
         XCTAssertEqual(variationFlag?.enabled, true, "The 'numeric_flag' flag should be enabled.")
         XCTAssertEqual(variationFlag?.variationType, UFC_VariationType.numeric, "The 'numeric_flag' flag should have a variation type of 'NUMERIC'.")
         XCTAssertEqual(variationFlag?.variations.count, 2, "The 'numeric_flag' flag should have 2 variations.")
