@@ -28,6 +28,7 @@ public class EppoClient {
     public var assignmentLogger: AssignmentLogger?
     
     private var flagEvaluator: FlagEvaluator = FlagEvaluator(sharder: MD5Sharder())
+    private let isConfigObfuscated: Bool = true
     
     public init(
         apiKey: String,
@@ -165,7 +166,12 @@ public class EppoClient {
         if flagKey.count == 0 { throw Errors.flagKeyRequired }
         if !self.configurationStore.isInitialized() { throw Errors.configurationNotLoaded }
         
-        guard let flagConfig = self.configurationStore.getConfiguration(flagKey: flagKey) else {
+        var flagKeyForLookup = flagKey
+        if (self.isConfigObfuscated) {
+            flagKeyForLookup = Utils.getMD5Hex(flagKey)
+        }
+
+        guard let flagConfig = self.configurationStore.getConfiguration(flagKey: flagKeyForLookup) else {
             throw Errors.flagConfigNotFound
         }
         
@@ -173,7 +179,12 @@ public class EppoClient {
             throw Errors.variationTypeMismatch
         }
         
-        let flagEvaluation = flagEvaluator.evaluateFlag(flag: flagConfig, subjectKey: subjectKey, subjectAttributes: subjectAttributes)
+        let flagEvaluation = flagEvaluator.evaluateFlag(
+            flag: flagConfig,
+            subjectKey: subjectKey,
+            subjectAttributes: subjectAttributes,
+            isObfuscated: self.isConfigObfuscated
+        )
         
         if let variation = flagEvaluation.variation, !isValueOfType(expectedType: expectedVariationType, variationValue: variation.value) {
             throw Errors.variationWrongType
@@ -206,7 +217,11 @@ public class EppoClient {
                         subject: subjectKey,
                         timestamp: ISO8601DateFormatter().string(from: Date()),
                         subjectAttributes: subjectAttributes,
-                        metaData: ["sdkName": sdkName, "sdkVersion": sdkVersion],
+                        metaData: [
+                            "obfuscated": String(self.isConfigObfuscated),
+                            "sdkName": sdkName,
+                            "sdkVersion": sdkVersion
+                        ],
                         extraLogging: flagEvaluation.extraLogging
                     )
                     

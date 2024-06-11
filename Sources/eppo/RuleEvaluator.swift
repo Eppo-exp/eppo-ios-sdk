@@ -76,7 +76,8 @@ public class FlagEvaluator {
     func evaluateFlag(
         flag: UFC_Flag,
         subjectKey: String,
-        subjectAttributes: SubjectAttributes
+        subjectAttributes: SubjectAttributes,
+        isObfuscated: Bool
     ) -> FlagEvaluation {
         if (!flag.enabled) {
             return FlagEvaluation.noneResult(
@@ -99,11 +100,15 @@ public class FlagEvaluator {
             // Add the subject key as an attribute so rules can use it
             // If the "id" attribute is already present, keep the existing value
             let subjectAttributesWithID = subjectAttributes.merging(["id": EppoValue.valueOf(subjectKey)]) { (old, _) in old }
-            if matchesRules(subjectAttributes: subjectAttributesWithID, rules: allocation.rules ?? []) {
+            if matchesRules(
+                subjectAttributes: subjectAttributesWithID,
+                rules: allocation.rules ?? [],
+                isObfuscated: isObfuscated
+            ) {
                 // Split needs to match all shards
                 for split in allocation.splits {
                     let allShardsMatch = split.shards.allSatisfy { shard in
-                        matchesShard(shard: shard, subjectKey: subjectKey, totalShards: flag.totalShards)
+                        matchesShard(shard: shard, subjectKey: subjectKey, totalShards: flag.totalShards, isObfuscated: isObfuscated)
                     }
                     if allShardsMatch {
                         return FlagEvaluation.matchedResult(
@@ -131,10 +136,18 @@ public class FlagEvaluator {
     private func matchesShard(
         shard: UFC_Shard,
         subjectKey: String,
-        totalShards: Int
+        totalShards: Int,
+        isObfuscated: Bool
     ) -> Bool {
         assert(totalShards > 0, "Expect totalShards to be strictly positive")
-        let h = self.sharder.getShard(input: hashKey(salt: shard.salt, subjectKey: subjectKey), totalShards: totalShards)
+        
+        var salt = shard.salt
+        if (isObfuscated) {
+            salt = Utils.base64Decode(salt) ?? "";
+        }
+
+        let h = self.sharder.getShard(input: hashKey(salt: salt, subjectKey: subjectKey), totalShards: totalShards)
+
         return shard.ranges.contains { range in
             isInShardRange(shard: h, range: range)
         }
@@ -142,7 +155,8 @@ public class FlagEvaluator {
     
     private func matchesRules(
         subjectAttributes: SubjectAttributes,
-        rules: [UFC_Rule]
+        rules: [UFC_Rule],
+        isObfuscated: Bool
     ) -> Bool {
         if rules.isEmpty {
             return true
@@ -150,13 +164,15 @@ public class FlagEvaluator {
         
         // If any rule matches, return true.
         return rules.contains { rule in
-            return matchesRule(subjectAttributes: subjectAttributes, rule: rule)
+            return matchesRule(subjectAttributes: subjectAttributes, rule: rule, isObfuscated: isObfuscated)
         }
     }
     
     private func matchesRule(
         subjectAttributes: SubjectAttributes,
-        rule: UFC_Rule) -> Bool
+        rule: UFC_Rule,
+        isObfuscated: Bool
+    ) -> Bool
     {
         // Check that all conditions within the rule are met
         return rule.conditions.allSatisfy { condition in

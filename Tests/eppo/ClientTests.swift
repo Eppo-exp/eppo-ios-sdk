@@ -7,7 +7,7 @@ import OHHTTPStubsSwift
 @testable import eppo_flagging
 
 let fileURL = Bundle.module.url(
-    forResource: "Resources/test-data/ufc/flags-v1.json",
+    forResource: "Resources/test-data/ufc/flags-v1-obfuscated.json",
     withExtension: ""
 );
 let UFCTestJSON: String = try! String(contentsOfFile: fileURL!.path);

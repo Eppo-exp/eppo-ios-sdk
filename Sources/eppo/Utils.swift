@@ -10,4 +10,15 @@ class Utils {
 
         return dateFormatter.string(from: date).appending("Z");
     }
+
+    static func getMD5Hex(_ string: String) -> String {
+        let data = Data(string.utf8)
+        let md5 = Insecure.MD5.hash(data: data)
+        return md5.map { String(format: "%02hhx", $0) }.joined()
+    }
+
+    static func base64Decode(_ string: String) -> String? {
+        guard let data = Data(base64Encoded: string) else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
 }

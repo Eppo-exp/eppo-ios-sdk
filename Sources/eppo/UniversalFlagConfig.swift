@@ -32,6 +32,7 @@ public struct UniversalFlagConfig : Decodable {
             case .keyNotFound(let key, let context):
                 throw UniversalFlagConfigError.parsingError("Key not found: \(key.stringValue) - \(context.debugDescription)")
             case .dataCorrupted(let context):
+                print(context.codingPath)
                 throw UniversalFlagConfigError.parsingError("Data corrupted: \(context.debugDescription)")
             default:
                 throw UniversalFlagConfigError.parsingError("JSON parsing error: \(error.localizedDescription)")
@@ -117,6 +118,39 @@ public struct UFC_Allocation : Decodable {
     let endAt: Date?;
     let splits: [UFC_Split];
     let doLog: Bool;
+    
+    enum CodingKeys: CodingKey {
+        case key
+        case rules
+        case startAt
+        case endAt
+        case splits
+        case doLog
+    }
+    
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        // the incoming value might be obfuscated or not
+        let operatorString = try container.decode(String.self, forKey: .operator)
+        
+        if let decodedOperator = md5ToOperator[operatorString] {
+            // if the incoming value matches the md5 lookup table, it is obfuscated
+            self.operator = decodedOperator
+        } else if let unobfuscatedOperator = UFC_RuleConditionOperator(rawValue: operatorString) {
+            // not obfuscated; use directly
+            self.operator = unobfuscatedOperator
+        } else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .operator,
+                in: container,
+                debugDescription: "Operator could not be decoded as either obfuscated or direct string"
+            )
+        }
+        
+        self.attribute = try container.decode(String.self, forKey: .attribute)
+        self.value = try container.decode(EppoValue.self, forKey: .value)
+    }
 }
 
 public struct UFC_Rule : Decodable {
@@ -127,6 +161,42 @@ public struct UFC_TargetingRuleCondition : Decodable {
     let `operator`: UFC_RuleConditionOperator;
     let attribute: String;
     let value: EppoValue;
+    
+    enum CodingKeys: CodingKey {
+        case `operator`
+        case attribute
+        case value
+    }
+    
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        // the incoming value might be obfuscated or not
+        let operatorString = try container.decode(String.self, forKey: .operator)
+        
+        if let decodedOperator = md5ToOperator[operatorString] {
+            // if the incoming value matches the md5 lookup table, it is obfuscated
+            self.operator = decodedOperator
+        } else if let unobfuscatedOperator = UFC_RuleConditionOperator(rawValue: operatorString) {
+            // not obfuscated; use directly
+            self.operator = unobfuscatedOperator
+        } else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .operator,
+                in: container,
+                debugDescription: "Operator could not be decoded as either obfuscated or direct string"
+            )
+        }
+        
+        self.attribute = try container.decode(String.self, forKey: .attribute)
+        self.value = try container.decode(EppoValue.self, forKey: .value)
+    }
+
+    init(operator: UFC_RuleConditionOperator, attribute: String, value: EppoValue) {
+        self.operator = `operator`
+        self.attribute = attribute
+        self.value = value
+    }
 }
 
 public struct UFC_Split : Decodable {
