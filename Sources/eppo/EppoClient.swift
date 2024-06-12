@@ -86,9 +86,10 @@ public class EppoClient {
     public func loadIfNeeded() async throws {
         let alreadyLoaded = await state.checkAndSetLoaded()
         guard !alreadyLoaded else { return }
-
+        
         try await load()
     }
+    
     private func load() async throws {
         try await self.configurationStore.fetchAndStoreConfigurations()
     }
