@@ -19,6 +19,18 @@ public enum Errors: Error {
     case flagConfigNotFound
 }
 
+actor EppoClientState {
+    private(set) var isLoaded: Bool = false
+    
+    func checkAndSetLoaded() -> Bool {
+        if !isLoaded {
+            isLoaded = true
+            return false
+        }
+        return true
+    }
+}
+
 public class EppoClient {
     public typealias AssignmentLogger = (Assignment) -> Void
     
@@ -30,7 +42,7 @@ public class EppoClient {
     private(set) var assignmentCache: AssignmentCache?
     private(set) var configurationStore: ConfigurationStore
     
-    private var isLoaded = false
+    private let state = EppoClientState()
     
     private init(
         apiKey: String,
@@ -72,11 +84,11 @@ public class EppoClient {
     }
     
     public func loadIfNeeded() async throws {
-        guard !isLoaded else { return }
+        let alreadyLoaded = await state.checkAndSetLoaded()
+        guard !alreadyLoaded else { return }
+
         try await load()
-        isLoaded = true
     }
-    
     private func load() async throws {
         try await self.configurationStore.fetchAndStoreConfigurations()
     }
