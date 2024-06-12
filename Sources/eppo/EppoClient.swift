@@ -1,12 +1,13 @@
 import Foundation;
 
 // todo: make this a build argument (FF-1944)
-let sdkVersion = "1.2.1"
+let sdkVersion = "1.3.0"
 let sdkName = "ios"
 
 // todo: these exported errors could use some work. only ones here that are
 // user actionable should be public; all others are for internal communication.
 public enum Errors: Error {
+    case notConfigured
     case apiKeyInvalid
     case hostInvalid
     case subjectKeyRequired
@@ -19,33 +20,64 @@ public enum Errors: Error {
 }
 
 public class EppoClient {
-    public private(set) var apiKey: String = "";
-    public private(set) var host: String = "";
-    private var configurationStore: ConfigurationStore;
-    private var assignmentCache: AssignmentCache?;
-    
     public typealias AssignmentLogger = (Assignment) -> Void
-    public var assignmentLogger: AssignmentLogger?
     
-    public init(
-        _ apiKey: String,
+    private static var instance: EppoClient?
+    
+    private(set) var apiKey: String
+    private(set) var host: String
+    private(set) var assignmentLogger: AssignmentLogger?
+    private(set) var assignmentCache: AssignmentCache?
+    private(set) var configurationStore: ConfigurationStore
+    
+    private var isLoaded = false
+    
+    private init(
+        apiKey: String,
         host: String = "https://fscdn.eppo.cloud",
         assignmentLogger: AssignmentLogger? = nil,
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache()
     ) {
-        self.apiKey = apiKey;
-        self.host = host;
-        self.assignmentLogger = assignmentLogger;
+        self.apiKey = apiKey
+        self.host = host
+        self.assignmentLogger = assignmentLogger
         self.assignmentCache = assignmentCache
-
-        let httpClient = NetworkEppoHttpClient(baseURL: host, apiKey: apiKey, sdkName: sdkName, sdkVersion: sdkVersion);
-        let configurationRequester = ConfigurationRequester(
-            httpClient: httpClient  
-        );
-        self.configurationStore = ConfigurationStore(requester: configurationRequester);
+        
+        let httpClient = NetworkEppoHttpClient(baseURL: host, apiKey: apiKey, sdkName: "sdkName", sdkVersion: "sdkVersion")
+        let configurationRequester = ConfigurationRequester(httpClient: httpClient)
+        self.configurationStore = ConfigurationStore(requester: configurationRequester)
     }
-
-    public func load() async throws {
+    
+    public static func configure(
+        apiKey: String,
+        host: String = "https://fscdn.eppo.cloud",
+        assignmentLogger: AssignmentLogger? = nil,
+        assignmentCache: AssignmentCache? = InMemoryAssignmentCache()
+    ) -> EppoClient {
+        if instance == nil {
+            instance = EppoClient(apiKey: apiKey, host: host, assignmentLogger: assignmentLogger, assignmentCache: assignmentCache)
+        }
+        return instance!
+    }
+    
+    public static func getInstance() throws -> EppoClient {
+        guard let instance = instance else {
+            throw Errors.notConfigured
+        }
+        return instance
+    }
+    
+    public static func resetInstance() {
+        instance = nil
+    }
+    
+    public func loadIfNeeded() async throws {
+        guard !isLoaded else { return }
+        try await load()
+        isLoaded = true
+    }
+    
+    private func load() async throws {
         try await self.configurationStore.fetchAndStoreConfigurations()
     }
     
@@ -56,7 +88,7 @@ public class EppoClient {
     {
         return try getInternalAssignment(subjectKey, flagKey, subjectAttributes, false)?.stringValue()
     }
-
+    
     public func getBoolAssignment(
         _ subjectKey: String,
         _ flagKey: String,
@@ -96,29 +128,29 @@ public class EppoClient {
         _ useTypedVariationValue: Bool) throws -> EppoValue?
     {
         try self.validate();
-
+        
         if subjectKey.count == 0 { throw Errors.subjectKeyRequired }
         if flagKey.count == 0 { throw Errors.flagKeyRequired }
         if !self.configurationStore.isInitialized() { throw Errors.configurationNotLoaded }
-
+        
         guard let flagConfig = self.configurationStore.getConfiguration(flagKey: flagKey) else {
             throw Errors.flagConfigNotFound;
         }
-
+        
         if let subjectVariationOverride = self.getSubjectVariationOverrides(subjectKey, flagConfig) {
             return subjectVariationOverride;
         }
-
+        
         if !flagConfig.enabled {
             //TODO: Log something here?
             return nil;
         }
-
+        
         guard let rule = try RuleEvaluator.findMatchingRule(subjectAttributes, flagConfig.rules) else {
             //TODO: Log that no assigned variation exists?
             return nil;
         }
-
+        
         guard let allocation = flagConfig.allocations[rule.allocationKey] else {
             throw Errors.allocationKeyNotDefined;
         }
@@ -132,7 +164,7 @@ public class EppoClient {
             //TODO: Log that no variation is assigned?
             return nil;
         }
-
+        
         guard let assignedVariation = getAssignedVariation(
             subjectKey, flagKey, flagConfig.subjectShards, allocation.variations
         ) else {
@@ -176,17 +208,17 @@ public class EppoClient {
             return EppoValue(value: assignedVariation.value, type: EppoValueType.String);
         }
     }
-
+    
     public func validate() throws {
         if(self.apiKey.count == 0) {
             throw Errors.apiKeyInvalid;
         }
-
+        
         if(self.host.count == 0) {
             throw Errors.hostInvalid;
         }
     }
-
+    
     private func isInExperimentSample(
         _ subjectKey: String,
         _ flagKey: String,
@@ -197,16 +229,16 @@ public class EppoClient {
         let shard = Utils.getShard("exposure-" + subjectKey + "-" + flagKey, subjectShards);
         return shard <= Int(percentageExposure * Float(subjectShards));
     }
-
+    
     private func getSubjectVariationOverrides(_ subjectKey: String, _ flagConfig: FlagConfig) -> EppoValue? {
         let subjectHash = Utils.getMD5Hex(input: subjectKey);
         if let occurence = flagConfig.typedOverrides[subjectHash] {
             return occurence;
         }
-
+        
         return nil;
     }
-
+    
     private func getAssignedVariation(
         _ subjectKey: String,
         _ flagKey: String,
@@ -215,13 +247,13 @@ public class EppoClient {
     ) -> Variation?
     {
         let shard = Utils.getShard("assignment-" + subjectKey + "-" + flagKey, subjectShards);
-
+        
         for variation in variations {
             if Utils.isShardInRange(shard, variation.shardRange) {
                 return variation;
             }
         }
-
+        
         return nil;
     }
 }
