@@ -20,7 +20,7 @@ struct FlagEvaluation {
     let subjectAttributes: SubjectAttributes
     let allocationKey: Optional<String>
     let variation: Optional<UFC_Variation>
-    let variationType: [UFC_VariationType]
+    let variationType: Optional<UFC_VariationType>
     let extraLogging: [String: String]
     let doLog: Bool
     
@@ -30,16 +30,49 @@ struct FlagEvaluation {
         subjectAttributes: SubjectAttributes,
         allocationKey: Optional<String>,
         variation: Optional<UFC_Variation>,
-        variationType: [UFC_VariationType],
+        variationType: Optional<UFC_VariationType>,
         extraLogging: [String: String],
-        doLog: Bool
+        doLog: Bool,
+        isConfigObfuscated: Bool
     ) -> FlagEvaluation {
+        // If the config is obfuscated, we need to unobfuscate the allocation key.
+        var allocationKeyFinal: String = allocationKey ?? ""
+        if let allocationKey = allocationKey,
+            let decoded = base64Decode(allocationKey),
+            isConfigObfuscated {
+                allocationKeyFinal = decoded
+        }
+
+        var variationFinal: UFC_Variation? = variation
+        if let variation = variation,
+           let variationType = variationType,
+            let decodedVariationKey = base64Decode(variation.key),
+            let variationValue = try? variation.value.getStringValue(),
+            let decodedVariationValue = base64Decode(variationValue),
+            isConfigObfuscated {
+            
+                var decodedValue: EppoValue = EppoValue.nullValue()
+            
+                switch(variationType) {
+                case .boolean:
+                    decodedValue = EppoValue(value: "true" == decodedVariationValue)
+                case .integer, .numeric:
+                    if let doubleValue = Double(decodedVariationValue) {
+                        decodedValue = EppoValue(value: doubleValue)
+                    }
+                case .string, .json:
+                    decodedValue = EppoValue(value: decodedVariationValue)
+                }
+            
+                variationFinal = UFC_Variation(key: decodedVariationKey, value: decodedValue)
+        }
+        
         return FlagEvaluation(
             flagKey: flagKey,
             subjectKey: subjectKey,
             subjectAttributes: subjectAttributes,
-            allocationKey: allocationKey,
-            variation: variation,
+            allocationKey: allocationKeyFinal,
+            variation: variationFinal,
             variationType: variationType,
             extraLogging: extraLogging,
             doLog: doLog
@@ -53,7 +86,7 @@ struct FlagEvaluation {
             subjectAttributes: subjectAttributes,
             allocationKey: Optional<String>.none,
             variation: Optional<UFC_Variation>.none,
-            variationType: [],
+            variationType: Optional<UFC_VariationType>.none,
             extraLogging: [:],
             doLog: false
         )
@@ -122,9 +155,10 @@ public class FlagEvaluator {
                             subjectAttributes: subjectAttributes,
                             allocationKey: Optional<String>.some(allocation.key),
                             variation: flag.variations[split.variationKey],
-                            variationType: [flag.variationType],
+                            variationType: flag.variationType,
                             extraLogging: split.extraLogging ?? [:],
-                            doLog: allocation.doLog
+                            doLog: allocation.doLog,
+                            isConfigObfuscated: isConfigObfuscated
                         )
                     }
                 }
@@ -217,12 +251,34 @@ public class FlagEvaluator {
         // First we do any NULL check
         let attributeValueIsNull = attributeValue?.isNull() ?? true
         if condition.operator == .isNull {
-            let expectNull: Bool = try condition.value.getBoolValue()
-            return expectNull == attributeValueIsNull
+            if let value = try? condition.value.getStringValue(),
+                isConfigObfuscated {
+                let expectNull: Bool = getMD5Hex("true") == value
+                return expectNull == attributeValueIsNull
+            } else if let value = try? condition.value.getBoolValue() {
+                let expectNull: Bool = value
+                return expectNull == attributeValueIsNull
+            }
         } else if attributeValueIsNull {
             // Any check other than IS NULL should fail if the attribute value is null
             return false
         }
+
+        /*
+         // First we do any NULL check
+        
+        OperatorType operator = condition.getOperator();
+        if (operator == OperatorType.IS_NULL) {
+        boolean expectNull =
+            isObfuscated
+                ? getMD5Hex("true").equals(conditionValue.stringValue())
+                : conditionValue.booleanValue();
+        return expectNull && attributeValueIsNull || !expectNull && !attributeValueIsNull;
+        } else if (attributeValueIsNull) {
+        // Any check other than IS NULL should fail if the attribute value is null
+        return false;
+        }
+        */
 
         // Safely unwrap attributeValue for further use
         guard let value = attributeValue else {
@@ -300,3 +356,4 @@ public class FlagEvaluator {
         }
     }
 }
+

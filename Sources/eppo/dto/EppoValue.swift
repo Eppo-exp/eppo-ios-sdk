@@ -40,6 +40,10 @@ public class EppoValue : Decodable, Equatable {
         }
     }
 
+    public init() {
+    self.type = .Null
+}
+
     public init(value: Bool) {
         self.type = EppoValueType.Boolean;
         self.boolValue = value;
@@ -108,6 +112,10 @@ public class EppoValue : Decodable, Equatable {
     public static func valueOf(_ value: [String]) -> EppoValue {
         return EppoValue(array: value);
     }
+
+    public static func nullValue() -> EppoValue {
+    return EppoValue()
+}
     
     public func isNull() -> Bool {
         return self.type == EppoValueType.Null
