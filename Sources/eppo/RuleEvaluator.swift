@@ -280,12 +280,19 @@ public class FlagEvaluator {
             return false
         }
         
-        
         switch condition.operator {
         case .greaterThanEqual, .greaterThan, .lessThanEqual, .lessThan:
             do {
                 let valueStr = try? value.getStringValue()
-                let conditionValueStr = try? condition.value.getStringValue()
+
+                // If the config is obfuscated, we need to unobfuscate the condition value
+                var conditionValueStr: String? = try? condition.value.getStringValue()
+                if isConfigObfuscated,
+                    let cvs = conditionValueStr,
+                   let decoded = base64Decode(cvs) {
+                    conditionValueStr = decoded
+                }
+
                 if let valueVersion = valueStr.flatMap(Semver.init), let conditionVersion = conditionValueStr.flatMap(Semver.init) {
                     // If both strings are valid Semver strings, perform a Semver comparison
                     switch condition.operator {
