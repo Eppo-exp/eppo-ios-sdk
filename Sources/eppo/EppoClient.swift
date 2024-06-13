@@ -29,6 +29,8 @@ public class EppoClient {
     
     private var flagEvaluator: FlagEvaluator = FlagEvaluator(sharder: MD5Sharder())
     
+    private let isConfigObfuscated = true;
+    
     public init(
         apiKey: String,
         host: String = "https://fscdn.eppo.cloud",
@@ -165,7 +167,9 @@ public class EppoClient {
         if flagKey.count == 0 { throw Errors.flagKeyRequired }
         if !self.configurationStore.isInitialized() { throw Errors.configurationNotLoaded }
         
-        guard let flagConfig = self.configurationStore.getConfiguration(flagKey: flagKey) else {
+        let flagKeyForLookup = isConfigObfuscated ? getMD5Hex(flagKey) : flagKey
+        
+        guard let flagConfig = self.configurationStore.getConfiguration(flagKey: flagKeyForLookup) else {
             throw Errors.flagConfigNotFound
         }
         
