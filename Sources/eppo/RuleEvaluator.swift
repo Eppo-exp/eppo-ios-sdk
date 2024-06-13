@@ -310,7 +310,17 @@ public class FlagEvaluator {
                 } else {
                     // If either string is not a valid Semver, fall back to double comparison
                     let valueDouble = try value.getDoubleValue()
-                    let conditionDouble = try condition.value.getDoubleValue()
+
+                    // If the config is obfuscated, we need to unobfuscate the condition value
+                    var conditionDouble: Double
+                    if isConfigObfuscated,
+                       let cvs = conditionValueStr,
+                       let doubleValue = Double(cvs) {
+                        conditionDouble = doubleValue
+                    } else {
+                        conditionDouble = try condition.value.getDoubleValue()
+                    }
+
                     switch condition.operator {
                     case .greaterThanEqual:
                         return valueDouble >= conditionDouble
