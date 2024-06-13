@@ -257,8 +257,8 @@ public class FlagEvaluator {
             }
         } else {
             attributeValue = subjectAttributes[condition.attribute]
-        }        
-
+        }
+        
         // First we do any NULL check
         let attributeValueIsNull = attributeValue?.isNull() ?? true
         if condition.operator == .isNull {
@@ -280,76 +280,75 @@ public class FlagEvaluator {
             return false
         }
         
-        do {
-            switch condition.operator {
-            case .greaterThanEqual, .greaterThan, .lessThanEqual, .lessThan:
-                do {
-                    let valueStr = try? value.getStringValue()
-                    let conditionValueStr = try? condition.value.getStringValue()
-                    if let valueVersion = valueStr.flatMap(Semver.init), let conditionVersion = conditionValueStr.flatMap(Semver.init) {
-                        // If both strings are valid Semver strings, perform a Semver comparison
-                        switch condition.operator {
-                        case .greaterThanEqual:
-                            return valueVersion >= conditionVersion
-                        case .greaterThan:
-                            return valueVersion > conditionVersion
-                        case .lessThanEqual:
-                            return valueVersion <= conditionVersion
-                        case .lessThan:
-                            return valueVersion < conditionVersion
-                        default:
-                            throw Errors.UnexpectedValue
-                        }
-                    } else {
-                        // If either string is not a valid Semver, fall back to double comparison
-                        let valueDouble = try value.getDoubleValue()
-                        let conditionDouble = try condition.value.getDoubleValue()
-                        switch condition.operator {
-                        case .greaterThanEqual:
-                            return valueDouble >= conditionDouble
-                        case .greaterThan:
-                            return valueDouble > conditionDouble
-                        case .lessThanEqual:
-                            return valueDouble <= conditionDouble
-                        case .lessThan:
-                            return valueDouble < conditionDouble
-                        default:
-                            throw Errors.UnexpectedValue
-                        }
+        
+        switch condition.operator {
+        case .greaterThanEqual, .greaterThan, .lessThanEqual, .lessThan:
+            do {
+                let valueStr = try? value.getStringValue()
+                let conditionValueStr = try? condition.value.getStringValue()
+                if let valueVersion = valueStr.flatMap(Semver.init), let conditionVersion = conditionValueStr.flatMap(Semver.init) {
+                    // If both strings are valid Semver strings, perform a Semver comparison
+                    switch condition.operator {
+                    case .greaterThanEqual:
+                        return valueVersion >= conditionVersion
+                    case .greaterThan:
+                        return valueVersion > conditionVersion
+                    case .lessThanEqual:
+                        return valueVersion <= conditionVersion
+                    case .lessThan:
+                        return valueVersion < conditionVersion
+                    default:
+                        throw Errors.UnexpectedValue
                     }
-                } catch {
-                    // If stringValue() or doubleValue() throws, or Semver creation fails
-                    return false
-                }
-            case .matches, .notMatches:
-                if let conditionString = try? condition.value.toEppoString(),
-                   let valueString = try? value.toEppoString() {
-                    
-                    if isConfigObfuscated,
-                       let decoded = base64Decode(conditionString) {
-                        return condition.operator == .matches ? Compare.matchesRegex(valueString, decoded) : !Compare.matchesRegex(valueString, decoded)
-                    } else {
-                        return condition.operator == .matches ? Compare.matchesRegex(valueString, conditionString) : !Compare.matchesRegex(valueString, conditionString)
+                } else {
+                    // If either string is not a valid Semver, fall back to double comparison
+                    let valueDouble = try value.getDoubleValue()
+                    let conditionDouble = try condition.value.getDoubleValue()
+                    switch condition.operator {
+                    case .greaterThanEqual:
+                        return valueDouble >= conditionDouble
+                    case .greaterThan:
+                        return valueDouble > conditionDouble
+                    case .lessThanEqual:
+                        return valueDouble <= conditionDouble
+                    case .lessThan:
+                        return valueDouble < conditionDouble
+                    default:
+                        throw Errors.UnexpectedValue
                     }
                 }
-                
+            } catch {
+                // If stringValue() or doubleValue() throws, or Semver creation fails
                 return false
-            case .oneOf:
-                return try Compare.isOneOf(
-                    value.toEppoString(),
-                    condition.value.getStringArrayValue()
-                )
-            case .notOneOf:
-                return try !Compare.isOneOf(
-                    value.toEppoString(),
-                    condition.value.getStringArrayValue()
-                )
-            default:
-                return false;
             }
-        } catch {
-            // Handle or log the error
+        case .matches, .notMatches:
+            if let conditionString = try? condition.value.toEppoString(),
+               let valueString = try? value.toEppoString() {
+                
+                if isConfigObfuscated,
+                   let decoded = base64Decode(conditionString) {
+                    return condition.operator == .matches ? Compare.matchesRegex(valueString, decoded) : !Compare.matchesRegex(valueString, decoded)
+                } else {
+                    return condition.operator == .matches ? Compare.matchesRegex(valueString, conditionString) : !Compare.matchesRegex(valueString, conditionString)
+                }
+            }
+            
             return false
+        case .oneOf, .notOneOf:
+            if let valueString = try? value.toEppoString(),
+               let conditionArray = try? condition.value.getStringArrayValue() {
+                
+                if isConfigObfuscated {
+                    let valueStringHash = getMD5Hex(valueString)
+                    return condition.operator == .oneOf ? Compare.isOneOf(valueStringHash, conditionArray) : !Compare.isOneOf(valueStringHash, conditionArray)
+                } else {
+                    return condition.operator == .oneOf ? Compare.isOneOf(valueString, conditionArray) : !Compare.isOneOf(valueString, conditionArray)
+                }
+            }
+            
+            return false
+        default:
+            return false;
         }
     }
 }
