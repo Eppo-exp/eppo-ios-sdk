@@ -30,6 +30,8 @@ final class eppoClientTests: XCTestCase {
        eppoClient = EppoClient(apiKey: "mock-api-key", assignmentLogger: loggerSpy.logger)
    }
    
+    // todo: do obfuscation and not tests.
+
    func testLogger() async throws {
        try await eppoClient.load()
        
@@ -43,6 +45,8 @@ final class eppoClientTests: XCTestCase {
        if let lastAssignment = loggerSpy.lastAssignment {
            XCTAssertEqual(lastAssignment.allocation, "rollout")
            XCTAssertEqual(lastAssignment.experiment, "numeric_flag-rollout")
+           XCTAssertEqual(lastAssignment.variation, "pi")
+           XCTAssertEqual(lastAssignment.featureFlag, "numeric_flag")
            XCTAssertEqual(lastAssignment.subject, "6255e1a72a84e984aed55668")
        } else {
            XCTFail("No last assignment was logged.")

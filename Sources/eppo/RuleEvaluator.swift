@@ -221,13 +221,12 @@ public class FlagEvaluator {
         // Check that all conditions within the rule are met
         return rule.conditions.allSatisfy { condition in
             // If the condition throws an error, consider this not matching.
-            return (
-                try? evaluateCondition(
-                    subjectAttributes: subjectAttributes,
-                    condition: condition,
-                    isConfigObfuscated: isConfigObfuscated
-                )
-            ) ?? false
+            return evaluateCondition(
+                subjectAttributes: subjectAttributes,
+                condition: condition,
+                isConfigObfuscated: isConfigObfuscated
+            )
+            
         }
     }
     
@@ -243,7 +242,7 @@ public class FlagEvaluator {
         subjectAttributes: SubjectAttributes,
         condition: UFC_TargetingRuleCondition,
         isConfigObfuscated: Bool
-    ) throws -> Bool
+    ) -> Bool
     {
         // attribute names are hashed if obfuscated
         let attributeKey = condition.attribute
@@ -282,61 +281,60 @@ public class FlagEvaluator {
         
         switch condition.operator {
         case .greaterThanEqual, .greaterThan, .lessThanEqual, .lessThan:
-            do {
-                let valueStr = try? value.getStringValue()
-
+            let valueStr = try? value.getStringValue()
+            
+            // If the config is obfuscated, we need to unobfuscate the condition value
+            var conditionValueStr: String? = try? condition.value.getStringValue()
+            if isConfigObfuscated,
+               let cvs = conditionValueStr,
+               let decoded = base64Decode(cvs) {
+                conditionValueStr = decoded
+            }
+            
+            if let valueVersion = valueStr.flatMap(Semver.init), let conditionVersion = conditionValueStr.flatMap(Semver.init) {
+                // If both strings are valid Semver strings, perform a Semver comparison
+                switch condition.operator {
+                case .greaterThanEqual:
+                    return valueVersion >= conditionVersion
+                case .greaterThan:
+                    return valueVersion > conditionVersion
+                case .lessThanEqual:
+                    return valueVersion <= conditionVersion
+                case .lessThan:
+                    return valueVersion < conditionVersion
+                default:
+                    return false
+                }
+            } else {
+                // If either string is not a valid Semver, fall back to double comparison
+                guard let valueDouble = try? value.getDoubleValue() else {
+                    return false
+                }
+                
                 // If the config is obfuscated, we need to unobfuscate the condition value
-                var conditionValueStr: String? = try? condition.value.getStringValue()
+                var conditionDouble: Double
                 if isConfigObfuscated,
-                    let cvs = conditionValueStr,
-                   let decoded = base64Decode(cvs) {
-                    conditionValueStr = decoded
-                }
-
-                if let valueVersion = valueStr.flatMap(Semver.init), let conditionVersion = conditionValueStr.flatMap(Semver.init) {
-                    // If both strings are valid Semver strings, perform a Semver comparison
-                    switch condition.operator {
-                    case .greaterThanEqual:
-                        return valueVersion >= conditionVersion
-                    case .greaterThan:
-                        return valueVersion > conditionVersion
-                    case .lessThanEqual:
-                        return valueVersion <= conditionVersion
-                    case .lessThan:
-                        return valueVersion < conditionVersion
-                    default:
-                        throw Errors.UnexpectedValue
-                    }
+                   let cvs = conditionValueStr,
+                   let doubleValue = Double(cvs) {
+                    conditionDouble = doubleValue
+                } else if let doubleValue = try? condition.value.getDoubleValue() {
+                    conditionDouble = doubleValue
                 } else {
-                    // If either string is not a valid Semver, fall back to double comparison
-                    let valueDouble = try value.getDoubleValue()
-
-                    // If the config is obfuscated, we need to unobfuscate the condition value
-                    var conditionDouble: Double
-                    if isConfigObfuscated,
-                       let cvs = conditionValueStr,
-                       let doubleValue = Double(cvs) {
-                        conditionDouble = doubleValue
-                    } else {
-                        conditionDouble = try condition.value.getDoubleValue()
-                    }
-
-                    switch condition.operator {
-                    case .greaterThanEqual:
-                        return valueDouble >= conditionDouble
-                    case .greaterThan:
-                        return valueDouble > conditionDouble
-                    case .lessThanEqual:
-                        return valueDouble <= conditionDouble
-                    case .lessThan:
-                        return valueDouble < conditionDouble
-                    default:
-                        throw Errors.UnexpectedValue
-                    }
+                    return false
                 }
-            } catch {
-                // If stringValue() or doubleValue() throws, or Semver creation fails
-                return false
+                
+                switch condition.operator {
+                case .greaterThanEqual:
+                    return valueDouble >= conditionDouble
+                case .greaterThan:
+                    return valueDouble > conditionDouble
+                case .lessThanEqual:
+                    return valueDouble <= conditionDouble
+                case .lessThan:
+                    return valueDouble < conditionDouble
+                default:
+                    return false
+                }
             }
         case .matches, .notMatches:
             if let conditionString = try? condition.value.toEppoString(),
