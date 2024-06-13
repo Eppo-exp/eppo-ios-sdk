@@ -245,9 +245,20 @@ public class FlagEvaluator {
         isConfigObfuscated: Bool
     ) throws -> Bool
     {
-        
-        let attributeValue: EppoValue? = subjectAttributes[condition.attribute]
-        
+        // attribute names are hashed if obfuscated
+        let attributeKey = condition.attribute
+        var attributeValue: EppoValue?
+        if isConfigObfuscated {
+            for (key, value) in subjectAttributes {
+                if getMD5Hex(key) == attributeKey {
+                    attributeValue = value
+                    break
+                }
+            }
+        } else {
+            attributeValue = subjectAttributes[condition.attribute]
+        }        
+
         // First we do any NULL check
         let attributeValueIsNull = attributeValue?.isNull() ?? true
         if condition.operator == .isNull {
@@ -310,16 +321,19 @@ public class FlagEvaluator {
                     // If stringValue() or doubleValue() throws, or Semver creation fails
                     return false
                 }
-            case .matches:
-                return Compare.matchesRegex(
-                    try value.toEppoString(),
-                    try condition.value.toEppoString()
-                )
-            case .notMatches:
-                return !Compare.matchesRegex(
-                    try value.toEppoString(),
-                    try condition.value.toEppoString()
-                )
+            case .matches, .notMatches:
+                if let conditionString = try? condition.value.toEppoString(),
+                   let valueString = try? value.toEppoString() {
+                    
+                    if isConfigObfuscated,
+                       let decoded = base64Decode(conditionString) {
+                        return condition.operator == .matches ? Compare.matchesRegex(valueString, decoded) : !Compare.matchesRegex(valueString, decoded)
+                    } else {
+                        return condition.operator == .matches ? Compare.matchesRegex(valueString, conditionString) : !Compare.matchesRegex(valueString, conditionString)
+                    }
+                }
+                
+                return false
             case .oneOf:
                 return try Compare.isOneOf(
                     value.toEppoString(),
