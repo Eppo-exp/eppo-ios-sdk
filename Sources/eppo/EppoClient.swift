@@ -29,7 +29,7 @@ public class EppoClient {
     
     private var flagEvaluator: FlagEvaluator = FlagEvaluator(sharder: MD5Sharder())
     
-    private let isConfigObfuscated = true;
+    private var isConfigObfuscated = true;
     
     public init(
         apiKey: String,
@@ -51,6 +51,10 @@ public class EppoClient {
     
     public func load() async throws {
         try await self.configurationStore.fetchAndStoreConfigurations()
+    }
+
+    public func setConfigObfuscation(obfuscated: Bool) {
+        self.isConfigObfuscated = obfuscated
     }
     
     public func getBooleanAssignment(

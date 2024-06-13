@@ -65,6 +65,9 @@ final class EppoClientDataTests: XCTestCase {
             forResourcesOfType: ".json",
             inDirectory: "Resources/test-data/ufc/tests"
         );
+
+        // set mode for testing
+        eppoClient.setConfigObfuscation(obfuscated: obfuscated)
         
         try await eppoClient.load();
         
