@@ -37,34 +37,34 @@ struct FlagEvaluation {
     ) -> FlagEvaluation {
         // If the config is obfuscated, we need to unobfuscate the allocation key.
         var allocationKeyFinal: String = allocationKey ?? ""
-        if let allocationKey = allocationKey,
-            let decoded = base64Decode(allocationKey),
-            isConfigObfuscated {
-                allocationKeyFinal = decoded
+        if isConfigObfuscated,
+           let allocationKey = allocationKey,
+           let decoded = base64Decode(allocationKey) {
+            allocationKeyFinal = decoded
         }
-
+        
         var variationFinal: UFC_Variation? = variation
-        if let variation = variation,
+        if isConfigObfuscated,
+           let variation = variation,
            let variationType = variationType,
-            let decodedVariationKey = base64Decode(variation.key),
-            let variationValue = try? variation.value.getStringValue(),
-            let decodedVariationValue = base64Decode(variationValue),
-            isConfigObfuscated {
+           let decodedVariationKey = base64Decode(variation.key),
+           let variationValue = try? variation.value.getStringValue(),
+           let decodedVariationValue = base64Decode(variationValue) {
             
-                var decodedValue: EppoValue = EppoValue.nullValue()
+            var decodedValue: EppoValue = EppoValue.nullValue()
             
-                switch(variationType) {
-                case .boolean:
-                    decodedValue = EppoValue(value: "true" == decodedVariationValue)
-                case .integer, .numeric:
-                    if let doubleValue = Double(decodedVariationValue) {
-                        decodedValue = EppoValue(value: doubleValue)
-                    }
-                case .string, .json:
-                    decodedValue = EppoValue(value: decodedVariationValue)
+            switch(variationType) {
+            case .boolean:
+                decodedValue = EppoValue(value: "true" == decodedVariationValue)
+            case .integer, .numeric:
+                if let doubleValue = Double(decodedVariationValue) {
+                    decodedValue = EppoValue(value: doubleValue)
                 }
+            case .string, .json:
+                decodedValue = EppoValue(value: decodedVariationValue)
+            }
             
-                variationFinal = UFC_Variation(key: decodedVariationKey, value: decodedValue)
+            variationFinal = UFC_Variation(key: decodedVariationKey, value: decodedValue)
         }
         
         return FlagEvaluation(
@@ -188,7 +188,7 @@ public class FlagEvaluator {
                 isInShardRange(shard: h, range: range)
             }
         }
-
+        
         // If the salt is not valid, return false
         return false
     }
@@ -251,8 +251,7 @@ public class FlagEvaluator {
         // First we do any NULL check
         let attributeValueIsNull = attributeValue?.isNull() ?? true
         if condition.operator == .isNull {
-            if let value = try? condition.value.getStringValue(),
-                isConfigObfuscated {
+            if isConfigObfuscated, let value: String = try? condition.value.getStringValue() {
                 let expectNull: Bool = getMD5Hex("true") == value
                 return expectNull == attributeValueIsNull
             } else if let value = try? condition.value.getBoolValue() {
@@ -263,29 +262,13 @@ public class FlagEvaluator {
             // Any check other than IS NULL should fail if the attribute value is null
             return false
         }
-
-        /*
-         // First we do any NULL check
         
-        OperatorType operator = condition.getOperator();
-        if (operator == OperatorType.IS_NULL) {
-        boolean expectNull =
-            isObfuscated
-                ? getMD5Hex("true").equals(conditionValue.stringValue())
-                : conditionValue.booleanValue();
-        return expectNull && attributeValueIsNull || !expectNull && !attributeValueIsNull;
-        } else if (attributeValueIsNull) {
-        // Any check other than IS NULL should fail if the attribute value is null
-        return false;
-        }
-        */
-
         // Safely unwrap attributeValue for further use
         guard let value = attributeValue else {
             // Handle the nil case, perhaps throw an error or return a default value
             return false
         }
-
+        
         do {
             switch condition.operator {
             case .greaterThanEqual, .greaterThan, .lessThanEqual, .lessThan:
