@@ -11,6 +11,7 @@ func getMD5Hex(_ value: String) -> String {
             if let messageBytesBaseAddress = messageBytes.baseAddress,
                let digestBytesBlindMemory = digestBytes.bindMemory(to: UInt8.self).baseAddress {
                 let messageLength = CC_LONG(messageData.count)
+                // This warning can be ignore since we are deliberately using md5 to obfuscate the value.
                 CC_MD5(messageBytesBaseAddress, messageLength, digestBytesBlindMemory)
             }
             return 0

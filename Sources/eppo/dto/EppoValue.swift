@@ -15,35 +15,35 @@ public class EppoValue : Decodable, Equatable {
     private var doubleValue: Double?
     private var stringValue: String?
     private var stringArrayValue: [String]?
-
+    
     enum Errors : Error {
         case valueNotSet;
     }
-
+    
     public static func == (lhs: EppoValue, rhs: EppoValue) -> Bool {
         if lhs.type != rhs.type { return false }
-
+        
         switch lhs.type {
-            case .Boolean:
-                return lhs.boolValue == rhs.boolValue
-            case .Numeric:
-                return lhs.doubleValue == rhs.doubleValue
-            case .String:
-                return lhs.stringValue == rhs.stringValue
-            case .ArrayOfStrings:
-                // Convert arrays to sets and compare, ignoring order and duplicates
-                let lhsSet = Set(lhs.stringArrayValue ?? [])
-                let rhsSet = Set(rhs.stringArrayValue ?? [])
-                return lhsSet == rhsSet
-            case .Null:
-                return true // Both are null
+        case .Boolean:
+            return lhs.boolValue == rhs.boolValue
+        case .Numeric:
+            return lhs.doubleValue == rhs.doubleValue
+        case .String:
+            return lhs.stringValue == rhs.stringValue
+        case .ArrayOfStrings:
+            // Convert arrays to sets and compare, ignoring order and duplicates
+            let lhsSet = Set(lhs.stringArrayValue ?? [])
+            let rhsSet = Set(rhs.stringArrayValue ?? [])
+            return lhsSet == rhsSet
+        case .Null:
+            return true // Both are null
         }
     }
-
+    
     public init() {
-    self.type = .Null
-}
-
+        self.type = .Null
+    }
+    
     public init(value: Bool) {
         self.type = EppoValueType.Boolean;
         self.boolValue = value;
@@ -63,15 +63,15 @@ public class EppoValue : Decodable, Equatable {
         self.type = EppoValueType.String;
         self.stringValue = value;
     }
-
+    
     public init(array: [String]) {
         self.type = EppoValueType.ArrayOfStrings;
         self.stringArrayValue = array;
     }
-
+    
     required public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
-
+        
         if let array = try? container.decode([String].self) {
             self.type = .ArrayOfStrings
             self.stringArrayValue = array
@@ -92,11 +92,11 @@ public class EppoValue : Decodable, Equatable {
             self.stringArrayValue = nil
         }
     }
-
+    
     public static func valueOf(_ value: Bool) -> EppoValue {
         return EppoValue(value: value);
     }
-
+    
     public static func valueOf(_ value: Double) -> EppoValue {
         return EppoValue(value: value);
     }
@@ -104,18 +104,18 @@ public class EppoValue : Decodable, Equatable {
     public static func valueOf(_ value: Int) -> EppoValue {
         return EppoValue(value: value);
     }
-
+    
     public static func valueOf(_ value: String) -> EppoValue {
         return EppoValue(value: value);
     }
-
+    
     public static func valueOf(_ value: [String]) -> EppoValue {
         return EppoValue(array: value);
     }
-
+    
     public static func nullValue() -> EppoValue {
-    return EppoValue()
-}
+        return EppoValue()
+    }
     
     public func isNull() -> Bool {
         return self.type == EppoValueType.Null
@@ -128,7 +128,7 @@ public class EppoValue : Decodable, Equatable {
     public func isNumeric() -> Bool {
         return self.type == EppoValueType.Numeric
     }
-
+    
     public func isString() -> Bool {
         return self.type == EppoValueType.String
     }
@@ -139,30 +139,30 @@ public class EppoValue : Decodable, Equatable {
         }
         return value
     }
-
+    
     public func getDoubleValue() throws -> Double {
         guard let value = self.doubleValue else {
             throw Errors.valueNotSet
         }
         return value
     }
-
+    
     public func getStringArrayValue() throws -> [String] {
         guard let value = self.stringArrayValue else {
             throw Errors.valueNotSet
         }
-
+        
         return value;
     }
-
+    
     public func getStringValue() throws -> String {
         guard let value = self.stringValue else {
             throw Errors.valueNotSet
         }
-
+        
         return value;
     }
-
+    
     public func toEppoString() throws -> String {
         switch self.type {
         case .Boolean:
@@ -187,7 +187,7 @@ public class EppoValue : Decodable, Equatable {
             throw Errors.valueNotSet
         }
     }
-
+    
     public func toHashedString() throws -> String {
         let str = try self.toEppoString()
         // generate a sha256 hash of the string. this is a 32-byte signature which
@@ -195,6 +195,6 @@ public class EppoValue : Decodable, Equatable {
         // longer than typical string variation values such as "control" or "variant".
         let sha256Data = SHA256.hash(data: str.data(using: .utf8) ?? Data())
         return sha256Data.map { String(format: "%02x", $0) }.joined()
-       
+        
     }
 }
