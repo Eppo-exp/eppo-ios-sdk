@@ -76,7 +76,8 @@ public class FlagEvaluator {
     func evaluateFlag(
         flag: UFC_Flag,
         subjectKey: String,
-        subjectAttributes: SubjectAttributes
+        subjectAttributes: SubjectAttributes,
+        isConfigObfuscated: Bool
     ) -> FlagEvaluation {
         if (!flag.enabled) {
             return FlagEvaluation.noneResult(
@@ -99,11 +100,20 @@ public class FlagEvaluator {
             // Add the subject key as an attribute so rules can use it
             // If the "id" attribute is already present, keep the existing value
             let subjectAttributesWithID = subjectAttributes.merging(["id": EppoValue.valueOf(subjectKey)]) { (old, _) in old }
-            if matchesRules(subjectAttributes: subjectAttributesWithID, rules: allocation.rules ?? []) {
+            if matchesRules(
+                subjectAttributes: subjectAttributesWithID,
+                rules: allocation.rules ?? [],
+                isConfigObfuscated: isConfigObfuscated
+            ) {
                 // Split needs to match all shards
                 for split in allocation.splits {
                     let allShardsMatch = split.shards.allSatisfy { shard in
-                        matchesShard(shard: shard, subjectKey: subjectKey, totalShards: flag.totalShards)
+                        matchesShard(
+                            shard: shard,
+                            subjectKey: subjectKey,
+                            totalShards: flag.totalShards,
+                            isConfigObfuscated: isConfigObfuscated
+                        )
                     }
                     if allShardsMatch {
                         return FlagEvaluation.matchedResult(
@@ -131,18 +141,28 @@ public class FlagEvaluator {
     private func matchesShard(
         shard: UFC_Shard,
         subjectKey: String,
-        totalShards: Int
+        totalShards: Int,
+        isConfigObfuscated: Bool
     ) -> Bool {
         assert(totalShards > 0, "Expect totalShards to be strictly positive")
-        let h = self.sharder.getShard(input: hashKey(salt: shard.salt, subjectKey: subjectKey), totalShards: totalShards)
-        return shard.ranges.contains { range in
-            isInShardRange(shard: h, range: range)
+        
+        let salt = isConfigObfuscated ? base64Decode(shard.salt) : shard.salt
+        
+        if let salt = salt {
+            let h = self.sharder.getShard(input: hashKey(salt: salt, subjectKey: subjectKey), totalShards: totalShards)
+            return shard.ranges.contains { range in
+                isInShardRange(shard: h, range: range)
+            }
         }
+
+        // If the salt is not valid, return false
+        return false
     }
     
     private func matchesRules(
         subjectAttributes: SubjectAttributes,
-        rules: [UFC_Rule]
+        rules: [UFC_Rule],
+        isConfigObfuscated: Bool
     ) -> Bool {
         if rules.isEmpty {
             return true
@@ -150,18 +170,30 @@ public class FlagEvaluator {
         
         // If any rule matches, return true.
         return rules.contains { rule in
-            return matchesRule(subjectAttributes: subjectAttributes, rule: rule)
+            return matchesRule(
+                subjectAttributes: subjectAttributes,
+                rule: rule,
+                isConfigObfuscated: isConfigObfuscated
+            )
         }
     }
     
     private func matchesRule(
         subjectAttributes: SubjectAttributes,
-        rule: UFC_Rule) -> Bool
+        rule: UFC_Rule,
+        isConfigObfuscated: Bool
+    ) -> Bool
     {
         // Check that all conditions within the rule are met
         return rule.conditions.allSatisfy { condition in
             // If the condition throws an error, consider this not matching.
-            return (try? evaluateCondition(subjectAttributes: subjectAttributes, condition: condition)) ?? false
+            return (
+                try? evaluateCondition(
+                    subjectAttributes: subjectAttributes,
+                    condition: condition,
+                    isConfigObfuscated: isConfigObfuscated
+                )
+            ) ?? false
         }
     }
     
@@ -175,7 +207,8 @@ public class FlagEvaluator {
     
     private func evaluateCondition(
         subjectAttributes: SubjectAttributes,
-        condition: UFC_TargetingRuleCondition
+        condition: UFC_TargetingRuleCondition,
+        isConfigObfuscated: Bool
     ) throws -> Bool
     {
         

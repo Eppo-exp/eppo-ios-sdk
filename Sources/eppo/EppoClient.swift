@@ -181,7 +181,12 @@ public class EppoClient {
             throw Errors.variationTypeMismatch
         }
         
-        let flagEvaluation = flagEvaluator.evaluateFlag(flag: flagConfig, subjectKey: subjectKey, subjectAttributes: subjectAttributes)
+        let flagEvaluation = flagEvaluator.evaluateFlag(
+            flag: flagConfig,
+            subjectKey: subjectKey,
+            subjectAttributes: subjectAttributes,
+            isConfigObfuscated: isConfigObfuscated
+        )
         
         if let variation = flagEvaluation.variation, !isValueOfType(expectedType: expectedVariationType, variationValue: variation.value) {
             throw Errors.variationWrongType
@@ -214,7 +219,11 @@ public class EppoClient {
                         subject: subjectKey,
                         timestamp: ISO8601DateFormatter().string(from: Date()),
                         subjectAttributes: subjectAttributes,
-                        metaData: ["sdkName": sdkName, "sdkVersion": sdkVersion],
+                        metaData: [
+                            "obfuscated": String(isConfigObfuscated),
+                            "sdkName": sdkName,
+                            "sdkVersion": sdkVersion
+                        ],
                         extraLogging: flagEvaluation.extraLogging
                     )
                     
