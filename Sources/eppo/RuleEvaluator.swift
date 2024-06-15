@@ -36,14 +36,14 @@ struct FlagEvaluation {
         isConfigObfuscated: Bool
     ) -> FlagEvaluation {
         // If the config is obfuscated, we need to unobfuscate the allocation key.
-        var allocationKeyFinal: String = allocationKey ?? ""
+        var decodedAllocationKey: String = allocationKey ?? ""
         if isConfigObfuscated,
            let allocationKey = allocationKey,
            let decoded = base64Decode(allocationKey) {
-            allocationKeyFinal = decoded
+            decodedAllocationKey = decoded
         }
         
-        var variationFinal: UFC_Variation? = variation
+        var decodedVariation: UFC_Variation? = variation
         if isConfigObfuscated,
            let variation = variation,
            let variationType = variationType,
@@ -64,15 +64,15 @@ struct FlagEvaluation {
                 decodedValue = EppoValue(value: decodedVariationValue)
             }
             
-            variationFinal = UFC_Variation(key: decodedVariationKey, value: decodedValue)
+            decodedVariation = UFC_Variation(key: decodedVariationKey, value: decodedValue)
         }
         
         return FlagEvaluation(
             flagKey: flagKey,
             subjectKey: subjectKey,
             subjectAttributes: subjectAttributes,
-            allocationKey: allocationKeyFinal,
-            variation: variationFinal,
+            allocationKey: decodedAllocationKey,
+            variation: decodedVariation,
             variationType: variationType,
             extraLogging: extraLogging,
             doLog: doLog
