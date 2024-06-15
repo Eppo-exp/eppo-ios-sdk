@@ -44,8 +44,7 @@ func parseUtcISODateElement(_ isoDateString: String) -> Date? {
     }
 
     // If the date is in the correct format, return it.
-    let result = UTC_ISO_DATE_FORMAT.date(from: isoDateString)
-    if let result = result {
+    if let result = UTC_ISO_DATE_FORMAT.date(from: isoDateString) {
         return result
     }
 
