@@ -24,9 +24,12 @@ final class EppoClientDataTests: XCTestCase {
     var loggerSpy: AssignmentLoggerSpy!
     var eppoClient: EppoClient!
       
-    func testAllAssignments() async throws {
-        try await testAssignments(obfuscated: false)
+    func testAllObfuscatedAssignments() async throws {
         try await testAssignments(obfuscated: true)
+    }
+    
+    func testAllNotObfuscatedAssignments() async throws {
+        try await testAssignments(obfuscated: false)
     }
     
     func setUpTestsWithFile(resourceName: String) async throws {
