@@ -7,7 +7,7 @@ import OHHTTPStubsSwift
 @testable import eppo_flagging
 
 
-final class eppoClientTests: XCTestCase {
+final class AssignmentLoggerTests: XCTestCase {
    var loggerSpy: AssignmentLoggerSpy!
    var eppoClient: EppoClient!
    var UFCTestJSON: String!

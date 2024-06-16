@@ -45,6 +45,7 @@ final class EppoClientDataTests: XCTestCase {
         }
         
         loggerSpy = AssignmentLoggerSpy()
+        EppoClient.resetInstance()
         eppoClient = EppoClient.configure(apiKey: "mock-api-key", assignmentLogger: loggerSpy.logger)
     }
     

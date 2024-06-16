@@ -13,7 +13,10 @@ final class EppoClientAssignmentCachingTests: XCTestCase {
     
     override func setUpWithError() throws {
         try super.setUpWithError()
+        
         loggerSpy = AssignmentLoggerSpy()
+        
+        EppoClient.resetInstance()
         eppoClient = EppoClient.configure(
             apiKey: "mock-api-key",
             assignmentLogger: loggerSpy.logger
@@ -29,6 +32,7 @@ final class EppoClientAssignmentCachingTests: XCTestCase {
     
     func testLogsDuplicateAssignmentsWithoutCache() async throws {
         // Disable the assignment cache.
+        EppoClient.resetInstance()
         eppoClient = EppoClient.configure(apiKey: "mock-api-key",
                                           assignmentLogger: loggerSpy.logger,
                                           assignmentCache: nil)
