@@ -41,7 +41,12 @@ final class flagEvaluatorTests: XCTestCase {
 
     public func testDisabledFlag() {
         let flag = createFlag(flag: baseFlag, rules: [], enabled: false);
-        let flagEvaluation = flagEvaluator.evaluateFlag(flag: flag, subjectKey: "subject_key", subjectAttributes: SubjectAttributes());
+        let flagEvaluation = flagEvaluator.evaluateFlag(
+            flag: flag,
+            subjectKey: "subject_key",
+            subjectAttributes: SubjectAttributes(),
+            isConfigObfuscated: false
+        );
 
         XCTAssertFalse(flagEvaluation.doLog)
         XCTAssertNil(flagEvaluation.variation)
@@ -55,7 +60,12 @@ final class flagEvaluatorTests: XCTestCase {
         var subjectAttributes: SubjectAttributes = SubjectAttributes();
         subjectAttributes["name"] = EppoValue.valueOf("test");
 
-        let evaluationResult = flagEvaluator.evaluateFlag(flag: testFlag, subjectKey: "subject_key", subjectAttributes: subjectAttributes)
+        let evaluationResult = flagEvaluator.evaluateFlag(
+            flag: testFlag,
+            subjectKey: "subject_key",
+            subjectAttributes: subjectAttributes,
+            isConfigObfuscated: false
+        );
         XCTAssertTrue(evaluationResult.doLog)
         XCTAssertEqual(try evaluationResult.variation?.value.getStringValue(), "Control")
     }
@@ -67,7 +77,12 @@ final class flagEvaluatorTests: XCTestCase {
         var subjectAttributes: SubjectAttributes = SubjectAttributes();
         subjectAttributes["name"] = EppoValue.valueOf("test");
         
-        let evaluationResult = flagEvaluator.evaluateFlag(flag: testFlag, subjectKey: "subject_key", subjectAttributes: subjectAttributes)
+        let evaluationResult = flagEvaluator.evaluateFlag(
+            flag: testFlag,
+            subjectKey: "subject_key",
+            subjectAttributes: subjectAttributes,
+            isConfigObfuscated: false
+        );
         XCTAssertTrue(evaluationResult.doLog)
         XCTAssertEqual(try evaluationResult.variation?.value.getStringValue(), "Control")
     }
@@ -79,7 +94,12 @@ final class flagEvaluatorTests: XCTestCase {
         var subjectAttributes: SubjectAttributes = SubjectAttributes();
         subjectAttributes["price"] = EppoValue.valueOf("30");
 
-        let evaluationResult = flagEvaluator.evaluateFlag(flag: testFlag, subjectKey: "subject_key", subjectAttributes: subjectAttributes)
+        let evaluationResult = flagEvaluator.evaluateFlag(
+            flag: testFlag,
+            subjectKey: "subject_key",
+            subjectAttributes: subjectAttributes,
+            isConfigObfuscated: false
+        );
         XCTAssertFalse(evaluationResult.doLog)
         XCTAssertNil(evaluationResult.variation)
     }
@@ -93,7 +113,12 @@ final class flagEvaluatorTests: XCTestCase {
         subjectAttributes["price"] = EppoValue.valueOf(15);
         subjectAttributes["appVersion"] = EppoValue.valueOf("2.3.5");
         
-        let evaluationResult = flagEvaluator.evaluateFlag(flag: testFlag, subjectKey: "subject_key", subjectAttributes: subjectAttributes)
+        let evaluationResult = flagEvaluator.evaluateFlag(
+            flag: testFlag,
+            subjectKey: "subject_key",
+            subjectAttributes: subjectAttributes,
+            isConfigObfuscated: false
+        );
         XCTAssertTrue(evaluationResult.doLog)
         XCTAssertEqual(try evaluationResult.variation?.value.getStringValue(), "Control")
     }
@@ -105,7 +130,12 @@ final class flagEvaluatorTests: XCTestCase {
         var subjectAttributes: SubjectAttributes = SubjectAttributes();
         subjectAttributes["price"] = EppoValue.valueOf("abcd");
         
-        let evaluationResult = flagEvaluator.evaluateFlag(flag: testFlag, subjectKey: "subject_key", subjectAttributes: subjectAttributes)
+        let evaluationResult = flagEvaluator.evaluateFlag(
+            flag: testFlag,
+            subjectKey: "subject_key",
+            subjectAttributes: subjectAttributes,
+            isConfigObfuscated: false
+        );
         XCTAssertFalse(evaluationResult.doLog)
         XCTAssertNil(evaluationResult.variation)
     }
@@ -117,7 +147,12 @@ final class flagEvaluatorTests: XCTestCase {
         var subjectAttributes: SubjectAttributes = SubjectAttributes();
         subjectAttributes["match"] = EppoValue.valueOf("abcd");
         
-        let evaluationResult = flagEvaluator.evaluateFlag(flag: testFlag, subjectKey: "subject_key", subjectAttributes: subjectAttributes)
+        let evaluationResult = flagEvaluator.evaluateFlag(
+            flag: testFlag,
+            subjectKey: "subject_key",
+            subjectAttributes: subjectAttributes,
+            isConfigObfuscated: false
+        );
         XCTAssertTrue(evaluationResult.doLog)
         XCTAssertEqual(try evaluationResult.variation?.value.getStringValue(), "Control")
     }
@@ -129,7 +164,12 @@ final class flagEvaluatorTests: XCTestCase {
         var subjectAttributes: SubjectAttributes = SubjectAttributes();
         subjectAttributes["match"] = EppoValue.valueOf("123");
         
-        let evaluationResult = flagEvaluator.evaluateFlag(flag: testFlag, subjectKey: "subject_key", subjectAttributes: subjectAttributes)
+        let evaluationResult = flagEvaluator.evaluateFlag(
+            flag: testFlag,
+            subjectKey: "subject_key",
+            subjectAttributes: subjectAttributes,
+            isConfigObfuscated: false
+        );
         XCTAssertFalse(evaluationResult.doLog)
         XCTAssertNil(evaluationResult.variation)
     }
@@ -141,7 +181,12 @@ final class flagEvaluatorTests: XCTestCase {
         var subjectAttributes: SubjectAttributes = SubjectAttributes();
         subjectAttributes["oneOf"] = EppoValue.valueOf("value3");
         
-        let evaluationResult = flagEvaluator.evaluateFlag(flag: testFlag, subjectKey: "subject_key", subjectAttributes: subjectAttributes)
+        let evaluationResult = flagEvaluator.evaluateFlag(
+            flag: testFlag,
+            subjectKey: "subject_key",
+            subjectAttributes: subjectAttributes,
+            isConfigObfuscated: false
+        );
         XCTAssertTrue(evaluationResult.doLog)
         XCTAssertEqual(try evaluationResult.variation?.value.getStringValue(), "Control")
     }
@@ -153,7 +198,12 @@ final class flagEvaluatorTests: XCTestCase {
         var subjectAttributes: SubjectAttributes = SubjectAttributes();
         subjectAttributes["oneOf"] = EppoValue.valueOf("value1");
         
-        let evaluationResult = flagEvaluator.evaluateFlag(flag: testFlag, subjectKey: "subject_key", subjectAttributes: subjectAttributes)
+        let evaluationResult = flagEvaluator.evaluateFlag(
+            flag: testFlag,
+            subjectKey: "subject_key",
+            subjectAttributes: subjectAttributes,
+            isConfigObfuscated: false
+        );
         XCTAssertFalse(evaluationResult.doLog)
         XCTAssertNil(evaluationResult.variation)
     }
@@ -165,7 +215,12 @@ final class flagEvaluatorTests: XCTestCase {
         var subjectAttributes: SubjectAttributes = SubjectAttributes();
         subjectAttributes["appVersion"] = EppoValue.valueOf("2.3.5");
         
-        let evaluationResult = flagEvaluator.evaluateFlag(flag: testFlag, subjectKey: "subject_key", subjectAttributes: subjectAttributes)
+        let evaluationResult = flagEvaluator.evaluateFlag(
+            flag: testFlag,
+            subjectKey: "subject_key",
+            subjectAttributes: subjectAttributes,
+            isConfigObfuscated: false
+        );
         XCTAssertFalse(evaluationResult.doLog)
         XCTAssertNil(evaluationResult.variation)
     }
@@ -234,8 +289,8 @@ final class flagEvaluatorTests: XCTestCase {
             variations: [
                 "control": UFC_Variation(
                     key: "control", 
-                    value: EppoValue(value: "Control"),
-                    algorithmType: nil)
+                    value: EppoValue(value: "Control")
+                )
             ],
             allocations: [
                 UFC_Allocation(

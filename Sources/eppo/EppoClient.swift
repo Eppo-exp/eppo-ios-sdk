@@ -29,6 +29,8 @@ public class EppoClient {
     
     private var flagEvaluator: FlagEvaluator = FlagEvaluator(sharder: MD5Sharder())
     
+    private var isConfigObfuscated = true;
+    
     public init(
         apiKey: String,
         host: String = "https://fscdn.eppo.cloud",
@@ -49,6 +51,10 @@ public class EppoClient {
     
     public func load() async throws {
         try await self.configurationStore.fetchAndStoreConfigurations()
+    }
+
+    public func setConfigObfuscation(obfuscated: Bool) {
+        self.isConfigObfuscated = obfuscated
     }
     
     public func getBooleanAssignment(
@@ -165,7 +171,9 @@ public class EppoClient {
         if flagKey.count == 0 { throw Errors.flagKeyRequired }
         if !self.configurationStore.isInitialized() { throw Errors.configurationNotLoaded }
         
-        guard let flagConfig = self.configurationStore.getConfiguration(flagKey: flagKey) else {
+        let flagKeyForLookup = isConfigObfuscated ? getMD5Hex(flagKey) : flagKey
+        
+        guard let flagConfig = self.configurationStore.getConfiguration(flagKey: flagKeyForLookup) else {
             throw Errors.flagConfigNotFound
         }
         
@@ -173,7 +181,12 @@ public class EppoClient {
             throw Errors.variationTypeMismatch
         }
         
-        let flagEvaluation = flagEvaluator.evaluateFlag(flag: flagConfig, subjectKey: subjectKey, subjectAttributes: subjectAttributes)
+        let flagEvaluation = flagEvaluator.evaluateFlag(
+            flag: flagConfig,
+            subjectKey: subjectKey,
+            subjectAttributes: subjectAttributes,
+            isConfigObfuscated: isConfigObfuscated
+        )
         
         if let variation = flagEvaluation.variation, !isValueOfType(expectedType: expectedVariationType, variationValue: variation.value) {
             throw Errors.variationWrongType
@@ -206,7 +219,11 @@ public class EppoClient {
                         subject: subjectKey,
                         timestamp: ISO8601DateFormatter().string(from: Date()),
                         subjectAttributes: subjectAttributes,
-                        metaData: ["sdkName": sdkName, "sdkVersion": sdkVersion],
+                        metaData: [
+                            "obfuscated": String(isConfigObfuscated),
+                            "sdkName": sdkName,
+                            "sdkVersion": sdkVersion
+                        ],
                         extraLogging: flagEvaluation.extraLogging
                     )
                     

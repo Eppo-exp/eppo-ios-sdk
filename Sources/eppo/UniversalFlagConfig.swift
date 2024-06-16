@@ -9,17 +9,19 @@ public struct UniversalFlagConfig : Decodable {
         guard let jsonData = jsonString.data(using: .utf8) else {
             throw UniversalFlagConfigError.notUTF8Encoded("Failed to encode JSON string into UTF-8 data.")
         }
-
+        
         let decoder = JSONDecoder()
         
-        // Set up the date formatter
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"  // Adjusted to include milliseconds
-        dateFormatter.locale = Locale(identifier: "en_US_POSIX")  // Use POSIX to avoid unexpected behaviors
-        dateFormatter.timeZone = TimeZone(secondsFromGMT: 0)  // Adjust if your JSON dates are not in GMT
-        
-        // Use the date formatter in the decoder
-        decoder.dateDecodingStrategy = .formatted(dateFormatter)
+        // Dates could be in base64 encoded format or not
+        decoder.dateDecodingStrategy = .custom { decoder -> Date in
+            let container = try decoder.singleValueContainer()
+            let dateStr = try container.decode(String.self)
+            guard let date = parseUtcISODateElement(dateStr) else {
+                print(dateStr)
+                throw DecodingError.dataCorruptedError(in: container, debugDescription: "Invalid date format for: <\(dateStr)>")
+            }
+            return date
+        }
         
         do {
             return try decoder.decode(UniversalFlagConfig.self, from: jsonData)
@@ -46,18 +48,18 @@ public struct UniversalFlagConfig : Decodable {
 enum UniversalFlagConfigError: Error, CustomNSError, LocalizedError {
     case notUTF8Encoded(String)
     case parsingError(String)
-
+    
     static var errorDomain: String { return "UniversalFlagConfigError" }
     
     var errorCode: Int {
         switch self {
         case .notUTF8Encoded:
-            return 100 
+            return 100
         case .parsingError:
             return 101
         }
     }
-
+    
     var errorDescription: String? {
         switch self {
         case .notUTF8Encoded(let message):
@@ -69,28 +71,40 @@ enum UniversalFlagConfigError: Error, CustomNSError, LocalizedError {
 }
 
 enum UFC_VariationType: String, Decodable {
-      case boolean = "BOOLEAN"
-      case integer = "INTEGER"
-      case json = "JSON"
-      case numeric = "NUMERIC"
-      case string = "STRING"
+    case boolean = "BOOLEAN"
+    case integer = "INTEGER"
+    case json = "JSON"
+    case numeric = "NUMERIC"
+    case string = "STRING"
 }
 
-enum UFC_AlgorithmType: String, Decodable {
-    case constant = "CONSTANT"
-    case contextualBandit = "CONTEXTUAL_BANDIT"
-}
-
-enum UFC_RuleConditionOperator: String, Decodable {
-  case lessThan = "LT"
-  case lessThanEqual = "LTE"
-  case greaterThan = "GT"
-  case greaterThanEqual = "GTE"
-  case matches = "MATCHES"
-  case notMatches = "NOT_MATCHES"
-  case oneOf = "ONE_OF"
-  case notOneOf = "NOT_ONE_OF"
-  case isNull = "IS_NULL"
+enum UFC_RuleConditionOperator: String, Decodable, CaseIterable {
+    case lessThan = "LT"
+    case lessThanEqual = "LTE"
+    case greaterThan = "GT"
+    case greaterThanEqual = "GTE"
+    case matches = "MATCHES"
+    case notMatches = "NOT_MATCHES"
+    case oneOf = "ONE_OF"
+    case notOneOf = "NOT_ONE_OF"
+    case isNull = "IS_NULL"
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let rawValue = try container.decode(String.self)
+        
+        for type in UFC_RuleConditionOperator.allCases {
+            if type.rawValue == rawValue || getMD5Hex(type.rawValue) == rawValue {
+                self = type
+                return
+            }
+        }
+        
+        throw DecodingError.dataCorruptedError(
+            in: container,
+            debugDescription: "Cannot initialize UFC_RuleConditionOperator from invalid raw value \(rawValue)"
+        )
+    }
 }
 
 // models
@@ -107,7 +121,6 @@ public struct UFC_Flag : Decodable {
 public struct UFC_Variation : Decodable  {
     let key: String;
     let value: EppoValue;
-    let algorithmType: UFC_AlgorithmType?
 }
 
 public struct UFC_Allocation : Decodable {
