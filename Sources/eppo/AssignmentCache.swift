@@ -14,25 +14,25 @@ public struct AssignmentCacheKey {
 
 public class InMemoryAssignmentCache: AssignmentCache {
     private var cache: [String: String] = [:]
-
+    
     // This empty constructor is required to be able to instantiate the class
     // within the constructor of EppoClient.
     public init() {
         // Initialization code here
     }
-
+    
     public func hasLoggedAssignment(key: AssignmentCacheKey) -> Bool {
         let cacheKey = getCacheKey(key: key)
         if !has(key: cacheKey) {
             return false
         }
-
+        
         guard let variationValue = try? key.variationValue.toHashedString() else {
             return false
         }
         return get(key: cacheKey) == variationValue
     }
-
+    
     public func setLastLoggedAssignment(key: AssignmentCacheKey) {
         let cacheKey = getCacheKey(key: key)
         guard let variationValue = try? key.variationValue.toHashedString() else {
@@ -40,19 +40,19 @@ public class InMemoryAssignmentCache: AssignmentCache {
         }
         set(key: cacheKey, value: variationValue)
     }
-
+    
     internal func get(key: String) -> String? {
         return cache[key]
     }
-
+    
     internal func set(key: String, value: String) {
         cache[key] = value
     }
-
+    
     internal func has(key: String) -> Bool {
         return cache[key] != nil
     }
-
+    
     private func getCacheKey(key: AssignmentCacheKey) -> String {
         return ["subject:\(key.subjectKey)", "flag:\(key.flagKey)", "allocation:\(key.allocationKey)"].joined(separator: ";")
     }
