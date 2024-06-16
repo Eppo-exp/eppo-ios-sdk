@@ -23,7 +23,7 @@ struct AssignmentTestCase : Decodable {
 final class EppoClientDataTests: XCTestCase {
     var loggerSpy: AssignmentLoggerSpy!
     var eppoClient: EppoClient!
-      
+    
     func testAllObfuscatedAssignments() async throws {
         try await testAssignments(obfuscated: true)
     }
@@ -45,22 +45,22 @@ final class EppoClientDataTests: XCTestCase {
         }
         
         loggerSpy = AssignmentLoggerSpy()
-        eppoClient = EppoClient(apiKey: "mock-api-key", assignmentLogger: loggerSpy.logger)
+        eppoClient = EppoClient.configure(apiKey: "mock-api-key", assignmentLogger: loggerSpy.logger)
     }
     
     func testAssignments(obfuscated: Bool) async throws {
         let resourceSuffix = obfuscated ? "-obfuscated" : ""
-           try await setUpTestsWithFile(resourceName: "Resources/test-data/ufc/flags-v1\(resourceSuffix).json")
-           
+        try await setUpTestsWithFile(resourceName: "Resources/test-data/ufc/flags-v1\(resourceSuffix).json")
+        
         let testFiles = Bundle.module.paths(
             forResourcesOfType: ".json",
             inDirectory: "Resources/test-data/ufc/tests"
         );
-
+        
         // set mode for testing
         eppoClient.setConfigObfuscation(obfuscated: obfuscated)
         
-        try await eppoClient.load();
+        try await eppoClient.loadIfNeeded();
         
         for testFile in testFiles {
             let caseString = try String(contentsOfFile: testFile);

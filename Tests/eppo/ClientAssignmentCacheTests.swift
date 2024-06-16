@@ -14,30 +14,30 @@ final class EppoClientAssignmentCachingTests: XCTestCase {
     override func setUpWithError() throws {
         try super.setUpWithError()
         loggerSpy = AssignmentLoggerSpy()
-        eppoClient = EppoClient(
+        eppoClient = EppoClient.configure(
             apiKey: "mock-api-key",
             assignmentLogger: loggerSpy.logger
             // InMemoryAssignmentCache is default enabled.
         )
         
         let fileURL = Bundle.module.url(
-           forResource: "Resources/test-data/ufc/flags-v1-obfuscated.json",
-           withExtension: ""
-       )
-       UFCTestJSON = try! String(contentsOfFile: fileURL!.path)
+            forResource: "Resources/test-data/ufc/flags-v1-obfuscated.json",
+            withExtension: ""
+        )
+        UFCTestJSON = try! String(contentsOfFile: fileURL!.path)
     }
     
     func testLogsDuplicateAssignmentsWithoutCache() async throws {
         // Disable the assignment cache.
-        eppoClient = EppoClient(apiKey: "mock-api-key",
-                                assignmentLogger: loggerSpy.logger,
-                                assignmentCache: nil)
+        eppoClient = EppoClient.configure(apiKey: "mock-api-key",
+                                          assignmentLogger: loggerSpy.logger,
+                                          assignmentCache: nil)
         
         stub(condition: isHost("fscdn.eppo.cloud")) { _ in
             let stubData = self.UFCTestJSON.data(using: .utf8)!
             return HTTPStubsResponse(data: stubData, statusCode: 200, headers: ["Content-Type": "application/json"])
         }
-        try await eppoClient.load()
+        try await eppoClient.loadIfNeeded()
         
         _ = try eppoClient.getNumericAssignment(
             flagKey: "numeric_flag",
@@ -59,7 +59,7 @@ final class EppoClientAssignmentCachingTests: XCTestCase {
             let stubData = self.UFCTestJSON.data(using: .utf8)!
             return HTTPStubsResponse(data: stubData, statusCode: 200, headers: ["Content-Type": "application/json"])
         }
-        try await eppoClient.load()
+        try await eppoClient.loadIfNeeded()
         
         _ = try eppoClient.getNumericAssignment(
             flagKey: "numeric_flag",
@@ -80,7 +80,7 @@ final class EppoClientAssignmentCachingTests: XCTestCase {
             let stubData = self.UFCTestJSON.data(using: .utf8)!
             return HTTPStubsResponse(data: stubData, statusCode: 200, headers: ["Content-Type": "application/json"])
         }
-        try await eppoClient.load()
+        try await eppoClient.loadIfNeeded()
         
         _ =  try eppoClient.getStringAssignment(
             flagKey: "start-and-end-date-test",

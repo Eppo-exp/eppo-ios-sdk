@@ -27,13 +27,13 @@ final class eppoClientTests: XCTestCase {
        }
        
        loggerSpy = AssignmentLoggerSpy()
-       eppoClient = EppoClient(apiKey: "mock-api-key", assignmentLogger: loggerSpy.logger)
+       eppoClient = EppoClient.configure(apiKey: "mock-api-key", assignmentLogger: loggerSpy.logger)
    }
    
     // todo: do obfuscation and not tests.
 
    func testLogger() async throws {
-       try await eppoClient.load()
+       try await eppoClient.loadIfNeeded()
        
        let assignment = try eppoClient.getNumericAssignment(
            flagKey: "numeric_flag",

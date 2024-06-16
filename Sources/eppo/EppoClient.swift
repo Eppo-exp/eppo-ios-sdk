@@ -5,6 +5,7 @@ public let sdkName = "ios"
 public let sdkVersion = "3.0.0"
 
 public enum Errors: Error {
+    case notConfigured
     case apiKeyInvalid
     case hostInvalid
     case subjectKeyRequired
@@ -17,42 +18,84 @@ public enum Errors: Error {
 }
 
 public typealias SubjectAttributes = [String: EppoValue];
+actor EppoClientState {
+    private(set) var isLoaded: Bool = false
+    
+    func checkAndSetLoaded() -> Bool {
+        if !isLoaded {
+            isLoaded = true
+            return false
+        }
+        return true
+    }
+}
 
 public class EppoClient {
-    public private(set) var apiKey: String = "";
-    public private(set) var host: String = "";
-    private var configurationStore: ConfigurationStore;
-    private var assignmentCache: AssignmentCache?;
-    
     public typealias AssignmentLogger = (Assignment) -> Void
-    public var assignmentLogger: AssignmentLogger?
     
     private var flagEvaluator: FlagEvaluator = FlagEvaluator(sharder: MD5Sharder())
+    private(set) var isConfigObfuscated = true;
+
+    private static var instance: EppoClient?
     
-    private var isConfigObfuscated = true;
+    private(set) var apiKey: String
+    private(set) var host: String
+    private(set) var assignmentLogger: AssignmentLogger?
+    private(set) var assignmentCache: AssignmentCache?
+    private(set) var configurationStore: ConfigurationStore
     
-    public init(
+    private let state = EppoClientState()
+    
+    private init(
         apiKey: String,
         host: String = "https://fscdn.eppo.cloud",
         assignmentLogger: AssignmentLogger? = nil,
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache()
     ) {
-        self.apiKey = apiKey;
-        self.host = host;
-        self.assignmentLogger = assignmentLogger;
+        self.apiKey = apiKey
+        self.host = host
+        self.assignmentLogger = assignmentLogger
         self.assignmentCache = assignmentCache
         
-        let httpClient = NetworkEppoHttpClient(baseURL: host, apiKey: apiKey, sdkName: sdkName, sdkVersion: sdkVersion);
-        let configurationRequester = ConfigurationRequester(
-            httpClient: httpClient
-        );
-        self.configurationStore = ConfigurationStore(requester: configurationRequester);
+        let httpClient = NetworkEppoHttpClient(baseURL: host, apiKey: apiKey, sdkName: "sdkName", sdkVersion: "sdkVersion")
+        let configurationRequester = ConfigurationRequester(httpClient: httpClient)
+        self.configurationStore = ConfigurationStore(requester: configurationRequester)
     }
     
-    public func load() async throws {
+    public static func configure(
+        apiKey: String,
+        host: String = "https://fscdn.eppo.cloud",
+        assignmentLogger: AssignmentLogger? = nil,
+        assignmentCache: AssignmentCache? = InMemoryAssignmentCache()
+    ) -> EppoClient {
+        if instance == nil {
+            instance = EppoClient(apiKey: apiKey, host: host, assignmentLogger: assignmentLogger, assignmentCache: assignmentCache)
+        }
+        return instance!
+    }
+    
+    public static func getInstance() throws -> EppoClient {
+        guard let instance = instance else {
+            throw Errors.notConfigured
+        }
+        return instance
+    }
+    
+    public static func resetInstance() {
+        instance = nil
+    }
+    
+    public func loadIfNeeded() async throws {
+        let alreadyLoaded = await state.checkAndSetLoaded()
+        guard !alreadyLoaded else { return }
+        
+        try await load()
+    }
+    
+    private func load() async throws {
         try await self.configurationStore.fetchAndStoreConfigurations()
     }
-
+    
     public func setConfigObfuscation(obfuscated: Bool) {
         self.isConfigObfuscated = obfuscated
     }
