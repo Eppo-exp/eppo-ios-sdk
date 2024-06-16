@@ -2,8 +2,6 @@ import XCTest
 
 @testable import eppo_flagging
 
-// todo: add obfuscated tess.
-
 final class flagEvaluationTests: XCTestCase {
     public func testNoneResult() {
         let flagEvaluation = FlagEvaluation.noneResult(
