@@ -1,4 +1,4 @@
-# Eppo iOS SDK
+# Eppo iOS (Swift) SDK
 
 [![Test and lint SDK](https://github.com/Eppo-exp/eppo-ios-sdk/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/Eppo-exp/eppo-ios-sdk/actions/workflows/unit-tests.yml)
 
@@ -29,16 +29,16 @@ Begin by initializing a singleton instance of Eppo's client. Once initialized, t
 #### Initialize once
 
 ```swift
-var eppoClient: EppoClient = EppoClient("SDK-KEY-FROM-DASHBOARD");
+EppoClient.configure(apiKey: "SDK-KEY-FROM-DASHBOARD");
 ```
-
 
 #### Assign anywhere
 
 ```swift
 Task {
     do {
-        try await eppoClient.load();
+        let eppoClient = EppoClient.getInstance()
+        try await eppoClient.loadIfNeeded();
         self.assignment = try self.eppoClient.getStringAssignment(
             "new-user-onboarding"
             user.id,
@@ -57,14 +57,14 @@ For applications wrapping initialization and assignment in an `ObservableObject`
 
 ```swift
 @MainActor
-class AssignmentObserver : ObservableObject {
-    @Published var assignment: String?;
-    var eppoClient: EppoClient = EppoClient(EPPO-SDK-KEY);
+public class AssignmentObserver: ObservableObject {
+    @Published var assignment: String?
+    var eppoClient: EppoClient = EppoClient.configure(apiKey: EPPO_API_KEY)
 
     public init() {
         Task {
             do {
-                try await eppoClient.load();
+                try await eppoClient.loadIfNeeded()
                 self.assignment = try self.eppoClient.getStringAssignment(
                     "new-user-onboarding"
                     user.id,
@@ -72,8 +72,35 @@ class AssignmentObserver : ObservableObject {
                     "control"
                 );
             } catch {
-                self.assignment = nil;
+                self.assignment = nil
             }
+        }
+    }
+}
+```
+
+Rendering the view:
+
+```swift
+import SwiftUI
+
+struct ContentView: View {
+    @StateObject private var observer = AssignmentObserver()
+
+    var body: some View {
+        VStack {
+            if let assignment = observer.assignment {
+                Text("Assignment: \(assignment)")
+                    .font(.headline)
+                    .padding()
+            } else {
+                Text("Loading assignment...")
+                    .font(.subheadline)
+                    .padding()
+            }
+        }
+        .onAppear {
+            // You can perform additional actions on appear if needed
         }
     }
 }
@@ -132,4 +159,3 @@ eppoClient = EppoClient("mock-sdk-key", assignmentLogger: segmentAssignmentLogge
 ## Philosophy
 
 Eppo's SDKs are built for simplicity, speed and reliability. Flag configurations are compressed and distributed over a global CDN (Fastly), typically reaching your servers in under 15ms. Server SDKs continue polling Eppo’s API at 30-second intervals. Configurations are then cached locally, ensuring that each assignment is made instantly. Evaluation logic within each SDK consists of a few lines of simple numeric and string comparisons. The typed functions listed above are all developers need to understand, abstracting away the complexity of the Eppo's underlying (and expanding) feature set.
-
