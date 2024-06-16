@@ -1,7 +1,7 @@
 import Foundation;
 
 // todo: make this a build argument (FF-1944)
-let sdkVersion = "1.3.0"
+let sdkVersion = "2.0.0"
 let sdkName = "ios"
 
 // todo: these exported errors could use some work. only ones here that are
