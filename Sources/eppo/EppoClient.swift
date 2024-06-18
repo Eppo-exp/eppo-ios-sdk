@@ -246,7 +246,7 @@ public class EppoClient {
                     subjectKey: subjectKey,
                     flagKey: flagKey,
                     allocationKey: allocationKey,
-                    variationValue: variation.value
+                    variationKey: variation.key
                 )
                 
                 // Check if the assignment has already been logged, if the cache is defined

@@ -21,13 +21,13 @@ final class AssignmentCacheTests: XCTestCase {
             subjectKey: "Math", 
             flagKey: "TestFlag",
             allocationKey: "A1", // initial
-            variationKey: EppoValue(value: "VariationA", type: EppoValueType.String).toHashedString()
+            variationKey: "VariationA"
         )
         let key2 = AssignmentCacheKey(
             subjectKey: "Math", 
             flagKey: "TestFlag",
             allocationKey: "A2", // changes
-            variationKey: EppoValue(value: "VariationA", type: EppoValueType.String).toHashedString()
+            variationKey: "VariationA"
         )
 
         cache.setLastLoggedAssignment(key: key1)
@@ -52,13 +52,13 @@ final class AssignmentCacheTests: XCTestCase {
             subjectKey: "Math",
             flagKey: "TestFlag",
             allocationKey: "A1",
-            variationKey: EppoValue(value: "VariationA", type: EppoValueType.String).toHashedString()  // initial
+            variationKey: "VariationA"  // initial
         )
         let key2 = AssignmentCacheKey(
             subjectKey: "Math",
             flagKey: "TestFlag",
             allocationKey: "A1",
-            variationKey: EppoValue(value: "VariationB", type: EppoValueType.String).toHashedString()  // changes
+            variationKey: "VariationB"  // changes
         )
 
         cache.setLastLoggedAssignment(key: key1)
