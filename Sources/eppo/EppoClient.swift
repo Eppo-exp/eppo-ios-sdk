@@ -60,15 +60,18 @@ public class EppoClient {
         self.configurationStore = ConfigurationStore(requester: configurationRequester)
     }
     
-    public static func configure(
+    public static func initialize(
         apiKey: String,
         host: String = "https://fscdn.eppo.cloud",
         assignmentLogger: AssignmentLogger? = nil,
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache()
-    ) -> EppoClient {
+    ) async throws -> EppoClient {
         if instance == nil {
             instance = EppoClient(apiKey: apiKey, host: host, assignmentLogger: assignmentLogger, assignmentCache: assignmentCache)
         }
+        
+        try await instance?.loadIfNeeded()
+        
         return instance!
     }
     
@@ -83,14 +86,10 @@ public class EppoClient {
         instance = nil
     }
     
-    public func loadIfNeeded() async throws {
+    private func loadIfNeeded() async throws {
         let alreadyLoaded = await state.checkAndSetLoaded()
         guard !alreadyLoaded else { return }
         
-        try await load()
-    }
-    
-    private func load() async throws {
         try await self.configurationStore.fetchAndStoreConfigurations()
     }
     

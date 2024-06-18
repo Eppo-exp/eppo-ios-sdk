@@ -104,7 +104,6 @@ struct AssignmentTestCase : Decodable {
 
 final class eppoClientTests: XCTestCase {
     var loggerSpy: AssignmentLoggerSpy!
-    var eppoClient: EppoClient!
     
     override func setUpWithError() throws {
         try super.setUpWithError()
@@ -116,29 +115,28 @@ final class eppoClientTests: XCTestCase {
         }
         
         loggerSpy = AssignmentLoggerSpy()
-        eppoClient = EppoClient.configure(apiKey: "mock-api-key", assignmentLogger: loggerSpy.logger)
     }
     
     func testUnloadedClient() async throws {
-        XCTAssertThrowsError(try eppoClient.getStringAssignment("badFlagRising", "allocation-experiment-1"))
+        XCTAssertThrowsError(try EppoClient.getInstance().getStringAssignment("badFlagRising", "allocation-experiment-1"))
         {
-            error in XCTAssertEqual(error as! Errors, Errors.configurationNotLoaded)
+            error in XCTAssertEqual(error as! Errors, Errors.notConfigured)
         };
     }
     
     func testBadFlagKey() async throws {
-        try await eppoClient.loadIfNeeded()
+        _ = try await EppoClient.initialize(apiKey: "mock-api-key", assignmentLogger: loggerSpy.logger)
         
-        XCTAssertThrowsError(try eppoClient.getStringAssignment("badFlagRising", "allocation-experiment-1"))
+        XCTAssertThrowsError(try EppoClient.getInstance().getStringAssignment("badFlagRising", "allocation-experiment-1"))
         {
             error in XCTAssertEqual(error as! Errors, Errors.flagConfigNotFound)
         };
     }
     
     func testLogger() async throws {
-        try await eppoClient.loadIfNeeded()
+        _ = try await EppoClient.initialize(apiKey: "mock-api-key", assignmentLogger: loggerSpy.logger)
         
-        let assignment = try eppoClient.getStringAssignment("6255e1a72a84e984aed55668", "randomization_algo")
+        let assignment = try EppoClient.getInstance().getStringAssignment("6255e1a72a84e984aed55668", "randomization_algo")
         XCTAssertEqual(assignment, "red")
         XCTAssertTrue(loggerSpy.wasCalled)
         if let lastAssignment = loggerSpy.lastAssignment {
@@ -151,12 +149,12 @@ final class eppoClientTests: XCTestCase {
     }
     
     func testAssignments() async throws {
+        let eppoClient = try await EppoClient.initialize(apiKey: "mock-api-key", assignmentLogger: loggerSpy.logger)
+        
         let testFiles = Bundle.module.paths(
             forResourcesOfType: ".json",
             inDirectory: "Resources/test-data/assignment-v2"
         );
-        
-        try await eppoClient.loadIfNeeded();
         
         for testFile in testFiles {
             let caseString = try String(contentsOfFile: testFile);
@@ -200,17 +198,17 @@ final class EppoClientAssignmentCachingTests: XCTestCase {
     }
     
     func testLogsDuplicateAssignmentsWithoutCache() async throws {
-        // Disable the assignment cache.
-        eppoClient = EppoClient.configure(apiKey: "mock-api-key",
-                                assignmentLogger: loggerSpy.logger,
-                                assignmentCache: nil)
-        
         stub(condition: isHost("fscdn.eppo.cloud")) { _ in
             let stubData = RacTestJSON.data(using: .utf8)!
             return HTTPStubsResponse(data: stubData, statusCode: 200, headers: ["Content-Type": "application/json"])
         }
         
-        try await eppoClient.loadIfNeeded()
+        // Disable the assignment cache.
+        eppoClient = try await EppoClient.initialize(
+            apiKey: "mock-api-key",
+            assignmentLogger: loggerSpy.logger,
+            assignmentCache: nil
+        )
         
         _ = try eppoClient.getStringAssignment("6255e1a72a84e984aed55668", "randomization_algo")
         _ = try eppoClient.getStringAssignment("6255e1a72a84e984aed55668", "randomization_algo")
@@ -219,19 +217,17 @@ final class EppoClientAssignmentCachingTests: XCTestCase {
     }
     
     func testDoesNotLogDuplicateAssignmentsWithCache() async throws {
-        eppoClient = EppoClient.configure(
-            apiKey: "mock-api-key",
-            assignmentLogger: loggerSpy.logger,
-            // InMemoryAssignmentCache is default enabled.
-            assignmentCache: InMemoryAssignmentCache()
-        )
-        
         stub(condition: isHost("fscdn.eppo.cloud")) { _ in
             let stubData = RacTestJSON.data(using: .utf8)!
             return HTTPStubsResponse(data: stubData, statusCode: 200, headers: ["Content-Type": "application/json"])
         }
         
-        try await eppoClient.loadIfNeeded()
+        eppoClient = try await EppoClient.initialize(
+            apiKey: "mock-api-key",
+            assignmentLogger: loggerSpy.logger,
+            // InMemoryAssignmentCache is default enabled.
+            assignmentCache: InMemoryAssignmentCache()
+        )
         
         _ = try eppoClient.getStringAssignment("6255e1a72a84e984aed55668", "randomization_algo")
         _ = try eppoClient.getStringAssignment("6255e1a72a84e984aed55668", "randomization_algo")
@@ -240,21 +236,20 @@ final class EppoClientAssignmentCachingTests: XCTestCase {
     }
     
     func testLogsForEachUniqueFlag() async throws {
-        eppoClient = EppoClient.configure(
+        stub(condition: isHost("fscdn.eppo.cloud")) { _ in
+            let stubData = RacTestJSON.data(using: .utf8)!
+            return HTTPStubsResponse(data: stubData, statusCode: 200, headers: ["Content-Type": "application/json"])
+        }
+        
+        _ = try await EppoClient.initialize(
             apiKey: "mock-api-key",
             assignmentLogger: loggerSpy.logger,
             // InMemoryAssignmentCache is default enabled.
             assignmentCache: InMemoryAssignmentCache()
         )
         
-        stub(condition: isHost("fscdn.eppo.cloud")) { _ in
-            let stubData = RacTestJSON.data(using: .utf8)!
-            return HTTPStubsResponse(data: stubData, statusCode: 200, headers: ["Content-Type": "application/json"])
-        }
-        try await eppoClient.loadIfNeeded()
-        
-        _ = try eppoClient.getStringAssignment("6255e1a72a84e984aed55668", "randomization_algo")
-        _ = try eppoClient.getStringAssignment("6255e1a72a84e984aed55668", "new_user_onboarding")
+        _ = try EppoClient.getInstance().getStringAssignment("6255e1a72a84e984aed55668", "randomization_algo")
+        _ = try EppoClient.getInstance().getStringAssignment("6255e1a72a84e984aed55668", "new_user_onboarding")
         
         XCTAssertEqual(loggerSpy.logCount, 2, "Should log 2 times due to changing flags.")
     }

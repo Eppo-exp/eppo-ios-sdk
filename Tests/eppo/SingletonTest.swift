@@ -19,8 +19,6 @@ final class EppoTests: XCTestCase {
             let stubData = RacTestJSON.data(using: .utf8)!
             return HTTPStubsResponse(data: stubData, statusCode: 200, headers: ["Content-Type": "application/json"])
         }
-        
-        _ = EppoClient.configure(apiKey: "mock-api-key")
     }
     
     func testEppoClientMultithreading() async throws {
@@ -30,11 +28,10 @@ final class EppoTests: XCTestCase {
         expectation.expectedFulfillmentCount = expectedCount
 
         Task {
-            let eppoClient = try EppoClient.getInstance()
             await withThrowingTaskGroup(of: Void.self) { group in
                 for _ in 0 ..< expectedCount {
                     group.addTask {
-                        try await eppoClient.loadIfNeeded()
+                        let eppoClient = try await EppoClient.initialize(apiKey: "mock-api-key")
                         _ = try? eppoClient.getStringAssignment("subject_key", "some-assignment-key", [:])
                         expectation.fulfill()
                     }

@@ -24,49 +24,44 @@ While in XCode:
 
 ## Quick start
 
-Begin by initializing a singleton instance of Eppo's client. Once initialized, the client can be used to make assignments anywhere in your app.
+Begin by initializing Eppo's client; which is internally a singleton. It configures itself and performs a network request to fetch the latest flag configurations. 
+
+Once initialized, the client can be used to make assignments anywhere in your app.
 
 #### Initialize once
 
 ```swift
-EppoClient.configure(apiKey: "SDK-KEY-FROM-DASHBOARD");
+try await EppoClient.initialize(apiKey: "SDK-KEY-FROM-DASHBOARD");
 ```
 
 #### Assign anywhere
 
 ```swift
 Task {
-    do {
-        let eppoClient = EppoClient.getInstance()
-        try await eppoClient.loadIfNeeded();
-        self.assignment = try self.eppoClient.getStringAssignment(
-            "new-user-onboarding"
-            user.id,
-            user.attributes,
-            "control"
-        );
-    } catch {
-        self.assignment = nil;
-    }
+    let assignment = try await EppoClient.getInstance().getStringAssignment(
+        "new-user-onboarding",
+        user.id,
+        user.attributes,
+        "control"
+    );
 }
 ```
 
 It is recommended to wrap initialization in a `Task` block in order to perform network request asynchronously.
 
-For applications wrapping initialization and assignment in an `ObservableObject` is recommended. This will create an object that will update Swift UI when the assignment is received.
+For applications wrapping initialization and assignment in an `ObservableObject` is the best practice. This will create an object that will update Swift UI when the assignment is received.
 
 ```swift
 @MainActor
 public class AssignmentObserver: ObservableObject {
     @Published var assignment: String?
-    var eppoClient: EppoClient = EppoClient.configure(apiKey: EPPO_API_KEY)
 
     public init() {
         Task {
             do {
-                try await eppoClient.loadIfNeeded()
-                self.assignment = try self.eppoClient.getStringAssignment(
-                    "new-user-onboarding"
+                let eppoClient = try await EppoClient.initialize(apiKey: EPPO_API_KEY)
+                self.assignment = try eppoClient.getStringAssignment(
+                    "new-user-onboarding",
                     user.id,
                     user.attributes,
                     "control"
