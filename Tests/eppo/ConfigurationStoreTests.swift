@@ -5,19 +5,28 @@ import XCTest
 final class ConfigurationStoreTests: XCTestCase {
     var configurationStore: ConfigurationStore!
     var mockRequester: ConfigurationRequester!
-    var configs: RACConfig!
+    var configs: UniversalFlagConfig!
     
-    let emptyFlagConfig = FlagConfig(
-        subjectShards: 0, enabled: false, typedOverrides: [:], rules: [], allocations: [:])
+    let emptyFlagConfig = UFC_Flag(
+        key: "empty",
+        enabled: false,
+        variationType: UFC_VariationType.string,
+        variations: [:],
+        allocations: [],
+        totalShards: 0
+    )
     
     override func setUpWithError() throws {
         try super.setUpWithError()
         mockRequester = ConfigurationRequester(httpClient: EppoHttpClientMock())
         configurationStore = ConfigurationStore(requester: mockRequester)
         
-        configs = RACConfig(flags: [
-            "testFlag": emptyFlagConfig
-        ])
+        configs = UniversalFlagConfig(
+            createdAt: nil,
+            flags: [
+                "testFlag": emptyFlagConfig
+            ]
+        )
     }
     
     func testSetAndGetConfiguration() throws {
