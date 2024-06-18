@@ -155,7 +155,8 @@ public class EppoClient {
                 subjectKey: subjectKey,
                 flagKey: flagKey,
                 allocationKey: rule.allocationKey,
-                variationValue: assignedVariation.typedValue
+                // TODO: Migrate to using the variationKey after the UFC is available.
+                variationKey: assignedVariation.typedValue.toHashedString()
             )
             
             // Check if the assignment has already been logged, if the cache is defined

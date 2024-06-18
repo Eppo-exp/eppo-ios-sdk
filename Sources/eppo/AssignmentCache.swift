@@ -9,11 +9,30 @@ public struct AssignmentCacheKey {
     var subjectKey: String
     var flagKey: String
     var allocationKey: String
-    var variationValue: EppoValue
+    var variationKey: String
 }
 
 public class InMemoryAssignmentCache: AssignmentCache {
-    private var cache: [String: String] = [:]
+    internal var cache: [CacheKey: CacheValue] = [:]
+
+    internal struct CacheKey: Hashable {
+        let subjectKey: String
+        let flagKey: String
+        
+        func hash(into hasher: inout Hasher) {
+            hasher.combine(subjectKey)
+            hasher.combine(flagKey)
+        }
+    }
+
+    internal struct CacheValue: Equatable {
+        let allocationKey: String
+        let variationKey: String
+
+        static func ==(lhs: CacheValue, rhs: CacheValue) -> Bool {
+            return lhs.allocationKey == rhs.allocationKey && lhs.variationKey == rhs.variationKey
+        }
+    }
 
     // This empty constructor is required to be able to instantiate the class
     // within the constructor of EppoClient.
@@ -22,32 +41,24 @@ public class InMemoryAssignmentCache: AssignmentCache {
     }
 
     public func hasLoggedAssignment(key: AssignmentCacheKey) -> Bool {
-        let cacheKey = getCacheKey(key: key)
-        if !has(key: cacheKey) {
-            return false
-        }
-
-        return get(key: cacheKey) == key.variationValue.toHashedString()
+        let cacheKey = CacheKey(subjectKey: key.subjectKey, flagKey: key.flagKey)
+        return get(key: cacheKey) == CacheValue(allocationKey: key.allocationKey, variationKey: key.variationKey)
     }
 
     public func setLastLoggedAssignment(key: AssignmentCacheKey) {
-        let cacheKey = getCacheKey(key: key)
-        set(key: cacheKey, value: key.variationValue.toHashedString())
+        let cacheKey = CacheKey(subjectKey: key.subjectKey, flagKey: key.flagKey)
+        set(key: cacheKey, value: CacheValue(allocationKey: key.allocationKey, variationKey: key.variationKey))
     }
 
-    internal func get(key: String) -> String? {
+    internal func get(key: CacheKey) -> CacheValue? {
         return cache[key]
     }
 
-    internal func set(key: String, value: String) {
+    internal func set(key: CacheKey, value: CacheValue) {
         cache[key] = value
     }
 
-    internal func has(key: String) -> Bool {
+    internal func has(key: CacheKey) -> Bool {
         return cache[key] != nil
-    }
-
-    private func getCacheKey(key: AssignmentCacheKey) -> String {
-        return ["subject:\(key.subjectKey)", "flag:\(key.flagKey)", "allocation:\(key.allocationKey)"].joined(separator: ";")
     }
 }
