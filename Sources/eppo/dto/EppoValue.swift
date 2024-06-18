@@ -187,14 +187,4 @@ public class EppoValue : Decodable, Equatable {
             throw Errors.valueNotSet
         }
     }
-    
-    public func toHashedString() throws -> String {
-        let str = try self.toEppoString()
-        // generate a sha256 hash of the string. this is a 32-byte signature which
-        // will likely save space when using json values but will almost certainly be
-        // longer than typical string variation values such as "control" or "variant".
-        let sha256Data = SHA256.hash(data: str.data(using: .utf8) ?? Data())
-        return sha256Data.map { String(format: "%02x", $0) }.joined()
-        
-    }
 }
