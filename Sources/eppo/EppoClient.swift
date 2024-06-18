@@ -68,11 +68,9 @@ public class EppoClient {
     ) async throws -> EppoClient {
         if instance == nil {
             instance = EppoClient(apiKey: apiKey, host: host, assignmentLogger: assignmentLogger, assignmentCache: assignmentCache)
+            try await instance!.loadIfNeeded()
         }
-        
-        try await instance?.loadIfNeeded()
-        
-        return instance!
+        return try getInstance()
     }
     
     public static func getInstance() throws -> EppoClient {
