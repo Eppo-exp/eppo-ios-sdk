@@ -237,16 +237,16 @@ public class EppoClient {
         
         // Optionally log assignment
         if flagEvaluation.doLog {
-            if let allocationKey = flagEvaluation.allocationKey,
-               let variation = flagEvaluation.variation,
-               let assignmentLogger = self.assignmentLogger {
+            if let assignmentLogger = self.assignmentLogger {
+                let allocationKey = flagEvaluation.allocationKey ?? "__eppo_no_allocation"
+                let variationKey = flagEvaluation.variation?.key ?? "__eppo_no_variation"
                 
                 // Prepare the assignment cache key
                 let assignmentCacheKey = AssignmentCacheKey(
                     subjectKey: subjectKey,
                     flagKey: flagKey,
                     allocationKey: allocationKey,
-                    variationKey: variation.key
+                    variationKey: variationKey
                 )
                 
                 // Check if the assignment has already been logged, if the cache is defined
@@ -258,7 +258,7 @@ public class EppoClient {
                     let assignment = Assignment(
                         flagKey: flagKey,
                         allocationKey: allocationKey,
-                        variation: variation.key,
+                        variation: variationKey,
                         subject: subjectKey,
                         timestamp: ISO8601DateFormatter().string(from: Date()),
                         subjectAttributes: subjectAttributes,
