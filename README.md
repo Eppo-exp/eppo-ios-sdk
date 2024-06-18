@@ -59,18 +59,16 @@ public class AssignmentObserver: ObservableObject {
     @Published var assignment: String?
 
     public init() {
-        Task {
-            do {
-                // Use the shared instance after it has been configured.
-                self.assignment = try EppoClient.shared().getStringAssignment(
-                    "new-user-onboarding",
-                    user.id,
-                    user.attributes,
-                    "control"
-                );
-            } catch {
-                self.assignment = nil
-            }
+        do {
+            // Use the shared instance after it has been configured.
+            self.assignment = try EppoClient.shared().getStringAssignment(
+                "new-user-onboarding",
+                user.id,
+                user.attributes,
+                "control"
+            );
+        } catch {
+            self.assignment = nil
         }
     }
 }
