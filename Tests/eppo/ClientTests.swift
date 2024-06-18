@@ -107,7 +107,7 @@ final class eppoClientTests: XCTestCase {
     
     override func setUpWithError() throws {
         try super.setUpWithError()
-        EppoClient.resetInstance()
+        EppoClient.resetSharedInstance()
         
         stub(condition: isHost("fscdn.eppo.cloud")) { _ in
             let stubData = RacTestJSON.data(using: .utf8)!
@@ -118,7 +118,7 @@ final class eppoClientTests: XCTestCase {
     }
     
     func testUnloadedClient() async throws {
-        XCTAssertThrowsError(try EppoClient.getInstance().getStringAssignment("badFlagRising", "allocation-experiment-1"))
+        XCTAssertThrowsError(try EppoClient.shared().getStringAssignment("badFlagRising", "allocation-experiment-1"))
         {
             error in XCTAssertEqual(error as! Errors, Errors.notConfigured)
         };
@@ -127,7 +127,7 @@ final class eppoClientTests: XCTestCase {
     func testBadFlagKey() async throws {
         _ = try await EppoClient.initialize(apiKey: "mock-api-key", assignmentLogger: loggerSpy.logger)
         
-        XCTAssertThrowsError(try EppoClient.getInstance().getStringAssignment("badFlagRising", "allocation-experiment-1"))
+        XCTAssertThrowsError(try EppoClient.shared().getStringAssignment("badFlagRising", "allocation-experiment-1"))
         {
             error in XCTAssertEqual(error as! Errors, Errors.flagConfigNotFound)
         };
@@ -136,7 +136,7 @@ final class eppoClientTests: XCTestCase {
     func testLogger() async throws {
         _ = try await EppoClient.initialize(apiKey: "mock-api-key", assignmentLogger: loggerSpy.logger)
         
-        let assignment = try EppoClient.getInstance().getStringAssignment("6255e1a72a84e984aed55668", "randomization_algo")
+        let assignment = try EppoClient.shared().getStringAssignment("6255e1a72a84e984aed55668", "randomization_algo")
         XCTAssertEqual(assignment, "red")
         XCTAssertTrue(loggerSpy.wasCalled)
         if let lastAssignment = loggerSpy.lastAssignment {
@@ -193,7 +193,7 @@ final class EppoClientAssignmentCachingTests: XCTestCase {
 
     override func setUpWithError() throws {
         try super.setUpWithError()
-        EppoClient.resetInstance()  // Reset the singleton instance before each test
+        EppoClient.resetSharedInstance()  // Reset the singleton instance before each test
         loggerSpy = AssignmentLoggerSpy()
     }
     
@@ -248,8 +248,8 @@ final class EppoClientAssignmentCachingTests: XCTestCase {
             assignmentCache: InMemoryAssignmentCache()
         )
         
-        _ = try EppoClient.getInstance().getStringAssignment("6255e1a72a84e984aed55668", "randomization_algo")
-        _ = try EppoClient.getInstance().getStringAssignment("6255e1a72a84e984aed55668", "new_user_onboarding")
+        _ = try EppoClient.shared().getStringAssignment("6255e1a72a84e984aed55668", "randomization_algo")
+        _ = try EppoClient.shared().getStringAssignment("6255e1a72a84e984aed55668", "new_user_onboarding")
         
         XCTAssertEqual(loggerSpy.logCount, 2, "Should log 2 times due to changing flags.")
     }

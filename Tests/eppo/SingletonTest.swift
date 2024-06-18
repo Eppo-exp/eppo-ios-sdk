@@ -11,18 +11,35 @@ final class EppoTests: XCTestCase {
     
     override func setUpWithError() throws {
         try super.setUpWithError()
-        EppoClient.resetInstance()
+        EppoClient.resetSharedInstance()
         stubCallCount = 0
         
-        stub(condition: isHost("fscdn.eppo.cloud")) { _ in
+        stub(condition: isHost("fscdn.eppo.cloud") || isHost("test.cloud")) { _ in
             self.stubCallCount += 1
             let stubData = RacTestJSON.data(using: .utf8)!
             return HTTPStubsResponse(data: stubData, statusCode: 200, headers: ["Content-Type": "application/json"])
         }
     }
     
+    func testReusingSingleton() async throws {
+        let eppoClient1 = try await EppoClient.initialize(apiKey: "mock-api-key1")
+        let eppoClient2 = try await EppoClient.initialize(apiKey: "mock-api-key1")
+        XCTAssertEqual(eppoClient1, eppoClient2)
+    }
+    
+    func testChangingApiKey() async throws {
+        let eppoClient1 = try await EppoClient.initialize(apiKey: "mock-api-key1")
+        let eppoClient2 = try await EppoClient.initialize(apiKey: "mock-api-key2")
+        XCTAssertNotEqual(eppoClient1, eppoClient2, "Changing SDK key re-instantiates the singleton")
+    }
+    
+    func testChangingHost() async throws {
+        let eppoClient1 = try await EppoClient.initialize(apiKey: "mock-api-key1")
+        let eppoClient2 = try await EppoClient.initialize(apiKey: "mock-api-key1", host: "https://test.cloud")
+        XCTAssertNotEqual(eppoClient1, eppoClient2, "Changing host re-instantiates the singleton")
+    }
+    
     func testEppoClientMultithreading() async throws {
-        
         let expectedCount = 50
         let expectation = XCTestExpectation(description: "eppo client expectation")
         expectation.expectedFulfillmentCount = expectedCount
@@ -31,8 +48,8 @@ final class EppoTests: XCTestCase {
             await withThrowingTaskGroup(of: Void.self) { group in
                 for _ in 0 ..< expectedCount {
                     group.addTask {
-                        let eppoClient = try await EppoClient.initialize(apiKey: "mock-api-key")
-                        _ = try? eppoClient.getStringAssignment("subject_key", "some-assignment-key", [:])
+                        _ = try await EppoClient.initialize(apiKey: "mock-api-key")
+                        _ = try? EppoClient.shared().getStringAssignment("subject_key", "some-assignment-key", [:])
                         expectation.fulfill()
                     }
                 }

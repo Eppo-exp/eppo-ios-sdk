@@ -31,10 +31,10 @@ actor EppoClientState {
     }
 }
 
-public class EppoClient {
+public class EppoClient : Equatable {
     public typealias AssignmentLogger = (Assignment) -> Void
     
-    private static var instance: EppoClient?
+    private static var sharedInstance: EppoClient?
     
     private(set) var apiKey: String
     private(set) var host: String
@@ -46,7 +46,7 @@ public class EppoClient {
     
     private init(
         apiKey: String,
-        host: String = "https://fscdn.eppo.cloud",
+        host: String,
         assignmentLogger: AssignmentLogger? = nil,
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache()
     ) {
@@ -66,22 +66,36 @@ public class EppoClient {
         assignmentLogger: AssignmentLogger? = nil,
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache()
     ) async throws -> EppoClient {
-        if instance == nil {
-            instance = EppoClient(apiKey: apiKey, host: host, assignmentLogger: assignmentLogger, assignmentCache: assignmentCache)
-            try await instance!.loadIfNeeded()
+        let tentativeNewInstance = EppoClient(
+            apiKey: apiKey,
+            host: host,
+            assignmentLogger: assignmentLogger, 
+            assignmentCache: assignmentCache
+        )
+
+        if let instance = sharedInstance, instance != tentativeNewInstance {
+            // If the shared instance is not the same as the new client, update it.
+            // Conditions for equality are defined in the `==` operator.
+            sharedInstance = tentativeNewInstance
+            try await sharedInstance!.loadIfNeeded()
+        } else if sharedInstance == nil {
+            // If the shared instance is nil, set it to the new client.
+            sharedInstance = tentativeNewInstance
+            try await sharedInstance!.loadIfNeeded()
         }
-        return try getInstance()
+    
+        return try shared()
     }
     
-    public static func getInstance() throws -> EppoClient {
-        guard let instance = instance else {
+    public static func shared() throws -> EppoClient {
+        guard let instance = sharedInstance else {
             throw Errors.notConfigured
         }
         return instance
     }
     
-    public static func resetInstance() {
-        instance = nil
+    public static func resetSharedInstance() {
+        sharedInstance = nil
     }
     
     private func loadIfNeeded() async throws {
@@ -265,5 +279,9 @@ public class EppoClient {
         }
         
         return nil;
+    }
+
+    static public func ==(lhs: EppoClient, rhs: EppoClient) -> Bool {
+        return lhs.apiKey == rhs.apiKey && lhs.host == rhs.host
     }
 }
