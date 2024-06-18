@@ -15,33 +15,66 @@ final class AssignmentCacheTests: XCTestCase {
         cache = nil
         super.tearDown()
     }
-    
-    func testSetAndGet() {
-        let key = "testKey"
-        let value = "testValue"
-        XCTAssertNil(cache.get(key: key), "Cache should return nil for a key that has not been set.")
-        cache.set(key: key, value: value)
-        XCTAssertEqual(cache.get(key: key), value, "Cache should return the value that was set for a key.")
-    }
-    
-    func testHas() {
-        let key = "testKey"
-        XCTAssertFalse(cache.has(key: key), "Cache should return false for a key that has not been set.")
-        cache.set(key: key, value: "testValue")
-        XCTAssertTrue(cache.has(key: key), "Cache should return true for a key that has been set.")
-    }
-    
-    func testHasLoggedAssignment() {
-        let assignmentKey = AssignmentCacheKey(
+
+    func testOscillatingAllocation() {
+        let key1 = AssignmentCacheKey(
             subjectKey: "Math", 
             flagKey: "TestFlag",
-            allocationKey: "A1",
-            variationValue: EppoValue(value: "VariationA", type: EppoValueType.String)
+            allocationKey: "A1", // initial
+            variationKey: "VariationA"
         )
-        
-        XCTAssertFalse(cache.hasLoggedAssignment(key: assignmentKey), "Cache should return false for an assignment that has not been logged.")
-        
-        cache.setLastLoggedAssignment(key: assignmentKey)
-        XCTAssertTrue(cache.hasLoggedAssignment(key: assignmentKey), "Cache should return true for an assignment that has been logged.")
+        let key2 = AssignmentCacheKey(
+            subjectKey: "Math", 
+            flagKey: "TestFlag",
+            allocationKey: "A2", // changes
+            variationKey: "VariationA"
+        )
+
+        cache.setLastLoggedAssignment(key: key1)
+        XCTAssertTrue(cache.hasLoggedAssignment(key: key1))
+        XCTAssertFalse(cache.hasLoggedAssignment(key: key2))
+
+        cache.setLastLoggedAssignment(key: key2)
+        XCTAssertFalse(cache.hasLoggedAssignment(key: key1))
+        XCTAssertTrue(cache.hasLoggedAssignment(key: key2))
+
+        cache.setLastLoggedAssignment(key: key1)
+        XCTAssertTrue(cache.hasLoggedAssignment(key: key1))
+        XCTAssertFalse(cache.hasLoggedAssignment(key: key2))
+
+        cache.setLastLoggedAssignment(key: key2)
+        XCTAssertFalse(cache.hasLoggedAssignment(key: key1))
+        XCTAssertTrue(cache.hasLoggedAssignment(key: key2))
+    }
+    
+    func testOscillatingVariations() {
+        let key1 = AssignmentCacheKey(
+            subjectKey: "Math",
+            flagKey: "TestFlag",
+            allocationKey: "A1",
+            variationKey: "VariationA"  // initial
+        )
+        let key2 = AssignmentCacheKey(
+            subjectKey: "Math",
+            flagKey: "TestFlag",
+            allocationKey: "A1",
+            variationKey: "VariationB"  // changes
+        )
+
+        cache.setLastLoggedAssignment(key: key1)
+        XCTAssertTrue(cache.hasLoggedAssignment(key: key1))
+        XCTAssertFalse(cache.hasLoggedAssignment(key: key2))
+
+        cache.setLastLoggedAssignment(key: key2)
+        XCTAssertFalse(cache.hasLoggedAssignment(key: key1))
+        XCTAssertTrue(cache.hasLoggedAssignment(key: key2))
+
+        cache.setLastLoggedAssignment(key: key1)
+        XCTAssertTrue(cache.hasLoggedAssignment(key: key1))
+        XCTAssertFalse(cache.hasLoggedAssignment(key: key2))
+
+        cache.setLastLoggedAssignment(key: key2)
+        XCTAssertFalse(cache.hasLoggedAssignment(key: key1))
+        XCTAssertTrue(cache.hasLoggedAssignment(key: key2))
     }
 }

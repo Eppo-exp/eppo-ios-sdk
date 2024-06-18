@@ -8,6 +8,7 @@ import OHHTTPStubsSwift
 
 final class EppoTests: XCTestCase {
     var stubCallCount = 0
+    var UFCTestJSON: String!
     
     override func setUpWithError() throws {
         try super.setUpWithError()
@@ -16,7 +17,7 @@ final class EppoTests: XCTestCase {
         
         stub(condition: isHost("fscdn.eppo.cloud") || isHost("test.cloud")) { _ in
             self.stubCallCount += 1
-            let stubData = RacTestJSON.data(using: .utf8)!
+            let stubData = self.UFCTestJSON.data(using: .utf8)!
             return HTTPStubsResponse(data: stubData, statusCode: 200, headers: ["Content-Type": "application/json"])
         }
     }
@@ -43,13 +44,13 @@ final class EppoTests: XCTestCase {
         let expectedCount = 50
         let expectation = XCTestExpectation(description: "eppo client expectation")
         expectation.expectedFulfillmentCount = expectedCount
-
+        
         Task {
             await withThrowingTaskGroup(of: Void.self) { group in
                 for _ in 0 ..< expectedCount {
                     group.addTask {
-                        _ = try await EppoClient.initialize(apiKey: "mock-api-key")
-                        _ = try? EppoClient.shared().getStringAssignment("subject_key", "some-assignment-key", [:])
+                        try await eppoClient.loadIfNeeded()
+                        _ = try? eppoClient.getStringAssignment(flagKey: "some-assignment-key", subjectKey: "subject_key", subjectAttributes: [:], defaultValue: "default")
                         expectation.fulfill()
                     }
                 }

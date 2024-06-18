@@ -2,7 +2,7 @@ import Foundation
 import CryptoKit
 
 public enum EppoValueType {
-    case Number
+    case Numeric
     case String
     case Boolean
     case Null
@@ -10,150 +10,181 @@ public enum EppoValueType {
 }
 
 public class EppoValue : Decodable, Equatable {
-    public var value: String?;
-    public var type: EppoValueType = EppoValueType.Null;
-    public var array: [String]?;
-
+    private var type: EppoValueType = EppoValueType.Null;
+    private var boolValue: Bool?;
+    private var doubleValue: Double?
+    private var stringValue: String?
+    private var stringArrayValue: [String]?
+    
     enum Errors : Error {
-        case NotImplemented
-        case conversionError
         case valueNotSet;
     }
-
+    
     public static func == (lhs: EppoValue, rhs: EppoValue) -> Bool {
-        if lhs.value != rhs.value { return false; }
-        if lhs.type != rhs.type { return false; }
-
-        if lhs.array == nil && rhs.array != nil { return false }
-        if rhs.array == nil && lhs.array != nil { return false; }
-
-        for lhItem in lhs.array! {
-            if !rhs.array!.contains(where: { (rhItem) in return rhItem == lhItem }) {
-                return false;
-            }
+        if lhs.type != rhs.type { return false }
+        
+        switch lhs.type {
+        case .Boolean:
+            return lhs.boolValue == rhs.boolValue
+        case .Numeric:
+            return lhs.doubleValue == rhs.doubleValue
+        case .String:
+            return lhs.stringValue == rhs.stringValue
+        case .ArrayOfStrings:
+            // Convert arrays to sets and compare, ignoring order and duplicates
+            let lhsSet = Set(lhs.stringArrayValue ?? [])
+            let rhsSet = Set(rhs.stringArrayValue ?? [])
+            return lhsSet == rhsSet
+        case .Null:
+            return true // Both are null
         }
-
-        return true;
     }
-
-    public init(value: String, type: EppoValueType) {
-        self.value = value;
-        self.type = type;
-        self.array = [];
+    
+    public init() {
+        self.type = .Null
     }
-
+    
+    public init(value: Bool) {
+        self.type = EppoValueType.Boolean;
+        self.boolValue = value;
+    }
+    
+    public init(value: Double) {
+        self.type = EppoValueType.Numeric;
+        self.doubleValue = value;
+    }
+    
+    public init(value: Int) {
+        self.type = EppoValueType.Numeric;
+        self.doubleValue = Double(value);
+    }
+    
+    public init(value: String) {
+        self.type = EppoValueType.String;
+        self.stringValue = value;
+    }
+    
     public init(array: [String]) {
         self.type = EppoValueType.ArrayOfStrings;
-        self.array = array;
-        self.value = "";
+        self.stringArrayValue = array;
     }
-
-    public init(type: EppoValueType) {
-        self.type = type;
-    }
-
+    
     required public init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer();
+        let container = try decoder.singleValueContainer()
         
-        try? self.array = container.decode([String].self);
-        if self.array != nil {
-            self.type = EppoValueType.ArrayOfStrings;
-            return;
+        if let array = try? container.decode([String].self) {
+            self.type = .ArrayOfStrings
+            self.stringArrayValue = array
+        } else if let doubleValue = try? container.decode(Double.self) {
+            self.type = .Numeric
+            self.doubleValue = doubleValue
+        } else if let boolValue = try? container.decode(Bool.self) {
+            self.type = .Boolean
+            self.boolValue = boolValue
+        } else if let stringValue = try? container.decode(String.self) {
+            self.type = .String
+            self.stringValue = stringValue
+        } else {
+            self.type = .Null
+            self.boolValue = nil
+            self.doubleValue = nil
+            self.stringValue = nil
+            self.stringArrayValue = nil
         }
-
-        try? self.value = String(container.decode(Int.self));
-        if self.value != nil {
-            self.type = EppoValueType.Number;
-            return;
-        }
-
-        try? self.value = String(container.decode(Bool.self));
-        if self.value != nil {
-            self.type = EppoValueType.Boolean;
-            return;
-        }
-
-        try? self.value = container.decode(String.self);
-        if self.value != nil {
-            self.type = EppoValueType.String;
-            return;
-        }
-
-        self.type = EppoValueType.Null;
     }
-
-    public static func valueOf() -> EppoValue {
-        return EppoValue(type: EppoValueType.Null);
-    }
-
+    
     public static func valueOf(_ value: Bool) -> EppoValue {
-        return EppoValue(value: String(value), type: EppoValueType.Boolean);
+        return EppoValue(value: value);
     }
     
     public static func valueOf(_ value: Double) -> EppoValue {
-        return EppoValue(value: String(value), type: EppoValueType.Number);
+        return EppoValue(value: value);
+    }
+    
+    public static func valueOf(_ value: Int) -> EppoValue {
+        return EppoValue(value: value);
     }
     
     public static func valueOf(_ value: String) -> EppoValue {
-        return EppoValue(value: value, type: EppoValueType.String);
+        return EppoValue(value: value);
     }
-
+    
     public static func valueOf(_ value: [String]) -> EppoValue {
         return EppoValue(array: value);
     }
-
-    public func boolValue() throws -> Bool {
-        if self.value == nil {
-            throw Errors.valueNotSet;
-        }
-
-        guard let rval = Bool(self.value!) else {
-            throw Errors.conversionError;
-        }
-
-        return rval;
+    
+    public static func nullValue() -> EppoValue {
+        return EppoValue()
     }
     
-    public func doubleValue() throws -> Double {
-        if self.value == nil {
-            throw Errors.valueNotSet;
-        }
-
-        guard let rval = Double(self.value!) else {
-            throw Errors.conversionError;
-        }
-
-        return rval;
+    public func isNull() -> Bool {
+        return self.type == EppoValueType.Null
     }
-
-    public func arrayValue() throws -> [String] {
-        if self.array == nil {
-            throw Errors.valueNotSet;
-        }
-
-        return self.array!;
+    
+    public func isBool() -> Bool {
+        return self.type == EppoValueType.Boolean
     }
-
-    public func stringValue() throws -> String {
-        if self.value == nil {
-            throw Errors.valueNotSet;
-        }
-
-        return self.value!;
+    
+    public func isNumeric() -> Bool {
+        return self.type == EppoValueType.Numeric
     }
-
-    public func toHashedString() -> String {
-        var str = ""
-        if let value = self.value {
-            str = value
-        } else if let array = self.array {
-            str = array.joined(separator: ",")
+    
+    public func isString() -> Bool {
+        return self.type == EppoValueType.String
+    }
+    
+    public func getBoolValue() throws -> Bool {
+        guard let value = self.boolValue else {
+            throw Errors.valueNotSet
         }
-
-        // generate a sha256 hash of the string. this is a 32-byte signature which 
-        // will likely save space when using json values but will almost certainly be
-        // longer than typical string variation values such as "control" or "variant".
-        let sha256Data = SHA256.hash(data: str.data(using: .utf8) ?? Data())
-        return sha256Data.map { String(format: "%02x", $0) }.joined()
+        return value
+    }
+    
+    public func getDoubleValue() throws -> Double {
+        guard let value = self.doubleValue else {
+            throw Errors.valueNotSet
+        }
+        return value
+    }
+    
+    public func getStringArrayValue() throws -> [String] {
+        guard let value = self.stringArrayValue else {
+            throw Errors.valueNotSet
+        }
+        
+        return value;
+    }
+    
+    public func getStringValue() throws -> String {
+        guard let value = self.stringValue else {
+            throw Errors.valueNotSet
+        }
+        
+        return value;
+    }
+    
+    public func toEppoString() throws -> String {
+        switch self.type {
+        case .Boolean:
+            return try self.getBoolValue() ? "true" : "false"
+            
+        case .Numeric:
+            let doubleValue = try self.getDoubleValue()
+            if floor(doubleValue) == doubleValue {
+                return String(format: "%.0f", doubleValue)
+            } else {
+                return String(doubleValue)
+            }
+            
+        case .String:
+            return try self.getStringValue()
+            
+        case .ArrayOfStrings:
+            let arrayValue = try self.getStringArrayValue()
+            return arrayValue.joined(separator: ", ")
+            
+        default:
+            throw Errors.valueNotSet
+        }
     }
 }
