@@ -6,7 +6,7 @@ public let sdkVersion = "3.0.0"
 
 public enum Errors: Error {
     case notConfigured
-    case apiKeyInvalid
+    case sdkKeyInvalid
     case hostInvalid
     case subjectKeyRequired
     case flagKeyRequired
@@ -30,14 +30,16 @@ actor EppoClientState {
     }
 }
 
-public class EppoClient : Equatable {
+public class EppoClient {
     public typealias AssignmentLogger = (Assignment) -> Void
     
     private static var sharedInstance: EppoClient?
+    private static let initializerQueue = DispatchQueue(label: "com.eppo.client.initializer")
+    
     private var flagEvaluator: FlagEvaluator = FlagEvaluator(sharder: MD5Sharder())
     private(set) var isConfigObfuscated = true;
     
-    private(set) var apiKey: String
+    private(set) var sdkKey: String
     private(set) var host: String
     private(set) var assignmentLogger: AssignmentLogger?
     private(set) var assignmentCache: AssignmentCache?
@@ -46,46 +48,49 @@ public class EppoClient : Equatable {
     private let state = EppoClientState()
     
     private init(
-        apiKey: String,
+        sdkKey: String,
         host: String,
         assignmentLogger: AssignmentLogger? = nil,
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache()
     ) {
-        self.apiKey = apiKey
+        self.sdkKey = sdkKey
         self.host = host
         self.assignmentLogger = assignmentLogger
         self.assignmentCache = assignmentCache
         
-        let httpClient = NetworkEppoHttpClient(baseURL: host, apiKey: apiKey, sdkName: "sdkName", sdkVersion: "sdkVersion")
+        let httpClient = NetworkEppoHttpClient(baseURL: host, sdkKey: sdkKey, sdkName: "sdkName", sdkVersion: "sdkVersion")
         let configurationRequester = ConfigurationRequester(httpClient: httpClient)
         self.configurationStore = ConfigurationStore(requester: configurationRequester)
     }
     
     public static func initialize(
-        apiKey: String,
+        sdkKey: String,
         host: String = "https://fscdn.eppo.cloud",
         assignmentLogger: AssignmentLogger? = nil,
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache()
     ) async throws -> EppoClient {
-        let tentativeNewInstance = EppoClient(
-            apiKey: apiKey,
-            host: host,
-            assignmentLogger: assignmentLogger, 
-            assignmentCache: assignmentCache
-        )
-
-        if let instance = sharedInstance, instance != tentativeNewInstance {
-            // If the shared instance is not the same as the new client, update it.
-            // Conditions for equality are defined in the `==` operator.
-            sharedInstance = tentativeNewInstance
-            try await sharedInstance!.loadIfNeeded()
-        } else if sharedInstance == nil {
-            // If the shared instance is nil, set it to the new client.
-            sharedInstance = tentativeNewInstance
-            try await sharedInstance!.loadIfNeeded()
+        return try await withCheckedThrowingContinuation { continuation in
+            initializerQueue.async(flags: .barrier) {
+                if sharedInstance == nil {
+                    sharedInstance = EppoClient(
+                        sdkKey: sdkKey,
+                        host: host,
+                        assignmentLogger: assignmentLogger,
+                        assignmentCache: assignmentCache
+                    )
+                    Task {
+                        do {
+                            try await sharedInstance!.loadIfNeeded()
+                            continuation.resume(returning: sharedInstance!)
+                        } catch {
+                            continuation.resume(throwing: error)
+                        }
+                    }
+                } else {
+                    continuation.resume(returning: sharedInstance!)
+                }
+            }
         }
-    
-        return try shared()
     }
     
     public static func shared() throws -> EppoClient {
@@ -212,8 +217,8 @@ public class EppoClient : Equatable {
         subjectAttributes: SubjectAttributes,
         expectedVariationType: UFC_VariationType) throws -> FlagEvaluation?
     {
-        if (self.apiKey.count == 0) {
-            throw Errors.apiKeyInvalid;
+        if (self.sdkKey.count == 0) {
+            throw Errors.sdkKeyInvalid;
         }
         
         if (self.host.count == 0) {
@@ -301,9 +306,5 @@ func isValueOfType(expectedType: UFC_VariationType, variationValue: EppoValue) -
         return variationValue.isNumeric()
     case .boolean:
         return variationValue.isBool()
-    }
-
-    static public func ==(lhs: EppoClient, rhs: EppoClient) -> Bool {
-        return lhs.apiKey == rhs.apiKey && lhs.host == rhs.host
     }
 }

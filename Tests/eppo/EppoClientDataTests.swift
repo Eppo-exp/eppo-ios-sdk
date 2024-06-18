@@ -45,8 +45,7 @@ final class EppoClientDataTests: XCTestCase {
         }
         
         loggerSpy = AssignmentLoggerSpy()
-        EppoClient.resetInstance()
-        eppoClient = EppoClient.configure(apiKey: "mock-api-key", assignmentLogger: loggerSpy.logger)
+        EppoClient.resetSharedInstance()
     }
     
     func testAssignments(obfuscated: Bool) async throws {
@@ -58,10 +57,12 @@ final class EppoClientDataTests: XCTestCase {
             inDirectory: "Resources/test-data/ufc/tests"
         );
         
+        eppoClient = try await EppoClient.initialize(
+            sdkKey: "mock-api-key",
+            assignmentLogger: loggerSpy.logger
+        )
         // set mode for testing
         eppoClient.setConfigObfuscation(obfuscated: obfuscated)
-        
-        try await eppoClient.loadIfNeeded();
         
         for testFile in testFiles {
             let caseString = try String(contentsOfFile: testFile);

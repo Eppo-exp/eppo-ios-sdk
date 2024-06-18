@@ -12,8 +12,15 @@ final class EppoTests: XCTestCase {
     
     override func setUpWithError() throws {
         try super.setUpWithError()
+        
         EppoClient.resetSharedInstance()
         stubCallCount = 0
+        
+        let fileURL = Bundle.module.url(
+            forResource: "Resources/test-data/ufc/flags-v1-obfuscated.json",
+            withExtension: ""
+        )
+        UFCTestJSON = try! String(contentsOfFile: fileURL!.path)
         
         stub(condition: isHost("fscdn.eppo.cloud") || isHost("test.cloud")) { _ in
             self.stubCallCount += 1
@@ -23,21 +30,21 @@ final class EppoTests: XCTestCase {
     }
     
     func testReusingSingleton() async throws {
-        let eppoClient1 = try await EppoClient.initialize(apiKey: "mock-api-key1")
-        let eppoClient2 = try await EppoClient.initialize(apiKey: "mock-api-key1")
-        XCTAssertEqual(eppoClient1, eppoClient2)
+        let eppoClient1 = try await EppoClient.initialize(sdkKey: "mock-api-key1")
+        let eppoClient2 = try await EppoClient.initialize(sdkKey: "mock-api-key1")
+        XCTAssertIdentical(eppoClient1, eppoClient2)
     }
     
-    func testChangingApiKey() async throws {
-        let eppoClient1 = try await EppoClient.initialize(apiKey: "mock-api-key1")
-        let eppoClient2 = try await EppoClient.initialize(apiKey: "mock-api-key2")
-        XCTAssertNotEqual(eppoClient1, eppoClient2, "Changing SDK key re-instantiates the singleton")
+    func testInitializeWithDifferentSdkKey() async throws {
+        let eppoClient1 = try await EppoClient.initialize(sdkKey: "mock-api-key1")
+        let eppoClient2 = try await EppoClient.initialize(sdkKey: "mock-api-key2")
+        XCTAssertIdentical(eppoClient1, eppoClient2, "Changing SDK key does not re-instantiate the singleton")
     }
     
-    func testChangingHost() async throws {
-        let eppoClient1 = try await EppoClient.initialize(apiKey: "mock-api-key1")
-        let eppoClient2 = try await EppoClient.initialize(apiKey: "mock-api-key1", host: "https://test.cloud")
-        XCTAssertNotEqual(eppoClient1, eppoClient2, "Changing host re-instantiates the singleton")
+    func testInitializeWithDifferentHost() async throws {
+        let eppoClient1 = try await EppoClient.initialize(sdkKey: "mock-api-key1")
+        let eppoClient2 = try await EppoClient.initialize(sdkKey: "mock-api-key1", host: "https://test.cloud")
+        XCTAssertIdentical(eppoClient1, eppoClient2, "Changing host re-instantiates the singleton")
     }
     
     func testEppoClientMultithreading() async throws {
@@ -49,8 +56,8 @@ final class EppoTests: XCTestCase {
             await withThrowingTaskGroup(of: Void.self) { group in
                 for _ in 0 ..< expectedCount {
                     group.addTask {
-                        try await eppoClient.loadIfNeeded()
-                        _ = try? eppoClient.getStringAssignment(flagKey: "some-assignment-key", subjectKey: "subject_key", subjectAttributes: [:], defaultValue: "default")
+                        _ = try await EppoClient.initialize(sdkKey: "mock-api-key")
+                        _ = try? EppoClient.shared().getStringAssignment(flagKey: "some-assignment-key", subjectKey: "subject_key", subjectAttributes: [:], defaultValue: "default")
                         expectation.fulfill()
                     }
                 }

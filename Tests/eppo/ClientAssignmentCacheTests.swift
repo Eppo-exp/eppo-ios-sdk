@@ -15,13 +15,7 @@ final class EppoClientAssignmentCachingTests: XCTestCase {
         try super.setUpWithError()
         
         loggerSpy = AssignmentLoggerSpy()
-        
-        EppoClient.resetInstance()
-        eppoClient = EppoClient.configure(
-            apiKey: "mock-api-key",
-            assignmentLogger: loggerSpy.logger
-            // InMemoryAssignmentCache is default enabled.
-        )
+        EppoClient.resetSharedInstance()
         
         let fileURL = Bundle.module.url(
             forResource: "Resources/test-data/ufc/flags-v1-obfuscated.json",
@@ -31,17 +25,17 @@ final class EppoClientAssignmentCachingTests: XCTestCase {
     }
     
     func testLogsDuplicateAssignmentsWithoutCache() async throws {
-        // Disable the assignment cache.
-        EppoClient.resetInstance()
-        eppoClient = EppoClient.configure(apiKey: "mock-api-key",
-                                          assignmentLogger: loggerSpy.logger,
-                                          assignmentCache: nil)
-        
         stub(condition: isHost("fscdn.eppo.cloud")) { _ in
             let stubData = self.UFCTestJSON.data(using: .utf8)!
             return HTTPStubsResponse(data: stubData, statusCode: 200, headers: ["Content-Type": "application/json"])
         }
-        try await eppoClient.loadIfNeeded()
+        
+        // Disable the assignment cache.
+        eppoClient = try await EppoClient.initialize(
+            sdkKey: "mock-api-key",
+            assignmentLogger: loggerSpy.logger,
+            assignmentCache: nil
+        )
         
         _ = try eppoClient.getNumericAssignment(
             flagKey: "numeric_flag",
@@ -63,7 +57,12 @@ final class EppoClientAssignmentCachingTests: XCTestCase {
             let stubData = self.UFCTestJSON.data(using: .utf8)!
             return HTTPStubsResponse(data: stubData, statusCode: 200, headers: ["Content-Type": "application/json"])
         }
-        try await eppoClient.loadIfNeeded()
+        
+        // Disable the assignment cache.
+        eppoClient = try await EppoClient.initialize(
+            sdkKey: "mock-api-key",
+            assignmentLogger: loggerSpy.logger
+        )
         
         _ = try eppoClient.getNumericAssignment(
             flagKey: "numeric_flag",
@@ -84,7 +83,12 @@ final class EppoClientAssignmentCachingTests: XCTestCase {
             let stubData = self.UFCTestJSON.data(using: .utf8)!
             return HTTPStubsResponse(data: stubData, statusCode: 200, headers: ["Content-Type": "application/json"])
         }
-        try await eppoClient.loadIfNeeded()
+        
+        // Disable the assignment cache.
+        eppoClient = try await EppoClient.initialize(
+            sdkKey: "mock-api-key",
+            assignmentLogger: loggerSpy.logger
+        )
         
         _ =  try eppoClient.getStringAssignment(
             flagKey: "start-and-end-date-test",

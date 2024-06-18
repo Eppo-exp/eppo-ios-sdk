@@ -10,18 +10,18 @@ public protocol EppoHttpClient {
 
 public class NetworkEppoHttpClient : EppoHttpClient {
     private let baseURL: String
-    private let apiKey: String
+    private let sdkKey: String
     private let sdkName: String
     private let sdkVersion: String
 
     public init(
         baseURL: String,
-        apiKey: String,
+        sdkKey: String,
         sdkName: String,
         sdkVersion: String
     ) {
         self.baseURL = baseURL
-        self.apiKey = apiKey
+        self.sdkKey = sdkKey
         self.sdkName = sdkName
         self.sdkVersion = sdkVersion
     }
@@ -36,7 +36,8 @@ public class NetworkEppoHttpClient : EppoHttpClient {
         let queryItems = [
             URLQueryItem(name: "sdkName", value: "ios"),
             URLQueryItem(name: "sdkVersion", value: sdkVersion),
-            URLQueryItem(name: "apiKey", value: self.apiKey)
+            // Server expects the existing response to continue to be `apiKey`.
+            URLQueryItem(name: "apiKey", value: self.sdkKey)
         ]
         components?.queryItems = queryItems
 
