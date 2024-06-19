@@ -6,7 +6,7 @@ public let sdkVersion = "3.0.0"
 
 public enum Errors: Error {
     case notConfigured
-    case apiKeyInvalid
+    case sdkKeyInvalid
     case hostInvalid
     case subjectKeyRequired
     case flagKeyRequired
@@ -33,12 +33,13 @@ actor EppoClientState {
 public class EppoClient {
     public typealias AssignmentLogger = (Assignment) -> Void
     
+    private static var sharedInstance: EppoClient?
+    private static let initializerQueue = DispatchQueue(label: "com.eppo.client.initializer")
+    
     private var flagEvaluator: FlagEvaluator = FlagEvaluator(sharder: MD5Sharder())
     private(set) var isConfigObfuscated = true;
-
-    private static var instance: EppoClient?
     
-    private(set) var apiKey: String
+    private(set) var sdkKey: String
     private(set) var host: String
     private(set) var assignmentLogger: AssignmentLogger?
     private(set) var assignmentCache: AssignmentCache?
@@ -47,52 +48,66 @@ public class EppoClient {
     private let state = EppoClientState()
     
     private init(
-        apiKey: String,
-        host: String = "https://fscdn.eppo.cloud",
+        sdkKey: String,
+        host: String,
         assignmentLogger: AssignmentLogger? = nil,
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache()
     ) {
-        self.apiKey = apiKey
+        self.sdkKey = sdkKey
         self.host = host
         self.assignmentLogger = assignmentLogger
         self.assignmentCache = assignmentCache
         
-        let httpClient = NetworkEppoHttpClient(baseURL: host, apiKey: apiKey, sdkName: "sdkName", sdkVersion: "sdkVersion")
+        let httpClient = NetworkEppoHttpClient(baseURL: host, sdkKey: sdkKey, sdkName: "sdkName", sdkVersion: "sdkVersion")
         let configurationRequester = ConfigurationRequester(httpClient: httpClient)
         self.configurationStore = ConfigurationStore(requester: configurationRequester)
     }
     
-    public static func configure(
-        apiKey: String,
+    public static func initialize(
+        sdkKey: String,
         host: String = "https://fscdn.eppo.cloud",
         assignmentLogger: AssignmentLogger? = nil,
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache()
-    ) -> EppoClient {
-        if instance == nil {
-            instance = EppoClient(apiKey: apiKey, host: host, assignmentLogger: assignmentLogger, assignmentCache: assignmentCache)
+    ) async throws -> EppoClient {
+        return try await withCheckedThrowingContinuation { continuation in
+            initializerQueue.async(flags: .barrier) {
+                if sharedInstance == nil {
+                    sharedInstance = EppoClient(
+                        sdkKey: sdkKey,
+                        host: host,
+                        assignmentLogger: assignmentLogger,
+                        assignmentCache: assignmentCache
+                    )
+                    Task {
+                        do {
+                            try await sharedInstance!.loadIfNeeded()
+                            continuation.resume(returning: sharedInstance!)
+                        } catch {
+                            continuation.resume(throwing: error)
+                        }
+                    }
+                } else {
+                    continuation.resume(returning: sharedInstance!)
+                }
+            }
         }
-        return instance!
     }
     
-    public static func getInstance() throws -> EppoClient {
-        guard let instance = instance else {
+    public static func shared() throws -> EppoClient {
+        guard let instance = sharedInstance else {
             throw Errors.notConfigured
         }
         return instance
     }
     
-    public static func resetInstance() {
-        instance = nil
+    public static func resetSharedInstance() {
+        sharedInstance = nil
     }
     
-    public func loadIfNeeded() async throws {
+    private func loadIfNeeded() async throws {
         let alreadyLoaded = await state.checkAndSetLoaded()
         guard !alreadyLoaded else { return }
         
-        try await load()
-    }
-    
-    private func load() async throws {
         try await self.configurationStore.fetchAndStoreConfigurations()
     }
     
@@ -202,8 +217,8 @@ public class EppoClient {
         subjectAttributes: SubjectAttributes,
         expectedVariationType: UFC_VariationType) throws -> FlagEvaluation?
     {
-        if (self.apiKey.count == 0) {
-            throw Errors.apiKeyInvalid;
+        if (self.sdkKey.count == 0) {
+            throw Errors.sdkKeyInvalid;
         }
         
         if (self.host.count == 0) {

@@ -24,49 +24,70 @@ While in XCode:
 
 ## Quick start
 
-Begin by initializing a singleton instance of Eppo's client. Once initialized, the client can be used to make assignments anywhere in your app.
+Begin by initializing Eppo's client; it is internally a singleton. It configures itself and performs a network request to fetch the latest flag configurations. 
+
+Once initialized, the client can be used to make assignments anywhere in your app.
 
 #### Initialize once
 
+It is recommended to wrap initialization in a `Task` block in order to perform network request asynchronously.
+
 ```swift
-EppoClient.configure(apiKey: "SDK-KEY-FROM-DASHBOARD");
+Task {
+    try await EppoClient.initialize(apiKey: "SDK-KEY-FROM-DASHBOARD");
+}
 ```
 
 #### Assign anywhere
 
+Assignment is a synchronous operation.
+
 ```swift
-Task {
-    do {
-        let eppoClient = EppoClient.getInstance()
-        try await eppoClient.loadIfNeeded();
-        self.assignment = try self.eppoClient.getStringAssignment(
-            "new-user-onboarding"
-            user.id,
-            user.attributes,
-            "control"
-        );
-    } catch {
-        self.assignment = nil;
-    }
-}
+let assignment = try eppoClient.getStringAssignment(
+    "new-user-onboarding",
+    user.id,
+    user.attributes,
+    "control"
+);
 ```
 
-It is recommended to wrap initialization in a `Task` block in order to perform network request asynchronously.
-
-For applications wrapping initialization and assignment in an `ObservableObject` is recommended. This will create an object that will update Swift UI when the assignment is received.
+For applications wrapping assignment in an `ObservableObject` is the best practice. This will create an object that will update Swift UI when the assignment is received.
 
 ```swift
 @MainActor
 public class AssignmentObserver: ObservableObject {
     @Published var assignment: String?
-    var eppoClient: EppoClient = EppoClient.configure(apiKey: EPPO_API_KEY)
+
+    public init() {
+        do {
+            // Use the shared instance after it has been configured.
+            self.assignment = try EppoClient.shared().getStringAssignment(
+                "new-user-onboarding",
+                user.id,
+                user.attributes,
+                "control"
+            );
+        } catch {
+            self.assignment = nil
+        }
+    }
+}
+```
+
+You can also choose to combinate instantiation and assignment within the same `ObservableObject`; the internal state will ensure only a single object and network request is created.
+
+```swift
+@MainActor
+public class AssignmentObserver: ObservableObject {
+    @Published var assignment: String?
 
     public init() {
         Task {
             do {
-                try await eppoClient.loadIfNeeded()
-                self.assignment = try self.eppoClient.getStringAssignment(
-                    "new-user-onboarding"
+                // The initialization method has controls to maintain a single instance.
+                try await EppoClient.initialize(apiKey: "SDK-KEY-FROM-DASHBOARD");
+                self.assignment = try EppoClient.shared().getStringAssignment(
+                    "new-user-onboarding",
                     user.id,
                     user.attributes,
                     "control"
@@ -78,6 +99,7 @@ public class AssignmentObserver: ObservableObject {
     }
 }
 ```
+
 
 Rendering the view:
 
@@ -115,7 +137,7 @@ getBooleanAssignment(...)
 getNumericAssignment(...)
 getIntegerAssignment(...)
 getStringAssignment(...)
-getJSONAssignment(...)
+getJSONStringAssignment(...)
 ```
 
 Each function has the same signature, but returns the type in the function name. For booleans use `getBooleanAssignment`, which has the following signature:
