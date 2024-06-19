@@ -137,7 +137,7 @@ getBooleanAssignment(...)
 getNumericAssignment(...)
 getIntegerAssignment(...)
 getStringAssignment(...)
-getJSONAssignment(...)
+getJSONStringAssignment(...)
 ```
 
 Each function has the same signature, but returns the type in the function name. For booleans use `getBooleanAssignment`, which has the following signature:
