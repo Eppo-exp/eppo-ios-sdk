@@ -2,7 +2,7 @@ import Foundation;
 
 // todo: make this a build argument (FF-1944)
 public let sdkName = "ios"
-public let sdkVersion = "3.0.0"
+public let sdkVersion = "3.0.1"
 
 public enum Errors: Error {
     case notConfigured
@@ -58,7 +58,7 @@ public class EppoClient {
         self.assignmentLogger = assignmentLogger
         self.assignmentCache = assignmentCache
         
-        let httpClient = NetworkEppoHttpClient(baseURL: host, sdkKey: sdkKey, sdkName: "sdkName", sdkVersion: "sdkVersion")
+        let httpClient = NetworkEppoHttpClient(baseURL: host, sdkKey: sdkKey, sdkName: "sdkName", sdkVersion: sdkVersion)
         let configurationRequester = ConfigurationRequester(httpClient: httpClient)
         self.configurationStore = ConfigurationStore(requester: configurationRequester)
     }

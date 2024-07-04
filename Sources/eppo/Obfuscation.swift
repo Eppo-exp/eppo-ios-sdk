@@ -21,6 +21,13 @@ func getMD5Hex(_ value: String) -> String {
     return digestData.map { String(format: "%02hhx", $0) }.joined()
 }
 
+func base64Encode(_ value: String) -> String {
+    guard let data = value.data(using: .utf8) else {
+        return ""
+    }
+    return data.base64EncodedString()
+}
+
 func base64Decode(_ value: String) -> String? {
     if let decodedData = Data(base64Encoded: value) {
         return String(data: decodedData, encoding: .utf8)

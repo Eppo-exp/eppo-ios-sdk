@@ -3,7 +3,6 @@ import Foundation
 public struct UniversalFlagConfig : Decodable {
     let createdAt: Date?;
     let flags: [String: UFC_Flag];
-    // todo: add bandits
     
     static func decodeFromJSON(from jsonString: String) throws -> UniversalFlagConfig {
         guard let jsonData = jsonString.data(using: .utf8) else {
@@ -17,7 +16,6 @@ public struct UniversalFlagConfig : Decodable {
             let container = try decoder.singleValueContainer()
             let dateStr = try container.decode(String.self)
             guard let date = parseUtcISODateElement(dateStr) else {
-                print(dateStr)
                 throw DecodingError.dataCorruptedError(in: container, debugDescription: "Invalid date format for: <\(dateStr)>")
             }
             return date
