@@ -92,7 +92,7 @@ final class UniversalFlagConfigTest: XCTestCase {
                 return
             }
             XCTAssertEqual(thrownError.errorCode, 101, "Error code should be 101 indicating a JSON parsing issue")
-            XCTAssertTrue(thrownError.localizedDescription.hasPrefix("Data corrupted: The given data was not valid JSON."))
+            XCTAssertEqual(thrownError.localizedDescription, "Data corrupted: The given data was not valid JSON.")
         }
     }
 }

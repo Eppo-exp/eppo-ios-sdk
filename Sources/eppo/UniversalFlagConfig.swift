@@ -26,13 +26,13 @@ public struct UniversalFlagConfig : Decodable {
         } catch let error as DecodingError {
             switch error {
             case .typeMismatch(_, let context):
-                throw UniversalFlagConfigError.parsingError("Type mismatch: \(context.debugDescription) - \(String(describing: context.underlyingError))")
+                throw UniversalFlagConfigError.parsingError("Type mismatch: \(context.debugDescription)")
             case .valueNotFound(_, let context):
-                throw UniversalFlagConfigError.parsingError("Value not found: \(context.debugDescription) - \(String(describing: context.underlyingError))")
+                throw UniversalFlagConfigError.parsingError("Value not found: \(context.debugDescription)")
             case .keyNotFound(let key, let context):
-                throw UniversalFlagConfigError.parsingError("Key not found: \(key.stringValue) - \(context.debugDescription) - \(String(describing: context.underlyingError))")
+                throw UniversalFlagConfigError.parsingError("Key not found: \(key.stringValue) - \(context.debugDescription)")
             case .dataCorrupted(let context):
-                throw UniversalFlagConfigError.parsingError("Data corrupted: \(context.debugDescription) - \(String(describing: context.underlyingError))")
+                throw UniversalFlagConfigError.parsingError("Data corrupted: \(context.debugDescription)")
             default:
                 throw UniversalFlagConfigError.parsingError("JSON parsing error: \(error.localizedDescription)")
             }
