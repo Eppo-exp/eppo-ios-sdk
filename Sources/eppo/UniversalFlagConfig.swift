@@ -3,7 +3,6 @@ import Foundation
 public struct UniversalFlagConfig : Decodable {
     let createdAt: Date?;
     let flags: [String: UFC_Flag];
-    // todo: add bandits
     
     static func decodeFromJSON(from jsonString: String) throws -> UniversalFlagConfig {
         guard let jsonData = jsonString.data(using: .utf8) else {
@@ -17,7 +16,6 @@ public struct UniversalFlagConfig : Decodable {
             let container = try decoder.singleValueContainer()
             let dateStr = try container.decode(String.self)
             guard let date = parseUtcISODateElement(dateStr) else {
-                print(dateStr)
                 throw DecodingError.dataCorruptedError(in: container, debugDescription: "Invalid date format for: <\(dateStr)>")
             }
             return date
@@ -28,13 +26,13 @@ public struct UniversalFlagConfig : Decodable {
         } catch let error as DecodingError {
             switch error {
             case .typeMismatch(_, let context):
-                throw UniversalFlagConfigError.parsingError("Type mismatch: \(context.debugDescription)")
+                throw UniversalFlagConfigError.parsingError("Type mismatch: \(context.debugDescription) - \(String(describing: context.underlyingError))")
             case .valueNotFound(_, let context):
-                throw UniversalFlagConfigError.parsingError("Value not found: \(context.debugDescription)")
+                throw UniversalFlagConfigError.parsingError("Value not found: \(context.debugDescription) - \(String(describing: context.underlyingError))")
             case .keyNotFound(let key, let context):
-                throw UniversalFlagConfigError.parsingError("Key not found: \(key.stringValue) - \(context.debugDescription)")
+                throw UniversalFlagConfigError.parsingError("Key not found: \(key.stringValue) - \(context.debugDescription) - \(String(describing: context.underlyingError))")
             case .dataCorrupted(let context):
-                throw UniversalFlagConfigError.parsingError("Data corrupted: \(context.debugDescription)")
+                throw UniversalFlagConfigError.parsingError("Data corrupted: \(context.debugDescription) - \(String(describing: context.underlyingError))")
             default:
                 throw UniversalFlagConfigError.parsingError("JSON parsing error: \(error.localizedDescription)")
             }
