@@ -1,6 +1,6 @@
 import Foundation;
 
-let RAC_CONFIG_URL = "/api/randomized_assignment/v3/config"
+let UFC_CONFIG_URL = "api/flag-config/v1/config"
 
 class ConfigurationRequester {
     private let httpClient: EppoHttpClient;
@@ -10,7 +10,7 @@ class ConfigurationRequester {
     }
 
     public func fetchConfigurations() async throws -> UniversalFlagConfig {
-        let (urlData, _) = try await httpClient.get(RAC_CONFIG_URL);
+        let (urlData, _) = try await httpClient.get(UFC_CONFIG_URL);
         return try UniversalFlagConfig.decodeFromJSON(from: String(data: urlData, encoding: .utf8)!);
     }
 }

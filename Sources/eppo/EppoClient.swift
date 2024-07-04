@@ -58,7 +58,7 @@ public class EppoClient {
         self.assignmentLogger = assignmentLogger
         self.assignmentCache = assignmentCache
         
-        let httpClient = NetworkEppoHttpClient(baseURL: host, sdkKey: sdkKey, sdkName: "sdkName", sdkVersion: "sdkVersion")
+        let httpClient = NetworkEppoHttpClient(baseURL: host, sdkKey: sdkKey, sdkName: "sdkName", sdkVersion: sdkVersion)
         let configurationRequester = ConfigurationRequester(httpClient: httpClient)
         self.configurationStore = ConfigurationStore(requester: configurationRequester)
     }
