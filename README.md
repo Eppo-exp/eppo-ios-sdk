@@ -34,7 +34,7 @@ It is recommended to wrap initialization in a `Task` block in order to perform n
 
 ```swift
 Task {
-    try await EppoClient.initialize(apiKey: "SDK-KEY-FROM-DASHBOARD");
+    try await EppoClient.initialize(sdkKey: "SDK-KEY-FROM-DASHBOARD");
 }
 ```
 
@@ -44,10 +44,10 @@ Assignment is a synchronous operation.
 
 ```swift
 let assignment = try eppoClient.getStringAssignment(
-    "new-user-onboarding",
-    user.id,
-    user.attributes,
-    "control"
+    flagKey: "new-user-onboarding",
+    subjectKey: user.id,
+    subjectAttributes: user.attributes,
+    defaultValue: "control"
 );
 ```
 
@@ -62,10 +62,10 @@ public class AssignmentObserver: ObservableObject {
         do {
             // Use the shared instance after it has been configured.
             self.assignment = try EppoClient.shared().getStringAssignment(
-                "new-user-onboarding",
-                user.id,
-                user.attributes,
-                "control"
+                flagKey: "new-user-onboarding",
+                subjectKey: user.id,
+                subjectAttributes: user.attributes,
+                defaultValue: "control"
             );
         } catch {
             self.assignment = nil
@@ -85,12 +85,12 @@ public class AssignmentObserver: ObservableObject {
         Task {
             do {
                 // The initialization method has controls to maintain a single instance.
-                try await EppoClient.initialize(apiKey: "SDK-KEY-FROM-DASHBOARD");
+                try await EppoClient.initialize(sdkKey: "SDK-KEY-FROM-DASHBOARD");
                 self.assignment = try EppoClient.shared().getStringAssignment(
-                    "new-user-onboarding",
-                    user.id,
-                    user.attributes,
-                    "control"
+                    flagKey: "new-user-onboarding",
+                    subjectKey: user.id,
+                    subjectAttributes: user.attributes,
+                    defaultValue: "control"
                 );
             } catch {
                 self.assignment = nil
@@ -175,7 +175,7 @@ func segmentAssignmentLogger(assignment: Assignment) {
     )
 }
 
-eppoClient = EppoClient("mock-sdk-key", assignmentLogger: segmentAssignmentLogger)
+eppoClient = await try EppoClient.initialize(sdkKey: "mock-sdk-key", assignmentLogger: segmentAssignmentLogger)
 ```
 
 ## Philosophy
