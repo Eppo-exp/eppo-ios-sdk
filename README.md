@@ -4,6 +4,8 @@
 
 [Eppo](https://www.geteppo.com/) is a modular flagging and experimentation analysis tool. Eppo's iOS SDK is built to make assignments for single user client applications. Before proceeding you'll need an Eppo account.
 
+The [primary documentation](https://docs.geteppo.com/sdks/client-sdks/ios/) explains the overall architecture and in-depth usage guides.
+
 ## Features
 
 - Feature gates
