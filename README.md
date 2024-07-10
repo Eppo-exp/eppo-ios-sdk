@@ -177,7 +177,7 @@ func segmentAssignmentLogger(assignment: Assignment) {
     )
 }
 
-eppoClient = await try EppoClient.initialize(sdkKey: "mock-sdk-key", assignmentLogger: segmentAssignmentLogger)
+eppoClient = try await EppoClient.initialize(sdkKey: "mock-sdk-key", assignmentLogger: segmentAssignmentLogger)
 ```
 
 ## Philosophy
