@@ -47,6 +47,27 @@ final class EppoTests: XCTestCase {
         XCTAssertIdentical(eppoClient1, eppoClient2, "Changing host re-instantiates the singleton")
     }
     
+    func testLoadingMultithreading() async throws {
+        let expectedCount = 50
+        let expectation = XCTestExpectation(description: "eppo client expectation")
+        expectation.expectedFulfillmentCount = expectedCount
+        
+        Task {
+            await withThrowingTaskGroup(of: Void.self) { group in
+                for _ in 0 ..< expectedCount {
+                    group.addTask {
+                        _ = try await EppoClient.initialize(sdkKey: "mock-api-key")
+                        _ = try await EppoClient.shared().load()
+                        expectation.fulfill()
+                    }
+                }
+            }
+        }
+        
+        await fulfillment(of: [expectation], timeout: 5)
+        XCTAssertEqual(stubCallCount, 51) // initialize + 50 `load` executions
+    }
+    
     func testEppoClientMultithreading() async throws {
         let expectedCount = 50
         let expectation = XCTestExpectation(description: "eppo client expectation")

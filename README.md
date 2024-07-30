@@ -100,7 +100,6 @@ public class AssignmentObserver: ObservableObject {
 }
 ```
 
-
 Rendering the view:
 
 ```swift
