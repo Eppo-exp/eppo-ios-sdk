@@ -2,7 +2,7 @@ import Foundation;
 
 // todo: make this a build argument (FF-1944)
 public let sdkName = "ios"
-public let sdkVersion = "3.0.1"
+public let sdkVersion = "3.1.0"
 
 public enum Errors: Error {
     case notConfigured
@@ -98,6 +98,14 @@ public class EppoClient {
             throw Errors.notConfigured
         }
         return instance
+    }
+
+    // Loads the configuration from the remote source on-demand. Can be used to refresh as desired.
+    //
+    // This function can be called from multiple threads; synchronization is provided to safely update
+    // the configuration cache but each invocation will execute a new network request with billing impact.
+    public func load() async throws {
+        try await self.configurationStore.fetchAndStoreConfigurations()
     }
     
     public static func resetSharedInstance() {
