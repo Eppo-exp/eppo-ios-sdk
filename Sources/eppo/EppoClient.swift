@@ -102,8 +102,8 @@ public class EppoClient {
 
     // Loads the configuration from the remote source on-demand. Can be used to refresh as desired.
     //
-    // This function can be called from multiple threads; syncronization is provided for the
-    // configuration cache but each invocation will execute a new network request with billing impact.
+    // This function can be called from multiple threads; synchronization is provided to safely update
+    // the configuration cache but each invocation will execute a new network request with billing impact.
     public func load() async throws {
         try await self.configurationStore.fetchAndStoreConfigurations()
     }
