@@ -29,7 +29,7 @@ build:
 	swift build
 
 .PHONY: test
-test: test-data
+test:
 	swift test
 
 ## test-data

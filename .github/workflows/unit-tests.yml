@@ -38,18 +38,11 @@ jobs:
           repository: Eppo-exp/ios-sdk
           ref: ${{ env.SDK_BRANCH_NAME}}
 
-
-      - name: 'Set up Cloud SDK'
-        uses: 'google-github-actions/setup-gcloud@v1'
-
-      - name: 'Use gcloud CLI'
-        run: 'gcloud info'
-
       - name: Build
         run: make build
 
       - name: Pull test data
-        run: make test-data
+        run: make test-data branchName=${{env.TEST_DATA_BRANCH_NAME}}
 
       - name: Run tests
         run: make test
