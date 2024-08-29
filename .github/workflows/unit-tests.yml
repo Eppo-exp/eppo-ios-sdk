@@ -31,11 +31,11 @@ jobs:
         run: |
           echo "Running SDK Test using"
           echo "Test Data: sdk-test-data@${TEST_DATA_BRANCH_NAME}"
-          echo "SDK Branch: ios-sdk@${SDK_BRANCH_NAME}"
+          echo "SDK Branch: eppo-ios-sdk@${SDK_BRANCH_NAME}"
 
       - uses: actions/checkout@v3
         with:
-          repository: Eppo-exp/ios-sdk
+          repository: Eppo-exp/eppo-ios-sdk
           ref: ${{ env.SDK_BRANCH_NAME}}
 
       - name: Build
@@ -46,3 +46,4 @@ jobs:
 
       - name: Run tests
         run: make test
+x
