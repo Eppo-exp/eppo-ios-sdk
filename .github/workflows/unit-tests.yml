@@ -1,12 +1,44 @@
 name: Swift
 
-on: [push]
+env:
+  SDK_BRANCH_NAME: ${{ inputs.sdk_branch  || github.head_ref || github.ref_name }}
+  TEST_DATA_BRANCH_NAME: ${{ inputs.test_data_branch || 'main' }}
+
+on:
+  push:
+
+  pull_request:
+
+  workflow_dispatch:
+
+  workflow_call:
+    inputs:
+      test_data_branch:
+        type: string
+        description: The branch in sdk-test-data to target for testcase files
+        required: false
+        default: main
+      sdk_branch:
+        type: string
+        description: The branch of the SDK to test
+        required: false
 
 jobs:
   build:
     runs-on: macos-latest
     steps:
+      - name: Display Testing Details
+        run: |
+          echo "Running SDK Test using"
+          echo "Test Data: sdk-test-data@${TEST_DATA_BRANCH_NAME}"
+          echo "SDK Branch: ios-sdk@${SDK_BRANCH_NAME}"
+
       - uses: actions/checkout@v3
+        with:
+          repository: Eppo-exp/ios-sdk
+          ref: ${{ env.SDK_BRANCH_NAME}}
+
+
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v1'
 
