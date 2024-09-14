@@ -2,7 +2,7 @@ import Foundation;
 
 // todo: make this a build argument (FF-1944)
 public let sdkName = "ios"
-public let sdkVersion = "3.1.0"
+public let sdkVersion = "3.2.0"
 
 public enum Errors: Error {
     case notConfigured
@@ -38,6 +38,7 @@ public class EppoClient {
     
     private var flagEvaluator: FlagEvaluator = FlagEvaluator(sharder: MD5Sharder())
     private(set) var isConfigObfuscated = true;
+    private(set) var isOnlineMode = false
     
     private(set) var sdkKey: String
     private(set) var host: String
@@ -51,15 +52,14 @@ public class EppoClient {
         sdkKey: String,
         host: String,
         assignmentLogger: AssignmentLogger? = nil,
-        assignmentCache: AssignmentCache? = InMemoryAssignmentCache()
+        assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
+        configurationRequester: ConfigurationRequesterProtocol
     ) {
         self.sdkKey = sdkKey
         self.host = host
         self.assignmentLogger = assignmentLogger
         self.assignmentCache = assignmentCache
         
-        let httpClient = NetworkEppoHttpClient(baseURL: host, sdkKey: sdkKey, sdkName: "sdkName", sdkVersion: sdkVersion)
-        let configurationRequester = ConfigurationRequester(httpClient: httpClient)
         self.configurationStore = ConfigurationStore(requester: configurationRequester)
     }
     
@@ -67,16 +67,26 @@ public class EppoClient {
         sdkKey: String,
         host: String = "https://fscdn.eppo.cloud",
         assignmentLogger: AssignmentLogger? = nil,
-        assignmentCache: AssignmentCache? = InMemoryAssignmentCache()
+        assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
+        forceReinitialize: Bool = false
     ) async throws -> EppoClient {
         return try await withCheckedThrowingContinuation { continuation in
             initializerQueue.async(flags: .barrier) {
-                if sharedInstance == nil {
+                if forceReinitialize || sharedInstance == nil {                    
+                    let httpClient = NetworkEppoHttpClient(
+                        baseURL: host, 
+                        sdkKey: sdkKey, 
+                        sdkName: sdkName, 
+                        sdkVersion: sdkVersion
+                    )
+                    let configurationRequester: HttpConfigurationRequester = HttpConfigurationRequester(httpClient: httpClient)
+                    
                     sharedInstance = EppoClient(
                         sdkKey: sdkKey,
                         host: host,
                         assignmentLogger: assignmentLogger,
-                        assignmentCache: assignmentCache
+                        assignmentCache: assignmentCache,
+                        configurationRequester: configurationRequester
                     )
                     Task {
                         do {
@@ -91,6 +101,30 @@ public class EppoClient {
                 }
             }
         }
+    }
+
+    public static func initialize(
+        configurationJson: String,
+        obfuscated: Bool,
+        assignmentLogger: AssignmentLogger? = nil,
+        assignmentCache: AssignmentCache? = InMemoryAssignmentCache()
+    ) throws -> EppoClient {
+        let configurationRequester = JsonConfigurationRequester(configurationJson: configurationJson)
+        let ufcConfiguration = try configurationRequester.fetchConfigurations()
+
+        let instance = EppoClient(
+            sdkKey: "",
+            host: "",
+            assignmentLogger: assignmentLogger,
+            assignmentCache: assignmentCache,
+            configurationRequester: configurationRequester
+        )
+        instance.isOnlineMode = false
+        instance.setConfigObfuscation(obfuscated: obfuscated)
+        instance.configurationStore.setConfigurations(config: ufcConfiguration)
+        
+        sharedInstance = instance
+        return instance
     }
     
     public static func shared() throws -> EppoClient {
@@ -117,6 +151,7 @@ public class EppoClient {
         guard !alreadyLoaded else { return }
         
         try await self.configurationStore.fetchAndStoreConfigurations()
+        self.isOnlineMode = true
     }
     
     public func setConfigObfuscation(obfuscated: Bool) {
@@ -225,11 +260,11 @@ public class EppoClient {
         subjectAttributes: SubjectAttributes,
         expectedVariationType: UFC_VariationType) throws -> FlagEvaluation?
     {
-        if (self.sdkKey.count == 0) {
+        if (isOnlineMode && self.sdkKey.count == 0) {
             throw Errors.sdkKeyInvalid;
         }
         
-        if (self.host.count == 0) {
+        if (isOnlineMode && self.host.count == 0) {
             throw Errors.hostInvalid;
         }
         

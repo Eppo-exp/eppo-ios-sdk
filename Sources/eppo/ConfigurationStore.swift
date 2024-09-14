@@ -1,12 +1,12 @@
 import Foundation
 
 class ConfigurationStore {
-    private let requester: ConfigurationRequester
+    private let requester: ConfigurationRequesterProtocol
     private var flagConfigs: UniversalFlagConfig?
     private let syncQueue = DispatchQueue(
         label: "com.eppo.configurationStoreQueue", attributes: .concurrent)
     
-    public init(requester: ConfigurationRequester) {
+    public init(requester: ConfigurationRequesterProtocol) {
         self.requester = requester
         self.flagConfigs = UniversalFlagConfig(createdAt: nil, flags: [:])
     }
