@@ -13,10 +13,8 @@ class ConfigurationStore {
     //
     // The use of a syncQueue ensures that this read operation is thread-safe and doesn't cause
     // race conditions where reads could see a partially updated state.
-    public func getConfiguration(flagKey: String) -> UFC_Flag? {
-        return syncQueue.sync {
-            self.configuration?.flagsConfiguration.flags[flagKey]
-        }
+    public func getConfiguration() -> Configuration? {
+        return syncQueue.sync { self.configuration }
     }
     
     // Set the configurations in a thread-safe manner.

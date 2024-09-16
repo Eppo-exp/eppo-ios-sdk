@@ -11,6 +11,6 @@ class ConfigurationRequester {
 
     public func fetchConfigurations() async throws -> Configuration {
         let (data, _) = try await httpClient.get(UFC_CONFIG_URL);
-        return try Configuration(flagsConfigurationJson: data);
+        return try Configuration(flagsConfigurationJson: data, obfuscated: true);
     }
 }

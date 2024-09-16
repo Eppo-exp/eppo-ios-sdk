@@ -19,19 +19,22 @@ final class ConfigurationStoreTests: XCTestCase {
         try super.setUpWithError()
         configurationStore = ConfigurationStore()
         
-        configuration = Configuration(flagsConfiguration: UniversalFlagConfig(
+        configuration = Configuration(
+          flagsConfiguration: UniversalFlagConfig(
             createdAt: nil,
             flags: [
-                "testFlag": emptyFlagConfig
+              "testFlag": emptyFlagConfig
             ]
-        ))
+          ),
+          obfuscated: false
+        )
     }
     
     func testSetAndGetConfiguration() throws {
         configurationStore.setConfiguration(configuration: configuration)
         
         XCTAssertEqual(
-            configurationStore.getConfiguration(flagKey: "testFlag")?.enabled, emptyFlagConfig.enabled)
+          configurationStore.getConfiguration()?.getFlag(flagKey: "testFlag")?.enabled, emptyFlagConfig.enabled)
     }
     
     func testIsInitialized() async throws {

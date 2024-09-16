@@ -38,7 +38,6 @@ public class EppoClient {
     private static let initializerQueue = DispatchQueue(label: "com.eppo.client.initializer")
     
     private var flagEvaluator: FlagEvaluator = FlagEvaluator(sharder: MD5Sharder())
-    private(set) var isConfigObfuscated = true;
     
     private(set) var sdkKey: String
     private(set) var host: String
@@ -157,10 +156,6 @@ public class EppoClient {
         try await self.load()
     }
     
-    public func setConfigObfuscation(obfuscated: Bool) {
-        self.isConfigObfuscated = obfuscated
-    }
-    
     public func getBooleanAssignment(
         flagKey: String,
         subjectKey: String,
@@ -273,11 +268,14 @@ public class EppoClient {
         
         if subjectKey.count == 0 { throw Errors.subjectKeyRequired }
         if flagKey.count == 0 { throw Errors.flagKeyRequired }
-        if !self.configurationStore.isInitialized() { throw Errors.configurationNotLoaded }
+
+        guard let configuration = self.configurationStore.getConfiguration() else {
+            throw Errors.configurationNotLoaded
+        }
         
-        let flagKeyForLookup = isConfigObfuscated ? getMD5Hex(flagKey) : flagKey
+        let flagKeyForLookup = configuration.obfuscated ? getMD5Hex(flagKey) : flagKey
         
-        guard let flagConfig = self.configurationStore.getConfiguration(flagKey: flagKeyForLookup) else {
+        guard let flagConfig = configuration.getFlag(flagKey: flagKeyForLookup) else {
             throw Errors.flagConfigNotFound
         }
         
@@ -289,7 +287,7 @@ public class EppoClient {
             flag: flagConfig,
             subjectKey: subjectKey,
             subjectAttributes: subjectAttributes,
-            isConfigObfuscated: isConfigObfuscated
+            isConfigObfuscated: configuration.obfuscated
         )
         
         if let variation = flagEvaluation.variation, !isValueOfType(expectedType: expectedVariationType, variationValue: variation.value) {
@@ -324,7 +322,7 @@ public class EppoClient {
                         timestamp: ISO8601DateFormatter().string(from: Date()),
                         subjectAttributes: subjectAttributes,
                         metaData: [
-                            "obfuscated": String(isConfigObfuscated),
+                            "obfuscated": String(configuration.obfuscated),
                             "sdkName": sdkName,
                             "sdkVersion": sdkVersion
                         ],
