@@ -1,19 +1,19 @@
 import Foundation
 
 class ConfigurationStore {
+    private var configuration: Configuration?
+    
     private let requester: ConfigurationRequester
-    private var flagConfigs: UniversalFlagConfig?
     private let syncQueue = DispatchQueue(
         label: "com.eppo.configurationStoreQueue", attributes: .concurrent)
     
     public init(requester: ConfigurationRequester) {
         self.requester = requester
-        self.flagConfigs = UniversalFlagConfig(createdAt: nil, flags: [:])
     }
 
     public func fetchAndStoreConfigurations() async throws {
         let config = try await self.requester.fetchConfigurations()
-        self.setConfigurations(config: config)
+        self.setConfiguration(configuration: config)
     }
 
     // Get the configuration for a given flag key in a thread-safe manner.
@@ -22,7 +22,7 @@ class ConfigurationStore {
     // race conditions where reads could see a partially updated state.
     public func getConfiguration(flagKey: String) -> UFC_Flag? {
         return syncQueue.sync {
-            flagConfigs?.flags[flagKey]
+            self.configuration?.flagsConfiguration.flags[flagKey]
         }
     }
     
@@ -31,15 +31,15 @@ class ConfigurationStore {
     // The use of a barrier ensures that this write operation completes before any other read or write
     // operations on the `flagConfigs` can proceed. This guarantees that the configuration state is
     // consistent and prevents race conditions where reads could see a partially updated state.
-    public func setConfigurations(config: UniversalFlagConfig) {
+    public func setConfiguration(configuration: Configuration) {
         syncQueue.async(flags: .barrier) {
-            self.flagConfigs = config
+            self.configuration = configuration
         }
     }
     
     public func isInitialized() -> Bool {
         return syncQueue.sync {
-            flagConfigs?.flags.isEmpty == false
+            self.configuration != nil
         }
     }
 }

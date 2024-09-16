@@ -7,14 +7,14 @@ import Foundation
 final class UniversalFlagConfigTest: XCTestCase {
     func testDecodeUFCConfig() {
         var fileURL: URL!
-        var UFCTestJSON: String!
+        var UFCTestJSON: Data!
         
         fileURL = Bundle.module.url(
             forResource: "Resources/test-data/ufc/flags-v1.json",
             withExtension: ""
         )
         do {
-            UFCTestJSON = try String(contentsOfFile: fileURL.path)
+            UFCTestJSON = try Data(contentsOf: fileURL)
         } catch {
             XCTFail("Error loading test JSON: \(error)")
         }
@@ -43,14 +43,14 @@ final class UniversalFlagConfigTest: XCTestCase {
     
     func testDecodeObfuscatedUFCConfig() {
         var fileURL: URL!
-        var UFCTestJSON: String!
+        var UFCTestJSON: Data!
         
         fileURL = Bundle.module.url(
             forResource: "Resources/test-data/ufc/flags-v1-obfuscated.json",
             withExtension: ""
         )
         do {
-            UFCTestJSON = try String(contentsOfFile: fileURL.path)
+            UFCTestJSON = try Data(contentsOf: fileURL)
         } catch {
             XCTFail("Error loading test JSON: \(error)")
         }
@@ -85,7 +85,7 @@ final class UniversalFlagConfigTest: XCTestCase {
     // todo: add a test for not utf8 encoded values. need to figure out how to implement this.
 
     func testUnableToDecodeJSON() {
-        let invalidJSON = "invalid_json"
+        let invalidJSON = "invalid_json".data(using: .utf8)!
         XCTAssertThrowsError(try UniversalFlagConfig.decodeFromJSON(from: invalidJSON)) { error in
             guard let thrownError = error as? UniversalFlagConfigError else {
                 XCTFail("Error should be of type UniversalFlagConfigError")

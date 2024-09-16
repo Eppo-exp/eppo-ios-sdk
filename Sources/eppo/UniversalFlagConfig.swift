@@ -4,11 +4,7 @@ public struct UniversalFlagConfig : Decodable {
     let createdAt: Date?;
     let flags: [String: UFC_Flag];
     
-    static func decodeFromJSON(from jsonString: String) throws -> UniversalFlagConfig {
-        guard let jsonData = jsonString.data(using: .utf8) else {
-            throw UniversalFlagConfigError.notUTF8Encoded("Failed to encode JSON string into UTF-8 data.")
-        }
-        
+    static func decodeFromJSON(from json: Data) throws -> UniversalFlagConfig {
         let decoder = JSONDecoder()
         
         // Dates could be in base64 encoded format or not
@@ -22,7 +18,7 @@ public struct UniversalFlagConfig : Decodable {
         }
         
         do {
-            return try decoder.decode(UniversalFlagConfig.self, from: jsonData)
+            return try decoder.decode(UniversalFlagConfig.self, from: json)
         } catch let error as DecodingError {
             switch error {
             case .typeMismatch(_, let context):

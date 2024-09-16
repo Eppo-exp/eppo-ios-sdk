@@ -5,7 +5,7 @@ import XCTest
 final class ConfigurationStoreTests: XCTestCase {
     var configurationStore: ConfigurationStore!
     var mockRequester: ConfigurationRequester!
-    var configs: UniversalFlagConfig!
+    var configuration: Configuration!
     
     let emptyFlagConfig = UFC_Flag(
         key: "empty",
@@ -21,17 +21,16 @@ final class ConfigurationStoreTests: XCTestCase {
         mockRequester = ConfigurationRequester(httpClient: EppoHttpClientMock())
         configurationStore = ConfigurationStore(requester: mockRequester)
         
-        configs = UniversalFlagConfig(
+        configuration = Configuration(flagsConfiguration: UniversalFlagConfig(
             createdAt: nil,
             flags: [
                 "testFlag": emptyFlagConfig
             ]
-        )
+        ))
     }
     
     func testSetAndGetConfiguration() throws {
-        // Pass the RACConfig object to setConfigurations
-        configurationStore.setConfigurations(config: configs)
+        configurationStore.setConfiguration(configuration: configuration)
         
         XCTAssertEqual(
             configurationStore.getConfiguration(flagKey: "testFlag")?.enabled, emptyFlagConfig.enabled)
@@ -42,7 +41,7 @@ final class ConfigurationStoreTests: XCTestCase {
             configurationStore.isInitialized(),
             "Store should not be initialized before fetching configurations")
         
-        configurationStore.setConfigurations(config: configs)
+        configurationStore.setConfiguration(configuration: configuration)
         
         XCTAssertTrue(
             configurationStore.isInitialized(),
