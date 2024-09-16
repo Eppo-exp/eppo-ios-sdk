@@ -4,6 +4,8 @@ import Foundation;
 public let sdkName = "ios"
 public let sdkVersion = "3.1.0"
 
+public let defaultHost = "https://fscdn.eppo.cloud"
+
 public enum Errors: Error {
     case notConfigured
     case sdkKeyInvalid
@@ -74,7 +76,7 @@ public class EppoClient {
     /// Configuration can later be loaded with `load()` method.
     public static func initializeOffline(
         sdkKey: String,
-        host: String = "https://fscdn.eppo.cloud",
+        host: String = defaultHost,
         assignmentLogger: AssignmentLogger? = nil,
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
         initialConfiguration: Configuration?
@@ -98,7 +100,7 @@ public class EppoClient {
     
     public static func initialize(
         sdkKey: String,
-        host: String = "https://fscdn.eppo.cloud",
+        host: String = defaultHost,
         assignmentLogger: AssignmentLogger? = nil,
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
         initialConfiguration: Configuration? = nil
