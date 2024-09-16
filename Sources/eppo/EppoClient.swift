@@ -33,6 +33,7 @@ actor EppoClientState {
 public class EppoClient {
     public typealias AssignmentLogger = (Assignment) -> Void
     
+    private static let sharedLock = NSLock()
     private static var sharedInstance: EppoClient?
     private static let initializerQueue = DispatchQueue(label: "com.eppo.client.initializer")
     
@@ -69,35 +70,47 @@ public class EppoClient {
         assignmentLogger: AssignmentLogger? = nil,
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache()
     ) async throws -> EppoClient {
+        let (instance, existing) = sharedLock.withLock {
+            if let instance = sharedInstance {
+                return (instance, true)
+            } else {
+                let instance = EppoClient(
+                  sdkKey: sdkKey,
+                  host: host,
+                  assignmentLogger: assignmentLogger,
+                  assignmentCache: assignmentCache
+                )
+                sharedInstance = instance
+                return (instance, false)
+            }
+        }
+
+        if existing {
+            // Existing instance was supposedly already initialized.
+            return instance
+        }
+
         return try await withCheckedThrowingContinuation { continuation in
-            initializerQueue.async(flags: .barrier) {
-                if sharedInstance == nil {
-                    sharedInstance = EppoClient(
-                        sdkKey: sdkKey,
-                        host: host,
-                        assignmentLogger: assignmentLogger,
-                        assignmentCache: assignmentCache
-                    )
-                    Task {
-                        do {
-                            try await sharedInstance!.loadIfNeeded()
-                            continuation.resume(returning: sharedInstance!)
-                        } catch {
-                            continuation.resume(throwing: error)
-                        }
+            initializerQueue.async {
+                Task {
+                    do {
+                        try await instance.loadIfNeeded()
+                        continuation.resume(returning: instance)
+                    } catch {
+                        continuation.resume(throwing: error)
                     }
-                } else {
-                    continuation.resume(returning: sharedInstance!)
                 }
             }
         }
     }
     
     public static func shared() throws -> EppoClient {
-        guard let instance = sharedInstance else {
-            throw Errors.notConfigured
+        try self.sharedLock.withLock {
+            guard let instance = sharedInstance else {
+                throw Errors.notConfigured
+            }
+            return instance
         }
-        return instance
     }
 
     // Loads the configuration from the remote source on-demand. Can be used to refresh as desired.
@@ -109,7 +122,9 @@ public class EppoClient {
     }
     
     public static func resetSharedInstance() {
-        sharedInstance = nil
+        self.sharedLock.withLock {
+            sharedInstance = nil
+        }
     }
     
     private func loadIfNeeded() async throws {
