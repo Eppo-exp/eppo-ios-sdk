@@ -1,6 +1,6 @@
 import Foundation
 
-public struct Configuration {
+public struct Configuration: Codable {
     internal let flagsConfiguration: UniversalFlagConfig;
     internal let obfuscated: Bool;
 
