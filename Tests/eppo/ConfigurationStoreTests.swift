@@ -38,14 +38,14 @@ final class ConfigurationStoreTests: XCTestCase {
     }
     
     func testIsInitialized() async throws {
-        XCTAssertFalse(
-            configurationStore.isInitialized(),
+        XCTAssertNil(
+            configurationStore.getConfiguration(),
             "Store should not be initialized before fetching configurations")
         
         configurationStore.setConfiguration(configuration: configuration)
         
-        XCTAssertTrue(
-            configurationStore.isInitialized(),
+        XCTAssertNotNil(
+            configurationStore.getConfiguration(),
             "Store should be initialized after fetching configurations")
     }
     

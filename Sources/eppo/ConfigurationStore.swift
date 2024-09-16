@@ -27,10 +27,4 @@ class ConfigurationStore {
             self.configuration = configuration
         }
     }
-    
-    public func isInitialized() -> Bool {
-        return syncQueue.sync {
-            self.configuration != nil
-        }
-    }
 }
