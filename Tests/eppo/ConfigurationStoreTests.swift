@@ -17,6 +17,9 @@ final class ConfigurationStoreTests: XCTestCase {
     
     override func setUpWithError() throws {
         try super.setUpWithError()
+        // Clean up any existing configuration file
+        cleanUpConfigurationFile()
+        // Create a new instance for each test
         configurationStore = ConfigurationStore()
         
         configuration = Configuration(
@@ -28,6 +31,24 @@ final class ConfigurationStoreTests: XCTestCase {
           ),
           obfuscated: false
         )
+    }
+    
+    override func tearDownWithError() throws {
+        try super.tearDownWithError()
+        // Clean up the configuration file
+        cleanUpConfigurationFile()
+        // Release the reference to ensure it's deallocated
+        configurationStore = nil
+    }
+    
+    private func cleanUpConfigurationFile() {
+        let fileManager = FileManager.default
+        let urls = fileManager.urls(for: .documentDirectory, in: .userDomainMask)
+        let fileURL = urls[0].appendingPathComponent("configuration.json")
+        
+        if fileManager.fileExists(atPath: fileURL.path) {
+            try? fileManager.removeItem(at: fileURL)
+        }
     }
     
     func testSetAndGetConfiguration() throws {
