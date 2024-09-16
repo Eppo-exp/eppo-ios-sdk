@@ -78,6 +78,7 @@ final class EppoClientDataTests: XCTestCase {
         
         if useJsonString {
             eppoClient = try EppoClient.initialize(
+                sdkKey: "mock-api-key",
                 configurationJson: configurationJson,
                 obfuscated: obfuscated,
                 assignmentLogger: loggerSpy.logger

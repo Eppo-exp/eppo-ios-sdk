@@ -1,19 +1,12 @@
 import Foundation
 
 class ConfigurationStore {
-    private let requester: ConfigurationRequesterProtocol
     private var flagConfigs: UniversalFlagConfig?
     private let syncQueue = DispatchQueue(
         label: "com.eppo.configurationStoreQueue", attributes: .concurrent)
     
-    public init(requester: ConfigurationRequesterProtocol) {
-        self.requester = requester
+    public init() {
         self.flagConfigs = UniversalFlagConfig(createdAt: nil, flags: [:])
-    }
-
-    public func fetchAndStoreConfigurations() async throws {
-        let config = try await self.requester.fetchConfigurations()
-        self.setConfigurations(config: config)
     }
 
     // Get the configuration for a given flag key in a thread-safe manner.

@@ -45,6 +45,7 @@ public class EppoClient {
     private(set) var host: String
     private(set) var assignmentLogger: AssignmentLogger?
     private(set) var assignmentCache: AssignmentCache?
+    private(set) var configurationRequester: ConfigurationRequesterProtocol
     private(set) var configurationStore: ConfigurationStore
     
     private let state = EppoClientState()
@@ -61,7 +62,8 @@ public class EppoClient {
         self.assignmentLogger = assignmentLogger
         self.assignmentCache = assignmentCache
         
-        self.configurationStore = ConfigurationStore(requester: configurationRequester)
+        self.configurationRequester = configurationRequester
+        self.configurationStore = ConfigurationStore()
     }
     
     public static func initialize(
@@ -88,6 +90,7 @@ public class EppoClient {
                         assignmentCache: assignmentCache,
                         configurationRequester: configurationRequester
                     )
+                    sharedInstance?.setConfigObfuscation(obfuscated: true)
                     Task {
                         do {
                             try await sharedInstance!.loadIfNeeded()
@@ -110,21 +113,30 @@ public class EppoClient {
         assignmentLogger: AssignmentLogger? = nil,
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache()
     ) throws -> EppoClient {
-        let configurationRequester = JsonConfigurationRequester(configurationJson: configurationJson)
-        let ufcConfiguration = try configurationRequester.fetchConfigurations()
+        return try initializerQueue.sync {
+            // Check if the shared instance is already initialized
+            if let existingInstance = sharedInstance {
+                return existingInstance
+            }
+            
+            // Proceed with initialization if not already initialized
+            let configurationRequester = JsonConfigurationRequester(configurationJson: configurationJson)
+            let ufcConfiguration = try configurationRequester.fetchConfigurations()
 
-        let instance = EppoClient(
-            sdkKey: sdkKey,
-            host: default_host,
-            assignmentLogger: assignmentLogger,
-            assignmentCache: assignmentCache,
-            configurationRequester: configurationRequester
-        )
-        instance.setConfigObfuscation(obfuscated: obfuscated)
-        instance.configurationStore.setConfigurations(config: ufcConfiguration)
+            let instance = EppoClient(
+                sdkKey: sdkKey,
+                host: default_host,
+                assignmentLogger: assignmentLogger,
+                assignmentCache: assignmentCache,
+                configurationRequester: configurationRequester
+            )
+            instance.setConfigObfuscation(obfuscated: obfuscated)
+            instance.configurationStore.setConfigurations(config: ufcConfiguration)
         
-        sharedInstance = instance
-        return instance
+            // Assign the newly created instance to the sharedInstance
+            sharedInstance = instance
+            return instance
+        }
     }
     
     public static func shared() throws -> EppoClient {
@@ -139,7 +151,22 @@ public class EppoClient {
     // This function can be called from multiple threads; synchronization is provided to safely update
     // the configuration cache but each invocation will execute a new network request with billing impact.
     public func load() async throws {
-        try await self.configurationStore.fetchAndStoreConfigurations()
+        let configuration = try await self.configurationRequester.fetchConfigurations()
+        self.configurationStore.setConfigurations(config: configuration)
+    }
+    
+    public func takeOnline(        
+        sdkKey: String,
+        host: String = default_host
+    ) {
+        let httpClient = NetworkEppoHttpClient(
+            baseURL: host,
+            sdkKey: sdkKey,
+            sdkName: sdkName,
+            sdkVersion: sdkVersion
+        )
+        self.isConfigObfuscated = true
+        self.configurationRequester = HttpConfigurationRequester(httpClient: httpClient)
     }
     
     public static func resetSharedInstance() {
@@ -150,7 +177,7 @@ public class EppoClient {
         let alreadyLoaded = await state.checkAndSetLoaded()
         guard !alreadyLoaded else { return }
         
-        try await self.configurationStore.fetchAndStoreConfigurations()
+        try await self.load()
     }
     
     public func setConfigObfuscation(obfuscated: Bool) {

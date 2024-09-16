@@ -9,6 +9,11 @@ final class OfflineClientTests: XCTestCase {
     var loggerSpy: AssignmentLoggerSpy!
     var eppoClient: EppoClient!
     
+    override func setUp() {
+        super.setUp()
+        EppoClient.resetSharedInstance()
+    }
+    
     // Test initializing EppoClient with a local JSON string, performing an assignment,
     // then initializing with a stubbed remote JSON and performing a different assignment.
     func testInitializationWithLocalAndRemoteJSONAssignments() async throws {
@@ -44,6 +49,7 @@ final class OfflineClientTests: XCTestCase {
         
         // Initialize EppoClient with local JSON
         eppoClient = try EppoClient.initialize(
+            sdkKey: "mock-api-key",
             configurationJson: localJsonString,
             obfuscated: false,
             assignmentLogger: loggerSpy?.logger
@@ -67,33 +73,33 @@ final class OfflineClientTests: XCTestCase {
             "name": "Test"
           },
           "flags": {
-            "numeric_flag": {
-              "key": "numeric_flag",
+            "2c27190d8645fe3bc3c1d63b31f0e4ee": {
+              "key": "2c27190d8645fe3bc3c1d63b31f0e4ee",
               "enabled": true,
               "variationType": "NUMERIC",
+              "totalShards": 10000,
               "variations": {
-                "e": {
-                  "key": "e",
-                  "value": 2.7182818
+                "ZQ==": {
+                  "key": "ZQ==",
+                  "value": "Mi43MTgyODE4"
                 },
-                "pi": {
-                  "key": "pi",
-                  "value": 3.1415926
+                "cGk=": {
+                  "key": "cGk=",
+                  "value": "My4xNDE1OTI2"
                 }
               },
               "allocations": [
                 {
-                  "key": "rollout",
+                  "key": "cm9sbG91dA==",
+                  "doLog": true,
                   "splits": [
                     {
-                      "variationKey": "pi",
+                      "variationKey": "cGk=",
                       "shards": []
                     }
-                  ],
-                  "doLog": true
+                  ]
                 }
-              ],
-              "totalShards": 10000
+              ]
             }
           }
         }
@@ -105,12 +111,8 @@ final class OfflineClientTests: XCTestCase {
         }
         
         // Step 3: Re-initialize EppoClient to fetch remote configurations
-        eppoClient = try await EppoClient.initialize(
-            sdkKey: "mock-api-key",
-            assignmentLogger: loggerSpy?.logger,
-            forceReinitialize: true
-        )
-        eppoClient.setConfigObfuscation(obfuscated: false)
+        eppoClient.takeOnline(sdkKey: "mock-api-key")
+        try await eppoClient.load()
         
         // Perform a different assignment with the updated client
         let updatedAssignment = try eppoClient.getNumericAssignment(

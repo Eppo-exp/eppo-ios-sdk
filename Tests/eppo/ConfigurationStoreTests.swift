@@ -19,7 +19,7 @@ final class ConfigurationStoreTests: XCTestCase {
     override func setUpWithError() throws {
         try super.setUpWithError()
         mockRequester = HttpConfigurationRequester(httpClient: EppoHttpClientMock())
-        configurationStore = ConfigurationStore(requester: mockRequester)
+        configurationStore = ConfigurationStore()
         
         configs = UniversalFlagConfig(
             createdAt: nil,
