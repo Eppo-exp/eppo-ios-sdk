@@ -53,7 +53,8 @@ public class EppoClient {
         sdkKey: String,
         host: String,
         assignmentLogger: AssignmentLogger? = nil,
-        assignmentCache: AssignmentCache? = InMemoryAssignmentCache()
+        assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
+        initialConfiguration: Configuration?
     ) {
         self.sdkKey = sdkKey
         self.host = host
@@ -62,34 +63,54 @@ public class EppoClient {
         
         let httpClient = NetworkEppoHttpClient(baseURL: host, sdkKey: sdkKey, sdkName: "sdkName", sdkVersion: sdkVersion)
         self.configurationRequester = ConfigurationRequester(httpClient: httpClient)
+
         self.configurationStore = ConfigurationStore()
+        if let configuration = initialConfiguration {
+            self.configurationStore.setConfiguration(configuration: configuration)
+        }
+    }
+
+    /// Initialize client without loading remote configuration.
+    ///
+    /// Configuration can later be loaded with `load()` method.
+    public static func initializeOffline(
+        sdkKey: String,
+        host: String = "https://fscdn.eppo.cloud",
+        assignmentLogger: AssignmentLogger? = nil,
+        assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
+        initialConfiguration: Configuration?
+    ) -> EppoClient {
+        return sharedLock.withLock {
+            if let instance = sharedInstance {
+                return instance
+            } else {
+                let instance = EppoClient(
+                  sdkKey: sdkKey,
+                  host: host,
+                  assignmentLogger: assignmentLogger,
+                  assignmentCache: assignmentCache,
+                  initialConfiguration: initialConfiguration
+                )
+                sharedInstance = instance
+                return instance
+            }
+        }
     }
     
     public static func initialize(
         sdkKey: String,
         host: String = "https://fscdn.eppo.cloud",
         assignmentLogger: AssignmentLogger? = nil,
-        assignmentCache: AssignmentCache? = InMemoryAssignmentCache()
+        assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
+        initialConfiguration: Configuration? = nil
     ) async throws -> EppoClient {
-        let (instance, existing) = sharedLock.withLock {
-            if let instance = sharedInstance {
-                return (instance, true)
-            } else {
-                let instance = EppoClient(
-                  sdkKey: sdkKey,
-                  host: host,
-                  assignmentLogger: assignmentLogger,
-                  assignmentCache: assignmentCache
-                )
-                sharedInstance = instance
-                return (instance, false)
-            }
-        }
-
-        if existing {
-            // Existing instance was supposedly already initialized.
-            return instance
-        }
+        let instance = Self.initializeOffline(
+          sdkKey: sdkKey,
+          host: host,
+          assignmentLogger: assignmentLogger,
+          assignmentCache: assignmentCache,
+          initialConfiguration: initialConfiguration
+        )
 
         return try await withCheckedThrowingContinuation { continuation in
             initializerQueue.async {
