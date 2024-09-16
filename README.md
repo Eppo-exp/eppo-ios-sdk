@@ -46,8 +46,9 @@ If you'd like to initialize Eppo's client without performing a network request, 
 
 ```swift
 try EppoClient.initialize(
-    configurationJson: "PRE-FETCHED-CONFIGURATION-JSON",
-    obfuscated: false
+    configurationJson: "{ \"pre-loaded-JSON\": \"passed in here\" }",
+    obfuscated: false,
+    sdkKey: "SDK-KEY-FROM-DASHBOARD"
 );
 ```
 
@@ -55,24 +56,22 @@ The `obfuscated` parameter is used to inform the SDK if the flag configuration i
 
 The initialization method is synchronous and allows you to perform assignments immediately.
 
-**(Optional) Fetching the configuration from the remote source on-demand.**
+#### (Optional) Fetching the configuration from the remote source on-demand.**
 
 Combine both initialization methods to start your application with a local configuration and then 
 asynchronously fetch the latest flag configuration from the remote source.
 
 ```swift
 try EppoClient.initialize(
-    configurationJson: "PRE-FETCHED-CONFIGURATION-JSON",
+    configurationJson: "{ \"pre-loaded-JSON\": \"passed in here\" }",
     obfuscated: false,
+    sdkKey: "SDK-KEY-FROM-DASHBOARD",
 );
 
 ...
 
 Task {
-    try await EppoClient.initialize(
-        sdkKey: "SDK-KEY-FROM-DASHBOARD",
-        forceReinitialize: true
-    );
+    try await EppoClient.shared().load();
 }
 ```
 
