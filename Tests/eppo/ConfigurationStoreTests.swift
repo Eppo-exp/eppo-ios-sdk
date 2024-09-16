@@ -4,7 +4,6 @@ import XCTest
 
 final class ConfigurationStoreTests: XCTestCase {
     var configurationStore: ConfigurationStore!
-    var mockRequester: ConfigurationRequester!
     var configuration: Configuration!
     
     let emptyFlagConfig = UFC_Flag(
@@ -18,8 +17,7 @@ final class ConfigurationStoreTests: XCTestCase {
     
     override func setUpWithError() throws {
         try super.setUpWithError()
-        mockRequester = ConfigurationRequester(httpClient: EppoHttpClientMock())
-        configurationStore = ConfigurationStore(requester: mockRequester)
+        configurationStore = ConfigurationStore()
         
         configuration = Configuration(flagsConfiguration: UniversalFlagConfig(
             createdAt: nil,

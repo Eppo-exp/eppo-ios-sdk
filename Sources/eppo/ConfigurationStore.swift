@@ -3,17 +3,10 @@ import Foundation
 class ConfigurationStore {
     private var configuration: Configuration?
     
-    private let requester: ConfigurationRequester
     private let syncQueue = DispatchQueue(
         label: "com.eppo.configurationStoreQueue", attributes: .concurrent)
     
-    public init(requester: ConfigurationRequester) {
-        self.requester = requester
-    }
-
-    public func fetchAndStoreConfigurations() async throws {
-        let config = try await self.requester.fetchConfigurations()
-        self.setConfiguration(configuration: config)
+    public init() {
     }
 
     // Get the configuration for a given flag key in a thread-safe manner.
@@ -32,7 +25,7 @@ class ConfigurationStore {
     // operations on the `flagConfigs` can proceed. This guarantees that the configuration state is
     // consistent and prevents race conditions where reads could see a partially updated state.
     public func setConfiguration(configuration: Configuration) {
-        syncQueue.async(flags: .barrier) {
+        syncQueue.asyncAndWait(flags: .barrier) {
             self.configuration = configuration
         }
     }
