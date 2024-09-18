@@ -2,7 +2,9 @@ import Foundation;
 
 // todo: make this a build argument (FF-1944)
 public let sdkName = "ios"
-public let sdkVersion = "3.1.0"
+public let sdkVersion = "3.2.0"
+
+public let defaultHost = "https://fscdn.eppo.cloud"
 
 public enum Errors: Error {
     case notConfigured
@@ -33,17 +35,18 @@ actor EppoClientState {
 public class EppoClient {
     public typealias AssignmentLogger = (Assignment) -> Void
     
+    private static let sharedLock = NSLock()
     private static var sharedInstance: EppoClient?
     private static let initializerQueue = DispatchQueue(label: "com.eppo.client.initializer")
     
     private var flagEvaluator: FlagEvaluator = FlagEvaluator(sharder: MD5Sharder())
-    private(set) var isConfigObfuscated = true;
     
     private(set) var sdkKey: String
     private(set) var host: String
     private(set) var assignmentLogger: AssignmentLogger?
     private(set) var assignmentCache: AssignmentCache?
     private(set) var configurationStore: ConfigurationStore
+    private var configurationRequester: ConfigurationRequester
     
     private let state = EppoClientState()
     
@@ -51,7 +54,8 @@ public class EppoClient {
         sdkKey: String,
         host: String,
         assignmentLogger: AssignmentLogger? = nil,
-        assignmentCache: AssignmentCache? = InMemoryAssignmentCache()
+        assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
+        initialConfiguration: Configuration?
     ) {
         self.sdkKey = sdkKey
         self.host = host
@@ -59,45 +63,77 @@ public class EppoClient {
         self.assignmentCache = assignmentCache
         
         let httpClient = NetworkEppoHttpClient(baseURL: host, sdkKey: sdkKey, sdkName: "sdkName", sdkVersion: sdkVersion)
-        let configurationRequester = ConfigurationRequester(httpClient: httpClient)
-        self.configurationStore = ConfigurationStore(requester: configurationRequester)
+        self.configurationRequester = ConfigurationRequester(httpClient: httpClient)
+
+        self.configurationStore = ConfigurationStore()
+        if let configuration = initialConfiguration {
+            self.configurationStore.setConfiguration(configuration: configuration)
+        }
+    }
+
+    /// Initialize client without loading remote configuration.
+    ///
+    /// Configuration can later be loaded with `load()` method.
+    public static func initializeOffline(
+        sdkKey: String,
+        host: String = defaultHost,
+        assignmentLogger: AssignmentLogger? = nil,
+        assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
+        initialConfiguration: Configuration?
+    ) -> EppoClient {
+        return sharedLock.withLock {
+            if let instance = sharedInstance {
+                return instance
+            } else {
+                let instance = EppoClient(
+                  sdkKey: sdkKey,
+                  host: host,
+                  assignmentLogger: assignmentLogger,
+                  assignmentCache: assignmentCache,
+                  initialConfiguration: initialConfiguration
+                )
+                sharedInstance = instance
+                return instance
+            }
+        }
     }
     
     public static func initialize(
         sdkKey: String,
-        host: String = "https://fscdn.eppo.cloud",
+        host: String = defaultHost,
         assignmentLogger: AssignmentLogger? = nil,
-        assignmentCache: AssignmentCache? = InMemoryAssignmentCache()
+        assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
+        initialConfiguration: Configuration? = nil
     ) async throws -> EppoClient {
+        let instance = Self.initializeOffline(
+          sdkKey: sdkKey,
+          host: host,
+          assignmentLogger: assignmentLogger,
+          assignmentCache: assignmentCache,
+          initialConfiguration: initialConfiguration
+        )
+
         return try await withCheckedThrowingContinuation { continuation in
-            initializerQueue.async(flags: .barrier) {
-                if sharedInstance == nil {
-                    sharedInstance = EppoClient(
-                        sdkKey: sdkKey,
-                        host: host,
-                        assignmentLogger: assignmentLogger,
-                        assignmentCache: assignmentCache
-                    )
-                    Task {
-                        do {
-                            try await sharedInstance!.loadIfNeeded()
-                            continuation.resume(returning: sharedInstance!)
-                        } catch {
-                            continuation.resume(throwing: error)
-                        }
+            initializerQueue.async {
+                Task {
+                    do {
+                        try await instance.loadIfNeeded()
+                        continuation.resume(returning: instance)
+                    } catch {
+                        continuation.resume(throwing: error)
                     }
-                } else {
-                    continuation.resume(returning: sharedInstance!)
                 }
             }
         }
     }
     
     public static func shared() throws -> EppoClient {
-        guard let instance = sharedInstance else {
-            throw Errors.notConfigured
+        try self.sharedLock.withLock {
+            guard let instance = sharedInstance else {
+                throw Errors.notConfigured
+            }
+            return instance
         }
-        return instance
     }
 
     // Loads the configuration from the remote source on-demand. Can be used to refresh as desired.
@@ -105,22 +141,21 @@ public class EppoClient {
     // This function can be called from multiple threads; synchronization is provided to safely update
     // the configuration cache but each invocation will execute a new network request with billing impact.
     public func load() async throws {
-        try await self.configurationStore.fetchAndStoreConfigurations()
+        let config = try await self.configurationRequester.fetchConfigurations()
+        self.configurationStore.setConfiguration(configuration: config)
     }
     
     public static func resetSharedInstance() {
-        sharedInstance = nil
+        self.sharedLock.withLock {
+            sharedInstance = nil
+        }
     }
     
     private func loadIfNeeded() async throws {
         let alreadyLoaded = await state.checkAndSetLoaded()
         guard !alreadyLoaded else { return }
         
-        try await self.configurationStore.fetchAndStoreConfigurations()
-    }
-    
-    public func setConfigObfuscation(obfuscated: Bool) {
-        self.isConfigObfuscated = obfuscated
+        try await self.load()
     }
     
     public func getBooleanAssignment(
@@ -235,11 +270,14 @@ public class EppoClient {
         
         if subjectKey.count == 0 { throw Errors.subjectKeyRequired }
         if flagKey.count == 0 { throw Errors.flagKeyRequired }
-        if !self.configurationStore.isInitialized() { throw Errors.configurationNotLoaded }
+
+        guard let configuration = self.configurationStore.getConfiguration() else {
+            throw Errors.configurationNotLoaded
+        }
         
-        let flagKeyForLookup = isConfigObfuscated ? getMD5Hex(flagKey) : flagKey
+        let flagKeyForLookup = configuration.obfuscated ? getMD5Hex(flagKey) : flagKey
         
-        guard let flagConfig = self.configurationStore.getConfiguration(flagKey: flagKeyForLookup) else {
+        guard let flagConfig = configuration.getFlag(flagKey: flagKeyForLookup) else {
             throw Errors.flagConfigNotFound
         }
         
@@ -251,7 +289,7 @@ public class EppoClient {
             flag: flagConfig,
             subjectKey: subjectKey,
             subjectAttributes: subjectAttributes,
-            isConfigObfuscated: isConfigObfuscated
+            isConfigObfuscated: configuration.obfuscated
         )
         
         if let variation = flagEvaluation.variation, !isValueOfType(expectedType: expectedVariationType, variationValue: variation.value) {
@@ -286,7 +324,7 @@ public class EppoClient {
                         timestamp: ISO8601DateFormatter().string(from: Date()),
                         subjectAttributes: subjectAttributes,
                         metaData: [
-                            "obfuscated": String(isConfigObfuscated),
+                            "obfuscated": String(configuration.obfuscated),
                             "sdkName": sdkName,
                             "sdkVersion": sdkVersion
                         ],

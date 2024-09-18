@@ -40,6 +40,63 @@ Task {
 }
 ```
 
+Optionally, you can pass in a pre-fetched configuration JSON string.
+
+```swift
+Task {
+    try await EppoClient.initialize(
+        sdkKey: "SDK-KEY-FROM-DASHBOARD",
+        initialConfiguration: try Configuration(
+            flagsConfigurationJson: Data(#"{ "pre-loaded-JSON": "passed in here" }"#.utf8),
+            obfuscated: false
+        )
+    );
+}
+
+In both cases the SDK will perform a network request to fetch the latest flag configurations.
+
+#### Offline initialization
+
+If you'd like to initialize Eppo's client without performing a network request, you can pass in a pre-fetched configuration JSON string.
+
+```swift
+try EppoClient.initializeOffline(
+    sdkKey: "SDK-KEY-FROM-DASHBOARD",
+    initialConfiguration: try Configuration(
+        flagsConfigurationJson: Data(#"{ "pre-loaded-JSON": "passed in here" }"#.utf8),
+        obfuscated: false
+    )
+);
+```
+
+The `obfuscated` parameter is used to inform the SDK if the flag configuration is obfuscated.
+
+The initialization method is synchronous and allows you to perform assignments immediately.
+
+#### (Optional) Fetching the configuration from the remote source on-demand.**
+
+After the client has been initialized, you can use `load()` to asynchronously fetch the latest flag configuration from the remote source.
+
+```swift
+try EppoClient.initializeOffline(
+    sdkKey: "SDK-KEY-FROM-DASHBOARD",
+    initialConfiguration: try Configuration(
+        flagsConfigurationJson: Data(#"{ "pre-loaded-JSON": "passed in here" }"#.utf8),
+        obfuscated: false
+    )
+);
+
+...
+
+Task {
+    try await EppoClient.shared().load();
+}
+```
+
+As modern iOS devices have substantial memory, applications are often kept in memory across sessions. This means that the flag configurations are not automatically reloaded on subsequent launches.
+
+It is recommended to use the `load()` method to fetch the latest flag configurations when the application is launched.
+
 #### Assign anywhere
 
 Assignment is a synchronous operation.

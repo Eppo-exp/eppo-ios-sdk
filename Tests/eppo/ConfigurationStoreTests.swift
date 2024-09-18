@@ -4,8 +4,7 @@ import XCTest
 
 final class ConfigurationStoreTests: XCTestCase {
     var configurationStore: ConfigurationStore!
-    var mockRequester: ConfigurationRequester!
-    var configs: UniversalFlagConfig!
+    var configuration: Configuration!
     
     let emptyFlagConfig = UFC_Flag(
         key: "empty",
@@ -18,34 +17,35 @@ final class ConfigurationStoreTests: XCTestCase {
     
     override func setUpWithError() throws {
         try super.setUpWithError()
-        mockRequester = ConfigurationRequester(httpClient: EppoHttpClientMock())
-        configurationStore = ConfigurationStore(requester: mockRequester)
+        configurationStore = ConfigurationStore()
         
-        configs = UniversalFlagConfig(
+        configuration = Configuration(
+          flagsConfiguration: UniversalFlagConfig(
             createdAt: nil,
             flags: [
-                "testFlag": emptyFlagConfig
+              "testFlag": emptyFlagConfig
             ]
+          ),
+          obfuscated: false
         )
     }
     
     func testSetAndGetConfiguration() throws {
-        // Pass the RACConfig object to setConfigurations
-        configurationStore.setConfigurations(config: configs)
+        configurationStore.setConfiguration(configuration: configuration)
         
         XCTAssertEqual(
-            configurationStore.getConfiguration(flagKey: "testFlag")?.enabled, emptyFlagConfig.enabled)
+          configurationStore.getConfiguration()?.getFlag(flagKey: "testFlag")?.enabled, emptyFlagConfig.enabled)
     }
     
     func testIsInitialized() async throws {
-        XCTAssertFalse(
-            configurationStore.isInitialized(),
+        XCTAssertNil(
+            configurationStore.getConfiguration(),
             "Store should not be initialized before fetching configurations")
         
-        configurationStore.setConfigurations(config: configs)
+        configurationStore.setConfiguration(configuration: configuration)
         
-        XCTAssertTrue(
-            configurationStore.isInitialized(),
+        XCTAssertNotNil(
+            configurationStore.getConfiguration(),
             "Store should be initialized after fetching configurations")
     }
     

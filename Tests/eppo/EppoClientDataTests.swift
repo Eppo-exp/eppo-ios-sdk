@@ -32,41 +32,40 @@ final class EppoClientDataTests: XCTestCase {
         try await testAssignments(obfuscated: false)
     }
     
-    func setUpTestsWithFile(resourceName: String) async throws {
+    func setUpTestsWithFile(resourceName: String, obfuscated: Bool) throws {
         let fileURL = Bundle.module.url(
             forResource: resourceName,
             withExtension: ""
-        )
-        let testJSON: String = try! String(contentsOfFile: fileURL!.path)
-        
-        stub(condition: isHost("fscdn.eppo.cloud")) { _ in
-            let stubData = testJSON.data(using: .utf8)!
-            return HTTPStubsResponse(data: stubData, statusCode: 200, headers: ["Content-Type": "application/json"])
-        }
+        )!
+        let testJSON = try! Data(contentsOf: fileURL)
         
         loggerSpy = AssignmentLoggerSpy()
+
         EppoClient.resetSharedInstance()
+
+        eppoClient = EppoClient.initializeOffline(
+          sdkKey: "mock-api-key",
+          assignmentLogger: loggerSpy.logger,
+          initialConfiguration:
+            try Configuration.init(flagsConfigurationJson: testJSON, obfuscated: obfuscated)
+        )
     }
     
     func testAssignments(obfuscated: Bool) async throws {
         let resourceSuffix = obfuscated ? "-obfuscated" : ""
-        try await setUpTestsWithFile(resourceName: "Resources/test-data/ufc/flags-v1\(resourceSuffix).json")
-        
-        let testFiles = Bundle.module.paths(
-            forResourcesOfType: ".json",
-            inDirectory: "Resources/test-data/ufc/tests"
-        );
-        
-        eppoClient = try await EppoClient.initialize(
-            sdkKey: "mock-api-key",
-            assignmentLogger: loggerSpy.logger
+
+        try setUpTestsWithFile(
+          resourceName: "Resources/test-data/ufc/flags-v1\(resourceSuffix).json",
+          obfuscated: obfuscated
         )
-        // set mode for testing
-        eppoClient.setConfigObfuscation(obfuscated: obfuscated)
+        
+        let testFiles = Bundle.module.urls(
+            forResourcesWithExtension: ".json",
+            subdirectory: "Resources/test-data/ufc/tests"
+        )!;
         
         for testFile in testFiles {
-            let caseString = try String(contentsOfFile: testFile);
-            let caseData = caseString.data(using: .utf8)!;
+            let caseData = try! Data(contentsOf: testFile);
             let testCase = try JSONDecoder().decode(AssignmentTestCase.self, from: caseData);
             
             testCase.subjects.forEach { subject in

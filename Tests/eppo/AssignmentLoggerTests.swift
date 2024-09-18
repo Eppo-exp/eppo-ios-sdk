@@ -10,7 +10,7 @@ import OHHTTPStubsSwift
 final class AssignmentLoggerTests: XCTestCase {
    var loggerSpy: AssignmentLoggerSpy!
    var eppoClient: EppoClient!
-   var UFCTestJSON: String!
+   var UFCTestJSON: Data!
    
    override func setUpWithError() throws {
        try super.setUpWithError()
@@ -18,11 +18,11 @@ final class AssignmentLoggerTests: XCTestCase {
        let fileURL = Bundle.module.url(
            forResource: "Resources/test-data/ufc/flags-v1-obfuscated.json",
            withExtension: ""
-       )
-       UFCTestJSON = try! String(contentsOfFile: fileURL!.path)
+       )!
+       UFCTestJSON = try! Data(contentsOf: fileURL)
 
        stub(condition: isHost("fscdn.eppo.cloud")) { _ in
-           let stubData = self.UFCTestJSON.data(using: .utf8)!
+           let stubData = self.UFCTestJSON!
            return HTTPStubsResponse(data: stubData, statusCode: 200, headers: ["Content-Type": "application/json"])
        }
        
