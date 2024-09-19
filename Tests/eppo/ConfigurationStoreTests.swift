@@ -46,9 +46,7 @@ final class ConfigurationStoreTests: XCTestCase {
         let urls = fileManager.urls(for: .documentDirectory, in: .userDomainMask)
         let fileURL = urls[0].appendingPathComponent("configuration.json")
         
-        if fileManager.fileExists(atPath: fileURL.path) {
-            try? fileManager.removeItem(at: fileURL)
-        }
+        try? fileManager.removeItem(at: fileURL)
     }
     
     func testSetAndGetConfiguration() throws {
