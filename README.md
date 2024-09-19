@@ -236,6 +236,12 @@ func segmentAssignmentLogger(assignment: Assignment) {
 eppoClient = try await EppoClient.initialize(sdkKey: "mock-sdk-key", assignmentLogger: segmentAssignmentLogger)
 ```
 
+## Publishing releases
+
+Swift Package Manager relies on semantic versioning without a prefix, such as `v`.
+
+When publishing a release of the Swift SDK, use a git tag such as `3.2.1`.
+
 ## Philosophy
 
 Eppo's SDKs are built for simplicity, speed and reliability. Flag configurations are compressed and distributed over a global CDN (Fastly), typically reaching your servers in under 15ms. Server SDKs continue polling Eppo’s API at 30-second intervals. Configurations are then cached locally, ensuring that each assignment is made instantly. Evaluation logic within each SDK consists of a few lines of simple numeric and string comparisons. The typed functions listed above are all developers need to understand, abstracting away the complexity of the Eppo's underlying (and expanding) feature set.
