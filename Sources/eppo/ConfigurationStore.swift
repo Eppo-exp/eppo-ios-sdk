@@ -4,8 +4,15 @@ class ConfigurationStore {
     private var configuration: Configuration?
     private let syncQueue = DispatchQueue(
         label: "com.eppo.configurationStoreQueue", attributes: .concurrent)
-    
+
     private let cacheFileURL: URL?
+    // This is a serial (non-concurrent) queue, so writers don't fight
+    // each other and last writer wins.
+    //
+    // The queue is static because if there are multiple stores, they
+    // would be sharing the cache file.
+    static let persistenceQueue = DispatchQueue(
+      label: "com.eppo.configurationStorePersistence", qos: .background)
     
     // Initialize with the disk-based path for storage
     public init(withPersistentCache: Bool = true) {
@@ -16,7 +23,7 @@ class ConfigurationStore {
         }
 
         // Load any existing configuration from disk when initializing
-        self.configuration = loadFromDisk()
+        self.configuration = self.loadFromDisk()
     }
 
     private static func findCacheFileURL() -> URL? {
@@ -59,18 +66,17 @@ class ConfigurationStore {
     // consistent and prevents race conditions where reads could see a partially updated state.
     public func setConfiguration(configuration: Configuration) {
         syncQueue.asyncAndWait(flags: .barrier) {
-            self.saveToDisk(configuration: configuration)
             self.configuration = configuration
+            self.saveToDisk(configuration: configuration)
         }
     }
     
-    public func clearPersistentCache() {
-        guard let cacheFileURL = self.cacheFileURL else {
+    public static func clearPersistentCache() {
+        guard let cacheFileURL = Self.findCacheFileURL() else {
             return
         }
 
-        syncQueue.asyncAndWait(flags: .barrier) {
-            self.configuration = nil
+        Self.persistenceQueue.asyncAndWait {
             do {
                 try FileManager.default.removeItem(at: cacheFileURL)
             } catch {
@@ -79,17 +85,19 @@ class ConfigurationStore {
         }
     }
     
-    // Save the configuration to disk
+    // Save the configuration to disk (in background)
     private func saveToDisk(configuration: Configuration) {
         guard let cacheFileURL = self.cacheFileURL else {
             return
         }
 
-        do {
-            let data = try JSONEncoder().encode(configuration)
-            try data.write(to: cacheFileURL, options: .atomic)
-        } catch {
-            print("Error saving configuration to disk: \(error)")
+        Self.persistenceQueue.async {
+            do {
+                let data = try JSONEncoder().encode(configuration)
+                try data.write(to: cacheFileURL, options: .atomic)
+            } catch {
+                print("Error saving configuration to disk: \(error)")
+            }
         }
     }
     
@@ -101,8 +109,7 @@ class ConfigurationStore {
 
         do {
             let data = try Data(contentsOf: cacheFileURL)
-            let configuration = try JSONDecoder().decode(Configuration.self, from: data)
-            return configuration
+            return try JSONDecoder().decode(Configuration.self, from: data)
         } catch {
             print("No configuration found on disk or error decoding: \(error)")
             return nil
