@@ -1,5 +1,7 @@
 import Foundation
 
+private let fileName = "eppo-configuration.json"
+
 class ConfigurationStore {
     private var configuration: Configuration?
     private let syncQueue = DispatchQueue(
@@ -9,10 +11,20 @@ class ConfigurationStore {
     
     // Initialize with the disk-based path for storage
     public init() {
-        // Set the file path for storing the configuration
-        let url = FileManager.default.url(for: .cachesDirectory, in: .userDomainMask)
-        self.fileURL = url.appendingPathComponent("eppo-configuration.json")
+        guard let cacheDirectory = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else {
+            fatalError("Unable to access cache directory")
+        }
         
+        let directoryURL = cacheDirectory.appendingPathComponent("EppoCache", isDirectory: true)
+        self.fileURL = directoryURL.appendingPathComponent(fileName)
+        
+        // Ensure the directory exists
+        do {
+            try FileManager.default.createDirectory(at: directoryURL, withIntermediateDirectories: true, attributes: nil)
+        } catch {
+            print("Error creating cache directory: \(error)")
+        }
+
         // Load any existing configuration from disk when initializing
         self.configuration = loadFromDisk()
     }
@@ -32,9 +44,19 @@ class ConfigurationStore {
     // consistent and prevents race conditions where reads could see a partially updated state.
     public func setConfiguration(configuration: Configuration) {
         syncQueue.asyncAndWait(flags: .barrier) {
-            self.configuration = configuration
-            // Persist the new configuration to disk
             self.saveToDisk(configuration: configuration)
+            self.configuration = configuration
+        }
+    }
+    
+    public func clearPersistentCache() {
+        syncQueue.asyncAndWait(flags: .barrier) {
+            self.configuration = nil
+            do {
+                try FileManager.default.removeItem(at: self.fileURL)
+            } catch {
+                print("Error removing cache file: \(error)")
+            }
         }
     }
     

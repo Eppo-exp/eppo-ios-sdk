@@ -17,10 +17,9 @@ final class ConfigurationStoreTests: XCTestCase {
     
     override func setUpWithError() throws {
         try super.setUpWithError()
-        // Clean up any existing configuration file
-        cleanUpConfigurationFile()
         // Create a new instance for each test
         configurationStore = ConfigurationStore()
+        configurationStore.clearPersistentCache()
         
         configuration = Configuration(
           flagsConfiguration: UniversalFlagConfig(
@@ -35,20 +34,19 @@ final class ConfigurationStoreTests: XCTestCase {
     
     override func tearDownWithError() throws {
         try super.tearDownWithError()
-        // Clean up the configuration file
-        cleanUpConfigurationFile()
+        
         // Release the reference to ensure it's deallocated
         configurationStore = nil
     }
-    
-    private func cleanUpConfigurationFile() {
-        let fileManager = FileManager.default
-        let urls = fileManager.urls(for: .documentDirectory, in: .userDomainMask)
-        let fileURL = urls[0].appendingPathComponent("configuration.json")
+
+    func testClearPersistentCache() throws {
+        configurationStore.setConfiguration(configuration: configuration)
+        XCTAssertNotNil(configurationStore.getConfiguration(), "Configuration should be set")
         
-        try? fileManager.removeItem(at: fileURL)
+        configurationStore.clearPersistentCache()
+        XCTAssertNil(configurationStore.getConfiguration(), "Configuration should be nil after clearing cache")
     }
-    
+
     func testSetAndGetConfiguration() throws {
         configurationStore.setConfiguration(configuration: configuration)
         

@@ -6,8 +6,6 @@ public let sdkVersion = "3.2.0"
 
 public let defaultHost = "https://fscdn.eppo.cloud"
 
-public let defaultHost = "https://fscdn.eppo.cloud"
-
 public enum Errors: Error {
     case notConfigured
     case sdkKeyInvalid
