@@ -1,32 +1,47 @@
 import Foundation
 
-private let fileName = "eppo-configuration.json"
-
 class ConfigurationStore {
     private var configuration: Configuration?
     private let syncQueue = DispatchQueue(
         label: "com.eppo.configurationStoreQueue", attributes: .concurrent)
     
-    private let fileURL: URL
+    private let cacheFileURL: URL?
     
     // Initialize with the disk-based path for storage
-    public init() {
-        guard let cacheDirectory = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else {
-            fatalError("Unable to access cache directory")
-        }
-        
-        let directoryURL = cacheDirectory.appendingPathComponent("EppoCache", isDirectory: true)
-        self.fileURL = directoryURL.appendingPathComponent(fileName)
-        
-        // Ensure the directory exists
-        do {
-            try FileManager.default.createDirectory(at: directoryURL, withIntermediateDirectories: true, attributes: nil)
-        } catch {
-            print("Error creating cache directory: \(error)")
+    public init(withPersistentCache: Bool = true) {
+        self.cacheFileURL = if withPersistentCache {
+            Self.findCacheFileURL()
+        } else {
+            nil
         }
 
         // Load any existing configuration from disk when initializing
         self.configuration = loadFromDisk()
+    }
+
+    private static func findCacheFileURL() -> URL? {
+        guard let cacheDirectoryURL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)
+          .first?
+          .appendingPathComponent("eppo", isDirectory: true) else {
+            return nil
+        }
+
+        // Ensure the directory exists
+        do {
+            try FileManager.default.createDirectory(
+              at: cacheDirectoryURL,
+              withIntermediateDirectories: true,
+              attributes: nil
+            )
+        } catch {
+            print("Error creating cache directory: \(error)")
+            // As we failed to create the directory, it's unlikely
+            // that writing cache file will be successful.
+            return nil
+        }
+
+        return cacheDirectoryURL
+          .appendingPathComponent("eppo-configuration.json", isDirectory: false)
     }
 
     // Get the configuration for a given flag key in a thread-safe manner.
@@ -50,10 +65,14 @@ class ConfigurationStore {
     }
     
     public func clearPersistentCache() {
+        guard let cacheFileURL = self.cacheFileURL else {
+            return
+        }
+
         syncQueue.asyncAndWait(flags: .barrier) {
             self.configuration = nil
             do {
-                try FileManager.default.removeItem(at: self.fileURL)
+                try FileManager.default.removeItem(at: cacheFileURL)
             } catch {
                 print("Error removing cache file: \(error)")
             }
@@ -62,9 +81,13 @@ class ConfigurationStore {
     
     // Save the configuration to disk
     private func saveToDisk(configuration: Configuration) {
+        guard let cacheFileURL = self.cacheFileURL else {
+            return
+        }
+
         do {
             let data = try JSONEncoder().encode(configuration)
-            try data.write(to: fileURL, options: .atomic)
+            try data.write(to: cacheFileURL, options: .atomic)
         } catch {
             print("Error saving configuration to disk: \(error)")
         }
@@ -72,8 +95,12 @@ class ConfigurationStore {
     
     // Load the configuration from disk
     private func loadFromDisk() -> Configuration? {
+        guard let cacheFileURL = self.cacheFileURL else {
+            return nil
+        }
+
         do {
-            let data = try Data(contentsOf: fileURL)
+            let data = try Data(contentsOf: cacheFileURL)
             let configuration = try JSONDecoder().decode(Configuration.self, from: data)
             return configuration
         } catch {
