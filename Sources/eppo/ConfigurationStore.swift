@@ -10,9 +10,8 @@ class ConfigurationStore {
     // Initialize with the disk-based path for storage
     public init() {
         // Set the file path for storing the configuration
-        let fileManager = FileManager.default
-        let urls = fileManager.urls(for: .documentDirectory, in: .userDomainMask)
-        self.fileURL = urls[0].appendingPathComponent("configuration.json")
+        let url = FileManager.default.url(for: .cachesDirectory, in: .userDomainMask)
+        self.fileURL = url.appendingPathComponent("eppo-configuration.json")
         
         // Load any existing configuration from disk when initializing
         self.configuration = loadFromDisk()
