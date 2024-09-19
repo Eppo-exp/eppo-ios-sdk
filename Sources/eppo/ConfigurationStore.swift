@@ -43,7 +43,7 @@ class ConfigurationStore {
     private func saveToDisk(configuration: Configuration) {
         do {
             let data = try JSONEncoder().encode(configuration)
-            try data.write(to: fileURL)
+            try data.write(to: fileURL, options: .atomic)
         } catch {
             print("Error saving configuration to disk: \(error)")
         }
