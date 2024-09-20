@@ -18,8 +18,8 @@ final class ConfigurationStoreTests: XCTestCase {
     override func setUpWithError() throws {
         try super.setUpWithError()
         // Create a new instance for each test
+        ConfigurationStore.clearPersistentCache()
         configurationStore = ConfigurationStore()
-        configurationStore.clearPersistentCache()
         
         configuration = Configuration(
           flagsConfiguration: UniversalFlagConfig(
@@ -43,8 +43,8 @@ final class ConfigurationStoreTests: XCTestCase {
         configurationStore.setConfiguration(configuration: configuration)
         XCTAssertNotNil(configurationStore.getConfiguration(), "Configuration should be set")
         
-        configurationStore.clearPersistentCache()
-        XCTAssertNil(configurationStore.getConfiguration(), "Configuration should be nil after clearing cache")
+        ConfigurationStore.clearPersistentCache()
+        XCTAssertNotNil(configurationStore.getConfiguration(), "Configuration should not be nil after clearing cache")
     }
 
     func testSetAndGetConfiguration() throws {
