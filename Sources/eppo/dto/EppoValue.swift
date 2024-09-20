@@ -9,7 +9,7 @@ public enum EppoValueType {
     case ArrayOfStrings
 }
 
-public class EppoValue : Decodable, Equatable {
+public class EppoValue : Codable, Equatable {
     private var type: EppoValueType = EppoValueType.Null;
     private var boolValue: Bool?;
     private var doubleValue: Double?
@@ -185,6 +185,23 @@ public class EppoValue : Decodable, Equatable {
             
         default:
             throw Errors.valueNotSet
+        }
+    }
+}
+extension EppoValue {
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self.type {
+        case .Boolean:
+            try container.encode(boolValue!)
+        case .Numeric:
+            try container.encode(doubleValue!)
+        case .String:
+            try container.encode(stringValue!)
+        case .ArrayOfStrings:
+            try container.encode(stringArrayValue!)
+        case .Null:
+            try container.encodeNil()
         }
     }
 }

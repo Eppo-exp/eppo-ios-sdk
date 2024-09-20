@@ -2,7 +2,7 @@ import Foundation;
 
 // todo: make this a build argument (FF-1944)
 public let sdkName = "ios"
-public let sdkVersion = "3.2.0"
+public let sdkVersion = "3.3.0"
 
 public let defaultHost = "https://fscdn.eppo.cloud"
 
@@ -55,7 +55,8 @@ public class EppoClient {
         host: String,
         assignmentLogger: AssignmentLogger? = nil,
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
-        initialConfiguration: Configuration?
+        initialConfiguration: Configuration?,
+        withPersistentCache: Bool = true
     ) {
         self.sdkKey = sdkKey
         self.host = host
@@ -65,7 +66,7 @@ public class EppoClient {
         let httpClient = NetworkEppoHttpClient(baseURL: host, sdkKey: sdkKey, sdkName: "sdkName", sdkVersion: sdkVersion)
         self.configurationRequester = ConfigurationRequester(httpClient: httpClient)
 
-        self.configurationStore = ConfigurationStore()
+        self.configurationStore = ConfigurationStore(withPersistentCache: withPersistentCache)
         if let configuration = initialConfiguration {
             self.configurationStore.setConfiguration(configuration: configuration)
         }
@@ -79,7 +80,8 @@ public class EppoClient {
         host: String = defaultHost,
         assignmentLogger: AssignmentLogger? = nil,
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
-        initialConfiguration: Configuration?
+        initialConfiguration: Configuration?,
+        withPersistentCache: Bool = true
     ) -> EppoClient {
         return sharedLock.withLock {
             if let instance = sharedInstance {
@@ -90,7 +92,8 @@ public class EppoClient {
                   host: host,
                   assignmentLogger: assignmentLogger,
                   assignmentCache: assignmentCache,
-                  initialConfiguration: initialConfiguration
+                  initialConfiguration: initialConfiguration,
+                  withPersistentCache: withPersistentCache
                 )
                 sharedInstance = instance
                 return instance

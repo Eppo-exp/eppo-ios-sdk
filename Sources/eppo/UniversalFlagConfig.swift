@@ -1,6 +1,6 @@
 import Foundation
 
-public struct UniversalFlagConfig : Decodable {
+public struct UniversalFlagConfig: Codable {
     let createdAt: Date?;
     let flags: [String: UFC_Flag];
     
@@ -64,7 +64,7 @@ enum UniversalFlagConfigError: Error, CustomNSError, LocalizedError {
     }
 }
 
-enum UFC_VariationType: String, Decodable {
+enum UFC_VariationType: String, Codable {
     case boolean = "BOOLEAN"
     case integer = "INTEGER"
     case json = "JSON"
@@ -72,7 +72,7 @@ enum UFC_VariationType: String, Decodable {
     case string = "STRING"
 }
 
-enum UFC_RuleConditionOperator: String, Decodable, CaseIterable {
+enum UFC_RuleConditionOperator: String, Codable, CaseIterable {
     case lessThan = "LT"
     case lessThanEqual = "LTE"
     case greaterThan = "GT"
@@ -103,7 +103,7 @@ enum UFC_RuleConditionOperator: String, Decodable, CaseIterable {
 
 // models
 
-public struct UFC_Flag : Decodable {
+public struct UFC_Flag : Codable {
     let key: String;
     let enabled: Bool;
     let variationType: UFC_VariationType;
@@ -112,12 +112,12 @@ public struct UFC_Flag : Decodable {
     let totalShards: Int;
 }
 
-public struct UFC_Variation : Decodable  {
+public struct UFC_Variation : Codable  {
     let key: String;
     let value: EppoValue;
 }
 
-public struct UFC_Allocation : Decodable {
+public struct UFC_Allocation : Codable {
     let key: String;
     let rules: [UFC_Rule]?;
     let startAt: Date?;
@@ -126,28 +126,28 @@ public struct UFC_Allocation : Decodable {
     let doLog: Bool;
 }
 
-public struct UFC_Rule : Decodable {
+public struct UFC_Rule : Codable {
     let conditions: [UFC_TargetingRuleCondition];
 }
 
-public struct UFC_TargetingRuleCondition : Decodable {
+public struct UFC_TargetingRuleCondition : Codable {
     let `operator`: UFC_RuleConditionOperator;
     let attribute: String;
     let value: EppoValue;
 }
 
-public struct UFC_Split : Decodable {
+public struct UFC_Split : Codable {
     let variationKey: String;
     let shards: [UFC_Shard];
     let extraLogging: [String: String]?
 }
 
-public struct UFC_Shard : Decodable {
+public struct UFC_Shard : Codable {
     let salt: String;
     let ranges: [UFC_Range];
 }
 
-public struct UFC_Range : Decodable {
+public struct UFC_Range : Codable {
     let start: Int;
     let end: Int;
 }
