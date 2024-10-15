@@ -1,6 +1,12 @@
 import Foundation
 
 class ConfigurationStore {
+    // CAUTION! 
+    // 
+    // Take care before changing the DispatchQueue methods to `asyncOrWait`
+    // as we previously had a bug related to support across older iOS versions.
+    // https://github.com/Eppo-exp/eppo-ios-sdk/issues/46
+
     private var configuration: Configuration?
     private let syncQueue = DispatchQueue(
         label: "com.eppo.configurationStoreQueue", attributes: .concurrent)
