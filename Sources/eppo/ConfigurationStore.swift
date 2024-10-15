@@ -65,7 +65,7 @@ class ConfigurationStore {
     // operations on the `flagConfigs` can proceed. This guarantees that the configuration state is
     // consistent and prevents race conditions where reads could see a partially updated state.
     public func setConfiguration(configuration: Configuration) {
-        syncQueue.asyncAndWait(flags: .barrier) {
+        syncQueue.sync(flags: .barrier) {
             self.configuration = configuration
             self.saveToDisk(configuration: configuration)
         }
@@ -76,7 +76,7 @@ class ConfigurationStore {
             return
         }
 
-        Self.persistenceQueue.asyncAndWait {
+        Self.persistenceQueue.sync {
             do {
                 try FileManager.default.removeItem(at: cacheFileURL)
             } catch {
