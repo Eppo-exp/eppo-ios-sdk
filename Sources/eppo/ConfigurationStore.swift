@@ -1,6 +1,12 @@
 import Foundation
 
 class ConfigurationStore {
+    // CAUTION! 
+    // 
+    // Take care before changing the DispatchQueue methods to `asyncOrWait`
+    // as we previously had a bug related to support across older iOS versions.
+    // https://github.com/Eppo-exp/eppo-ios-sdk/issues/46
+
     private var configuration: Configuration?
     
     private let syncQueue = DispatchQueue(
@@ -23,7 +29,7 @@ class ConfigurationStore {
     // operations on the `flagConfigs` can proceed. This guarantees that the configuration state is
     // consistent and prevents race conditions where reads could see a partially updated state.
     public func setConfiguration(configuration: Configuration) {
-        syncQueue.asyncAndWait(flags: .barrier) {
+        syncQueue.sync(flags: .barrier) {
             self.configuration = configuration
         }
     }
