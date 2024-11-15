@@ -1,6 +1,6 @@
 import Foundation;
 
-let UFC_CONFIG_URL = "/api/flag-config/v1/config"
+let UFC_CONFIG_URL = "/flag-config/v1/config"
 
 class ConfigurationRequester {
     private let httpClient: EppoHttpClient;
