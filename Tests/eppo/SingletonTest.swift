@@ -4,7 +4,7 @@ import Foundation
 import OHHTTPStubs
 import OHHTTPStubsSwift
 
-@testable import eppo_flagging
+@testable import EppoFlagging
 
 final class EppoTests: XCTestCase {
     var stubCallCount = 0

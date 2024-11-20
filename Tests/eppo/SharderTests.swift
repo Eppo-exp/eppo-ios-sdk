@@ -1,6 +1,6 @@
 import XCTest
 
-@testable import eppo_flagging
+@testable import EppoFlagging
 
 class SharderTests: XCTestCase {
     
