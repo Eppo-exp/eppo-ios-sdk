@@ -4,7 +4,7 @@ import Foundation;
 public let sdkName = "ios"
 public let sdkVersion = "4.0.0"
 
-public let defaultHost = "https://fscdn.eppo.cloud"
+public let defaultHost = "https://fscdn.eppo.cloud/api"
 
 public enum Errors: Error {
     case notConfigured
