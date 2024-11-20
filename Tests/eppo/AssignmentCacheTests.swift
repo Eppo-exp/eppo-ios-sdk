@@ -1,6 +1,6 @@
 import XCTest
 
-@testable import eppo_flagging
+@testable import EppoFlagging
 
 final class AssignmentCacheTests: XCTestCase {
     var cache: InMemoryAssignmentCache!

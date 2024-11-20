@@ -1,6 +1,6 @@
 import Foundation
 
-@testable import eppo_flagging
+@testable import EppoFlagging
 
 
 class AssignmentLoggerSpy {

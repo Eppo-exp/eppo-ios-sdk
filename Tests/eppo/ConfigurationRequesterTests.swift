@@ -1,5 +1,5 @@
 import XCTest
-@testable import eppo_flagging
+@testable import EppoFlagging
 
 class ConfigurationRequesterTests: XCTestCase {
     var httpClientMock: EppoHttpClientMock!
