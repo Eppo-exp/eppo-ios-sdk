@@ -6,10 +6,17 @@ public protocol AssignmentCache {
 }
 
 public struct AssignmentCacheKey {
-    var subjectKey: String
-    var flagKey: String
-    var allocationKey: String
-    var variationKey: String
+    public var subjectKey: String
+    public var flagKey: String
+    public var allocationKey: String
+    public var variationKey: String
+    
+    public init(subjectKey: String, flagKey: String, allocationKey: String, variationKey: String) {
+        self.subjectKey = subjectKey
+        self.flagKey = flagKey
+        self.allocationKey = allocationKey
+        self.variationKey = variationKey
+    }
 }
 
 public class InMemoryAssignmentCache: AssignmentCache {
