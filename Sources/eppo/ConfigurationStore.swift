@@ -9,7 +9,7 @@ class ConfigurationStore {
 
     private var configuration: Configuration?
     private let syncQueue = DispatchQueue(
-        label: "com.eppo.configurationStoreQueue", attributes: .concurrent)
+        label: "\(EPPO_NAMESPACE).configurationStoreQueue", attributes: .concurrent)
 
     private let cacheFileURL: URL?
     // This is a serial (non-concurrent) queue, so writers don't fight
@@ -18,7 +18,7 @@ class ConfigurationStore {
     // The queue is static because if there are multiple stores, they
     // would be sharing the cache file.
     static let persistenceQueue = DispatchQueue(
-      label: "com.eppo.configurationStorePersistence", qos: .background)
+      label: "\(EPPO_NAMESPACE).configurationStorePersistence", qos: .background)
     
     // Initialize with the disk-based path for storage
     public init(withPersistentCache: Bool = true) {
