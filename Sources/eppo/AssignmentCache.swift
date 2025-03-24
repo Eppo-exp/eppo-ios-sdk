@@ -13,6 +13,7 @@ public struct AssignmentCacheKey {
 }
 
 public class InMemoryAssignmentCache: AssignmentCache {
+    private let queue = DispatchQueue(label: "com.eppo.assignmentcache", attributes: .concurrent)
     internal var cache: [CacheKey: CacheValue] = [:]
 
     internal struct CacheKey: Hashable {
@@ -41,13 +42,17 @@ public class InMemoryAssignmentCache: AssignmentCache {
     }
     
     public func hasLoggedAssignment(key: AssignmentCacheKey) -> Bool {
-        let cacheKey = CacheKey(subjectKey: key.subjectKey, flagKey: key.flagKey)
-        return get(key: cacheKey) == CacheValue(allocationKey: key.allocationKey, variationKey: key.variationKey)
+        return queue.sync {
+            let cacheKey = CacheKey(subjectKey: key.subjectKey, flagKey: key.flagKey)
+            return get(key: cacheKey) == CacheValue(allocationKey: key.allocationKey, variationKey: key.variationKey)
+        }
     }
     
     public func setLastLoggedAssignment(key: AssignmentCacheKey) {
-        let cacheKey = CacheKey(subjectKey: key.subjectKey, flagKey: key.flagKey)
-        set(key: cacheKey, value: CacheValue(allocationKey: key.allocationKey, variationKey: key.variationKey))
+        queue.sync(flags: .barrier) {
+            let cacheKey = CacheKey(subjectKey: key.subjectKey, flagKey: key.flagKey)
+            set(key: cacheKey, value: CacheValue(allocationKey: key.allocationKey, variationKey: key.variationKey))
+        }
     }
 
     internal func get(key: CacheKey) -> CacheValue? {
