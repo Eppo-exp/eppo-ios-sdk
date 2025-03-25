@@ -37,7 +37,7 @@ public class EppoClient {
     
     private static let sharedLock = NSLock()
     private static var sharedInstance: EppoClient?
-    private static let initializerQueue = DispatchQueue(label: "com.eppo.client.initializer")
+    private static let initializerQueue = DispatchQueue(label: "cloud.eppo.client.initializer")
     
     private var flagEvaluator: FlagEvaluator = FlagEvaluator(sharder: MD5Sharder())
     
