@@ -13,7 +13,7 @@ public struct AssignmentCacheKey {
 }
 
 public class InMemoryAssignmentCache: AssignmentCache {
-    private let queue = DispatchQueue(label: "com.eppo.assignmentcache", attributes: .concurrent)
+    private let queue = DispatchQueue(label: "cloud.eppo.assignmentcache", attributes: .concurrent)
     internal var cache: [CacheKey: CacheValue] = [:]
 
     internal struct CacheKey: Hashable {
