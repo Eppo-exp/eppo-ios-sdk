@@ -1,7 +1,7 @@
 import Foundation;
 
 // Public namespace for Eppo SDK
-public let EPPO_NAMESPACE = "cloud.eppo"
+package let eppoNamespace = "cloud.eppo"
 
 // todo: make this a build argument (FF-1944)
 public let sdkName = "ios"
