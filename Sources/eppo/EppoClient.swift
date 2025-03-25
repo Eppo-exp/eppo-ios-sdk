@@ -1,8 +1,5 @@
 import Foundation;
 
-// Public namespace for Eppo SDK
-package let eppoNamespace = "cloud.eppo"
-
 // todo: make this a build argument (FF-1944)
 public let sdkName = "ios"
 public let sdkVersion = "4.0.0"
@@ -40,7 +37,7 @@ public class EppoClient {
     
     private static let sharedLock = NSLock()
     private static var sharedInstance: EppoClient?
-    private static let initializerQueue = DispatchQueue(label: "\(EPPO_NAMESPACE).client.initializer")
+    private static let initializerQueue = DispatchQueue(label: "cloud.eppo.client.initializer")
     
     private var flagEvaluator: FlagEvaluator = FlagEvaluator(sharder: MD5Sharder())
     
