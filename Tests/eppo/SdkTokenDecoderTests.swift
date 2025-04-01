@@ -10,7 +10,7 @@ final class SdkTokenDecoderTests: XCTestCase {
     
     
     func testTokenWithoutRequiredParameter() {
-        let tokenWithoutCs = SdkTokenDecoder("Zm9vPWJhcg==.zCsQuoHJxVPp895") // no cs param
+        let tokenWithoutCs = SdkTokenDecoder("Zm9vPWJhcg==.a562v63ff55r2") // no cs param
         XCTAssertNil(tokenWithoutCs.getSubdomain())
         XCTAssertTrue(tokenWithoutCs.isValid())
     }

@@ -1,8 +1,6 @@
 import Foundation
 
-/**
- * Decodes SDK tokens with embedded encoded data.
- */
+/// Decodes SDK tokens with embedded encoded data.
 public class SdkTokenDecoder {
     private let decodedParams: [String: String]?
     private let sdkToken: String
@@ -12,48 +10,38 @@ public class SdkTokenDecoder {
         self.sdkToken = sdkToken
     }
     
-    /**
-     * Checks if the token is valid and contains encoded data.
-     */
+    /// Checks if the token is valid and contains encoded data.
     public func isValid() -> Bool {
-        return decodedParams != nil
+        decodedParams != nil
     }
     
-    /**
-     * Returns the original token string.
-     */
+    /// Returns the original token string.
     public func getToken() -> String {
-        return sdkToken
+        sdkToken
     }
     
-    /**
-     * Gets the subdomain from the token if available.
-     * Returns nil if the token is invalid or doesn't contain a subdomain.
-     */
+    /// Gets the subdomain from the token if available.
+    /// Returns nil if the token is invalid or doesn't contain a subdomain.
     public func getSubdomain() -> String? {
-        return decodedParams?["cs"]
+        decodedParams?["cs"]
     }
     
-    /**
-     * Gets the event ingestion hostname from the token if available.
-     * Returns nil if the token is invalid or doesn't contain an event hostname.
-     */
+    /// Gets the event ingestion hostname from the token if available.
+    /// Returns nil if the token is invalid or doesn't contain an event hostname.
     public func getEventIngestionHostname() -> String? {
-        return decodedParams?["eh"]
+        decodedParams?["eh"]
     }
     
-    /**
-     * Decodes the token and extracts parameters.
-     * Returns nil if the token is invalid or cannot be decoded.
-     */
-    private static func decodeToken(_ token: String) -> [String: String]? {
-        let components = token.split(separator: ".")
+    /// Decodes the token and extracts parameters.
+    /// Returns nil if the token is invalid or cannot be decoded.
+    private static func decodeToken(_ tokenString: String) -> [String: String]? {
+        let components = tokenString.split(separator: ".")
         
         guard components.count >= 2 else {
             return nil
         }
         
-        let encodedPart = String(components[1])
+        let encodedPart = String(components[0])
         
         guard let decodedData = Data(base64Encoded: encodedPart, options: .ignoreUnknownCharacters) else {
             return nil
