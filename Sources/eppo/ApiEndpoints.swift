@@ -10,15 +10,14 @@ public class ApiEndpoints {
     private let baseURL: String
     
     public init(baseURL: String?, sdkToken: String) {
-
-        let tokenDecoder: SdkTokenDecoder = SdkTokenDecoder(sdkToken)
-        if (baseURL == defaultHost) {
+        let tokenDecoder = SdkTokenDecoder(sdkToken)
+        if baseURL == defaultHost {
             Self.logger.warning("[Eppo SDK] custom baseURL cannot be the default host")
-            self.baseURL = Self.getEffectiveBaseURL(tokenDecoder: tokenDecoder);
-        } else if (baseURL != nil) {
-            self.baseURL = baseURL!;
+            self.baseURL = Self.getEffectiveBaseURL(tokenDecoder: tokenDecoder)
+        } else if let baseURL = baseURL {
+            self.baseURL = baseURL
         } else {
-            self.baseURL = Self.getEffectiveBaseURL(tokenDecoder: tokenDecoder);
+            self.baseURL = Self.getEffectiveBaseURL(tokenDecoder: tokenDecoder)
         }
     }
     
@@ -27,7 +26,7 @@ public class ApiEndpoints {
      * If a valid subdomain is found in the SDK token, it will be inserted into the default host.
      * Otherwise, falls back to the default host with no subdomain.
      */
-    private static func getEffectiveBaseURL(tokenDecoder: SdkTokenDecoder  ) -> String {
+    private static func getEffectiveBaseURL(tokenDecoder: SdkTokenDecoder) -> String {
         if let subdomain = tokenDecoder.getSubdomain(), tokenDecoder.isValid() {
             return defaultHost.replacingOccurrences(of: "https://", with: "https://\(subdomain).")
         }
