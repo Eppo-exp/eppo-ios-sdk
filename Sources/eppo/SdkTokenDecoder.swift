@@ -10,7 +10,7 @@ public class SdkTokenDecoder {
         self.sdkToken = sdkToken
     }
     
-    /// Checks if the token is valid and contains encoded data.
+    /// Checks if the token contains encoded data.
     public func isValid() -> Bool {
         decodedParams != nil
     }
@@ -25,13 +25,7 @@ public class SdkTokenDecoder {
     public func getSubdomain() -> String? {
         decodedParams?["cs"]
     }
-    
-    /// Gets the event ingestion hostname from the token if available.
-    /// Returns nil if the token is invalid or doesn't contain an event hostname.
-    public func getEventIngestionHostname() -> String? {
-        decodedParams?["eh"]
-    }
-    
+
     /// Decodes the token and extracts parameters.
     /// Returns nil if the token is invalid or cannot be decoded.
     private static func decodeToken(_ tokenString: String) -> [String: String]? {
@@ -43,7 +37,7 @@ public class SdkTokenDecoder {
         
         let encodedPart = String(components[0])
         
-        guard let decodedData = Data(base64Encoded: encodedPart, options: .ignoreUnknownCharacters) else {
+        guard let decodedData = Data(base64Encoded: encodedPart) else {
             return nil
         }
         
