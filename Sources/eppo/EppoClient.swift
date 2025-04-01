@@ -47,18 +47,20 @@ public class EppoClient {
     
     private init(
         sdkKey: String,
-        host: String,
+        host: String? = nil,
         assignmentLogger: AssignmentLogger? = nil,
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
         initialConfiguration: Configuration?,
         withPersistentCache: Bool = true
     ) {
         self.sdkKey = sdkKey
-        self.host = host
         self.assignmentLogger = assignmentLogger
         self.assignmentCache = assignmentCache
-        
-        let httpClient = NetworkEppoHttpClient(baseURL: host, sdkKey: sdkKey, sdkName: "sdkName", sdkVersion: sdkVersion)
+
+        let endpoints = ApiEndpoints(baseURL: host, sdkToken: sdkKey);
+        self.host = endpoints.getBaseURL();
+
+        let httpClient = NetworkEppoHttpClient(baseURL: self.host, sdkKey: sdkKey, sdkName: "sdkName", sdkVersion: sdkVersion)
         self.configurationRequester = ConfigurationRequester(httpClient: httpClient)
 
         self.configurationStore = ConfigurationStore(withPersistentCache: withPersistentCache)
@@ -72,7 +74,7 @@ public class EppoClient {
     /// Configuration can later be loaded with `load()` method.
     public static func initializeOffline(
         sdkKey: String,
-        host: String = defaultHost,
+        host: String? = nil,
         assignmentLogger: AssignmentLogger? = nil,
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
         initialConfiguration: Configuration?,
@@ -98,7 +100,7 @@ public class EppoClient {
     
     public static func initialize(
         sdkKey: String,
-        host: String = defaultHost,
+        host: String? = nil,
         assignmentLogger: AssignmentLogger? = nil,
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
         initialConfiguration: Configuration? = nil

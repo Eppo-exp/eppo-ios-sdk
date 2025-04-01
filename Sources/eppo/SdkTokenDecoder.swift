@@ -5,9 +5,11 @@ import Foundation
  */
 public class SdkTokenDecoder {
     private let decodedParams: [String: String]?
+    private let sdkToken: String
     
     public init(_ sdkToken: String) {
         self.decodedParams = SdkTokenDecoder.decodeToken(sdkToken)
+        self.sdkToken  = sdkToken
     }
     
     /**
@@ -40,8 +42,6 @@ public class SdkTokenDecoder {
         return decodedParams?["eh"]
     }
     
-    private let sdkToken: String
-    
     /**
      * Decodes the token and extracts parameters.
      * Returns nil if the token is invalid or cannot be decoded.
@@ -63,23 +63,16 @@ public class SdkTokenDecoder {
             return nil
         }
         
-        var params = [String: String]()
-        let queryItems = decodedString.split(separator: "&")
-        
-        for item in queryItems {
-            let keyValue = item.split(separator: "=", maxSplits: 1)
-            if keyValue.count == 2 {
-                let key = String(keyValue[0])
-                let value = String(keyValue[1])
-                
-                if let decodedValue = value.removingPercentEncoding {
-                    params[key] = decodedValue
-                } else {
-                    params[key] = value
-                }
-            }
+        // Use URLComponents to parse the query string
+        guard let components = URLComponents(string: "?\(decodedString)") else {
+            return nil
         }
         
-        return params.isEmpty ? nil : params
+        // Convert URLQueryItems to dictionary
+        let params = components.queryItems?.reduce(into: [String: String]()) { dict, item in
+            dict[item.name] = item.value
+        }
+        
+        return params?.isEmpty == true ? nil : params
     }
 }
