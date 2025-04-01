@@ -53,7 +53,7 @@ public class SdkTokenDecoder {
             return nil
         }
         
-        let encodedPart = String(components[1])
+        let encodedPart = String(components[0])
         
         guard let decodedData = Data(base64Encoded: encodedPart, options: .ignoreUnknownCharacters) else {
             return nil

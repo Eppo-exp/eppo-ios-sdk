@@ -4,13 +4,13 @@ import XCTest
 final class SdkTokenDecoderTests: XCTestCase {
     
     func testExtractSubdomain() {
-        let token = SdkTokenDecoder("zCsQuoHJxVPp895.Y3M9ZXhwZXJpbWVudCZlaD1hYmMxMjMuZXBwby5jbG91ZA==")
+        let token = SdkTokenDecoder("Zm9vPWJhciZjcz1leHBlcmltZW50.zCsQuoHJxVPp895") // cs=experiment
         XCTAssertEqual(token.getSubdomain(), "experiment")
     }
     
     
     func testTokenWithoutRequiredParameter() {
-        let tokenWithoutCs = SdkTokenDecoder("zCsQuoHJxVPp895.ZWg9YWJjMTIzLmVwcG8uY2xvdWQ=") // only eh=abc123.eppo.cloud
+        let tokenWithoutCs = SdkTokenDecoder("Zm9vPWJhcg==.zCsQuoHJxVPp895") // no cs param
         XCTAssertNil(tokenWithoutCs.getSubdomain())
         XCTAssertTrue(tokenWithoutCs.isValid())
     }
@@ -22,7 +22,7 @@ final class SdkTokenDecoderTests: XCTestCase {
     }
     
     func testOriginalTokenAccess() {
-        let tokenString = "zCsQuoHJxVPp895.ZWg9MTIzNDU2LmUudGVzdGluZy5lcHBvLmNsb3Vk"
+        let tokenString = "3M9ZXhwZXJpbWVudCZlaD1hYmMxMjMuZXBwby5jbG91ZA==.zCsQuoHJxVPp895"
         let token = SdkTokenDecoder(tokenString)
         XCTAssertEqual(token.getToken(), tokenString)
     }
