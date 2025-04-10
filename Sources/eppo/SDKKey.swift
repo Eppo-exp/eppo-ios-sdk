@@ -1,12 +1,12 @@
 import Foundation
 
 /// Decodes SDK tokens with embedded encoded data.
-public class SdkTokenDecoder {
+public class SDKKey {
     private let decodedParams: [String: String]?
     private let sdkToken: String
     
     public init(_ sdkToken: String) {
-        self.decodedParams = SdkTokenDecoder.decodeToken(sdkToken)
+        self.decodedParams = SDKKey.decodeToken(sdkToken)
         self.sdkToken = sdkToken
     }
     

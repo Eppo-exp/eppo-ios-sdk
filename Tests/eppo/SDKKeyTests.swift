@@ -1,29 +1,29 @@
 import XCTest
 @testable import EppoFlagging
 
-final class SdkTokenDecoderTests: XCTestCase {
+final class SDKKeyTests: XCTestCase {
     
     func testExtractSubdomain() {
-        let token = SdkTokenDecoder("zCsQuoHJxVPp895.Zm9vPWJhciZjcz1leHBlcmltZW50") // cs=experiment
+        let token = SDKKey("zCsQuoHJxVPp895.Zm9vPWJhciZjcz1leHBlcmltZW50") // cs=experiment
         XCTAssertEqual(token.getSubdomain(), "experiment")
     }
     
     
     func testTokenWithoutRequiredParameter() {
-        let tokenWithoutCs = SdkTokenDecoder("a562v63ff55r2.Zm9vPWJhcg==") // no cs param
+        let tokenWithoutCs = SDKKey("a562v63ff55r2.Zm9vPWJhcg==") // no cs param
         XCTAssertNil(tokenWithoutCs.getSubdomain())
         XCTAssertTrue(tokenWithoutCs.isValid())
     }
     
     func testInvalidToken() {
-        let invalidToken = SdkTokenDecoder("zCsQuoHJxVPp895")
+        let invalidToken = SDKKey("zCsQuoHJxVPp895")
         XCTAssertNil(invalidToken.getSubdomain())
         XCTAssertFalse(invalidToken.isValid())
     }
     
     func testOriginalTokenAccess() {
         let tokenString = "zCsQuoHJxVPp895.3M9ZXhwZXJpbWVudCZlaD1hYmMxMjMuZXBwby5jbG91ZA=="
-        let token = SdkTokenDecoder(tokenString)
+        let token = SDKKey(tokenString)
         XCTAssertEqual(token.getToken(), tokenString)
     }
 }

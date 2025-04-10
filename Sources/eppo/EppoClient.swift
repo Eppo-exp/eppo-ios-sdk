@@ -36,7 +36,7 @@ public class EppoClient {
     
     private var flagEvaluator: FlagEvaluator = FlagEvaluator(sharder: MD5Sharder())
     
-    private(set) var sdkKey: String
+    private(set) var sdkKey: SDKKey
     private(set) var host: String
     private(set) var assignmentLogger: AssignmentLogger?
     private(set) var assignmentCache: AssignmentCache?
@@ -53,14 +53,14 @@ public class EppoClient {
         initialConfiguration: Configuration?,
         withPersistentCache: Bool = true
     ) {
-        self.sdkKey = sdkKey
+        self.sdkKey = SDKKey(sdkKey)
         self.assignmentLogger = assignmentLogger
         self.assignmentCache = assignmentCache
 
-        let endpoints = ApiEndpoints(baseURL: host, sdkToken: sdkKey);
+        let endpoints = ApiEndpoints(baseURL: host, sdkKey: self.sdkKey);
         self.host = endpoints.baseURL;
 
-        let httpClient = NetworkEppoHttpClient(baseURL: self.host, sdkKey: sdkKey, sdkName: "sdkName", sdkVersion: sdkVersion)
+        let httpClient = NetworkEppoHttpClient(baseURL: self.host, sdkKey: self.sdkKey.getToken(), sdkName: "sdkName", sdkVersion: sdkVersion)
         self.configurationRequester = ConfigurationRequester(httpClient: httpClient)
 
         self.configurationStore = ConfigurationStore(withPersistentCache: withPersistentCache)
@@ -260,7 +260,7 @@ public class EppoClient {
         subjectAttributes: SubjectAttributes,
         expectedVariationType: UFC_VariationType) throws -> FlagEvaluation?
     {
-        if (self.sdkKey.count == 0) {
+        if (self.sdkKey.getToken().count == 0) {
             throw Errors.sdkKeyInvalid;
         }
         
