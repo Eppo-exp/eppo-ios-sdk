@@ -64,7 +64,7 @@ public class EppoClient {
 
         self.configurationStore = ConfigurationStore(withPersistentCache: withPersistentCache)
         if let configuration = initialConfiguration {
-            self.configurationStore.saveConfiguration(configuration: configuration)
+            self.configurationStore.setConfiguration(configuration: configuration)
         }
     }
 
@@ -261,6 +261,10 @@ public class EppoClient {
             throw Errors.hostInvalid
         }
 
+        if self.host.count == 0 {
+            throw Errors.hostInvalid
+        }
+
         if subjectKey.count == 0 { throw Errors.subjectKeyRequired }
         if flagKey.count == 0 { throw Errors.flagKeyRequired }
 
@@ -329,6 +333,8 @@ public class EppoClient {
                 }
             }
         }
+
+        return flagEvaluation
 
         return flagEvaluation
     }
