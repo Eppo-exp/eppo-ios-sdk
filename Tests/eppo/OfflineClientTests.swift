@@ -8,12 +8,12 @@ import OHHTTPStubsSwift
 final class OfflineClientTests: XCTestCase {
     var loggerSpy: AssignmentLoggerSpy!
     var eppoClient: EppoClient!
-    
+
     override func setUp() {
         super.setUp()
         EppoClient.resetSharedInstance()
     }
-    
+
     // Test initializing EppoClient with a local JSON string, performing an assignment,
     // then initializing with a stubbed remote JSON and performing a different assignment.
     func testInitializationWithLocalAndRemoteJSONAssignments() async throws {
@@ -46,7 +46,7 @@ final class OfflineClientTests: XCTestCase {
           }
         }
         """
-        
+
         // Initialize EppoClient with local JSON
         eppoClient = EppoClient.initializeOffline(
             sdkKey: "mock-api-key",
@@ -56,17 +56,17 @@ final class OfflineClientTests: XCTestCase {
                 obfuscated: false
             )
         )
-        
+
         // Perform an assignment with the initial client
         let initialAssignment = try eppoClient.getNumericAssignment(
             flagKey: "numeric_flag",
             subjectKey: "alice",
             defaultValue: 100
         )
-        
+
         // Verify the initial assignment
         XCTAssertEqual(initialAssignment, 100, "initial configuration has no allocations; return default value")
-        
+
         // Step 2: Stub the remote JSON response
         let remoteJsonString = """
         {
@@ -106,22 +106,22 @@ final class OfflineClientTests: XCTestCase {
           }
         }
         """
-        
+
         stub(condition: isHost("fscdn.eppo.cloud")) { _ in
             let stubData = remoteJsonString.data(using: .utf8)!
             return HTTPStubsResponse(data: stubData, statusCode: 200, headers: ["Content-Type": "application/json"])
         }
-        
+
         // Step 3: Re-initialize EppoClient to fetch remote configurations
         try await eppoClient.load()
-        
+
         // Perform a different assignment with the updated client
         let updatedAssignment = try eppoClient.getNumericAssignment(
             flagKey: "numeric_flag",
             subjectKey: "alice",
             defaultValue: 100
         )
-        
+
         // Verify the updated assignment
         XCTAssertEqual(updatedAssignment, 3.1415926, "Updated assignment uses variation value.")
     }

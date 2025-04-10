@@ -11,29 +11,29 @@ class EppoValueTests: XCTestCase {
 
     func testDecodingString() throws {
         let jsonData = try jsonData(from: #"{"\#(jsonKey)": "testString"}"#)
-        
+
         let decodedValue = try decoder.decode([String: EppoValue].self, from: jsonData)
         XCTAssertEqual(try decodedValue[jsonKey]?.getStringValue(), "testString")
     }
-    
+
     func testDecodingInteger() throws {
         let jsonData = try jsonData(from: #"{"\#(jsonKey)": 123}"#)
-        
+
         let decodedValue = try decoder.decode([String: EppoValue].self, from: jsonData)
         XCTAssertEqual(try decodedValue[jsonKey]?.getDoubleValue(), 123)
     }
-    
+
     func testDecodingDouble() throws {
         let jsonData = try jsonData(from: #"{"\#(jsonKey)": 123.456}"#)
-        
+
         let decodedValue = try decoder.decode([String: EppoValue].self, from: jsonData)
         XCTAssertEqual(try decodedValue[jsonKey]?.getDoubleValue(), 123.456)
     }
-    
+
     func testDecodingArrayOfStrings() throws {
         let jsonData = try jsonData(from: #"{"\#(jsonKey)": ["one","two","three"]}"#)
         let decoder = JSONDecoder()
-        
+
         let decodedValue = try decoder.decode([String: EppoValue].self, from: jsonData)
         XCTAssertEqual(try decodedValue[jsonKey]?.getStringArrayValue(), ["one", "two", "three"])
     }
@@ -45,21 +45,21 @@ class EppoValueTests: XCTestCase {
         let boolValueFalse = EppoValue(value: false)
         XCTAssertTrue(boolValueTrue1 == boolValueTrue2, "Both true values should be equal")
         XCTAssertFalse(boolValueTrue1 == boolValueFalse, "True should not be equal to false")
-        
+
         // Test numeric equality
         let numericValue1 = EppoValue(value: 42)
         let numericValue2 = EppoValue(value: 42.0)
         let numericValueDifferent = EppoValue(value: 43)
         XCTAssertTrue(numericValue1 == numericValue2, "Numeric 42 should be equal to 42.0")
         XCTAssertFalse(numericValue1 == numericValueDifferent, "42 should not be equal to 43")
-        
+
         // Test string equality
         let stringValue1 = EppoValue(value: "test")
         let stringValue2 = EppoValue(value: "test")
         let stringValueDifferent = EppoValue(value: "Test")
         XCTAssertTrue(stringValue1 == stringValue2, "String 'test' should be equal to 'test'")
         XCTAssertFalse(stringValue1 == stringValueDifferent, "String 'test' should not be equal to 'Test'")
-        
+
         // Test array equality with out of order and duplicates
         let arrayValue1 = EppoValue(array: ["one", "two", "two", "three"])
         let arrayValue2 = EppoValue(array: ["three", "one", "two", "two"])
@@ -87,7 +87,7 @@ class EppoValueTests: XCTestCase {
         // array of strings
         XCTAssertEqual(try EppoValue(array: ["one", "two", "three"]).toEppoString(), "one, two, three")
     }
-    
+
     private func jsonData(from jsonString: String) throws -> Data {
         guard let jsonData = jsonString.data(using: .utf8) else {
             throw NSError(domain: "JSONError", code: 1001, userInfo: [NSLocalizedDescriptionKey: "Invalid JSON string"])

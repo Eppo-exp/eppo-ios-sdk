@@ -1,9 +1,8 @@
 import Foundation
 
 public struct Configuration: Codable {
-    internal let flagsConfiguration: UniversalFlagConfig;
-    internal let obfuscated: Bool;
-
+    internal let flagsConfiguration: UniversalFlagConfig
+    internal let obfuscated: Bool
 
     internal init(flagsConfiguration: UniversalFlagConfig, obfuscated: Bool) {
         self.flagsConfiguration = flagsConfiguration
@@ -11,7 +10,7 @@ public struct Configuration: Codable {
     }
 
     public init(flagsConfigurationJson: Data, obfuscated: Bool) throws {
-        let flagsConfiguration = try UniversalFlagConfig.decodeFromJSON(from: flagsConfigurationJson);
+        let flagsConfiguration = try UniversalFlagConfig.decodeFromJSON(from: flagsConfigurationJson)
         self.init(flagsConfiguration: flagsConfiguration, obfuscated: obfuscated)
     }
 
