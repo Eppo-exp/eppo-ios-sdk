@@ -1,19 +1,13 @@
-import Foundation
-import os
+
 
 /// Handles API endpoint URL construction with subdomain support.
 public class ApiEndpoints {
-    private static let logger: Logger = {
-        let bundleID = Bundle.main.bundleIdentifier ?? "com.eppo.sdk"
-        return Logger(subsystem: bundleID, category: String(describing: ApiEndpoints.self))
-    }()
-    
     private let effectiveBaseURL: String
     
     public init(baseURL: String?, sdkToken: String) {
         let tokenDecoder = SdkTokenDecoder(sdkToken)
         if baseURL == defaultHost {
-            Self.logger.warning("[Eppo SDK] custom baseURL cannot be the default host")
+            // Custom baseURL cannot be the default host
             self.effectiveBaseURL = Self.getEffectiveBaseURL(tokenDecoder: tokenDecoder)
         } else if let baseURL = baseURL {
             self.effectiveBaseURL = baseURL

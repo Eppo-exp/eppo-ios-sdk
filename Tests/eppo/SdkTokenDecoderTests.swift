@@ -4,13 +4,13 @@ import XCTest
 final class SdkTokenDecoderTests: XCTestCase {
     
     func testExtractSubdomain() {
-        let token = SdkTokenDecoder("Zm9vPWJhciZjcz1leHBlcmltZW50.zCsQuoHJxVPp895") // cs=experiment
+        let token = SdkTokenDecoder("zCsQuoHJxVPp895.Zm9vPWJhciZjcz1leHBlcmltZW50") // cs=experiment
         XCTAssertEqual(token.getSubdomain(), "experiment")
     }
     
     
     func testTokenWithoutRequiredParameter() {
-        let tokenWithoutCs = SdkTokenDecoder("Zm9vPWJhcg==.a562v63ff55r2") // no cs param
+        let tokenWithoutCs = SdkTokenDecoder("a562v63ff55r2.Zm9vPWJhcg==") // no cs param
         XCTAssertNil(tokenWithoutCs.getSubdomain())
         XCTAssertTrue(tokenWithoutCs.isValid())
     }
@@ -22,7 +22,7 @@ final class SdkTokenDecoderTests: XCTestCase {
     }
     
     func testOriginalTokenAccess() {
-        let tokenString = "3M9ZXhwZXJpbWVudCZlaD1hYmMxMjMuZXBwby5jbG91ZA==.zCsQuoHJxVPp895"
+        let tokenString = "zCsQuoHJxVPp895.3M9ZXhwZXJpbWVudCZlaD1hYmMxMjMuZXBwby5jbG91ZA=="
         let token = SdkTokenDecoder(tokenString)
         XCTAssertEqual(token.getToken(), tokenString)
     }

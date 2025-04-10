@@ -3,10 +3,10 @@ import XCTest
 
 final class ApiEndpointsTests: XCTestCase {
     // Test token with subdomain "test"
-    private let validTokenWithSubdomain = "Y3M9dGVzdA==.zCsQuoHJxVPp895" // cs=test
+    private let validTokenWithSubdomain = "zCsQuoHJxVPp895.Y3M9dGVzdA==" // cs=test
     
     // Test token without subdomain
-    private let validTokenWithoutSubdomain = "Zm9vPWJhcg==.signature" //foo=bar
+    private let validTokenWithoutSubdomain = "signature.Zm9vPWJhcg==" //foo=bar
     
     // Invalid token
     private let invalidToken = "invalid.token"
