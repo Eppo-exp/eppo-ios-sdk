@@ -60,12 +60,12 @@ public class EppoClient {
         let endpoints = ApiEndpoints(baseURL: host, sdkKey: self.sdkKey);
         self.host = endpoints.baseURL;
 
-        let httpClient = NetworkEppoHttpClient(baseURL: self.host, sdkKey: self.sdkKey.getToken(), sdkName: "sdkName", sdkVersion: sdkVersion)
+        let httpClient = NetworkEppoHttpClient(baseURL: self.host, sdkKey: self.sdkKey.token, sdkName: "sdkName", sdkVersion: sdkVersion)
         self.configurationRequester = ConfigurationRequester(httpClient: httpClient)
 
         self.configurationStore = ConfigurationStore(withPersistentCache: withPersistentCache)
         if let configuration = initialConfiguration {
-            self.configurationStore.setConfiguration(configuration: configuration)
+            self.configurationStore.saveConfiguration(configuration: configuration)
         }
     }
 
@@ -260,7 +260,7 @@ public class EppoClient {
         subjectAttributes: SubjectAttributes,
         expectedVariationType: UFC_VariationType) throws -> FlagEvaluation?
     {
-        if (self.sdkKey.getToken().count == 0) {
+        if (self.sdkKey.token.count == 0) {
             throw Errors.sdkKeyInvalid;
         }
         

@@ -3,33 +3,39 @@ import Foundation
 /// Decodes SDK tokens with embedded encoded data.
 public class SDKKey {
     private let decodedParams: [String: String]?
-    private let sdkToken: String
     
-    public init(_ sdkToken: String) {
-        self.decodedParams = SDKKey.decodeToken(sdkToken)
-        self.sdkToken = sdkToken
+    /// The original token string
+    public let token: String
+    
+    /// Possible errors when working with SDK keys
+    public enum SDKKeyError: Error {
+        case invalidFormat
+        case invalidEncoding
+        case missingParameters
     }
     
-    /// Checks if the token contains encoded data.
-    public func isValid() -> Bool {
+    /// Creates a new SDK key from a token string
+    /// - Parameter token: The raw SDK token string
+    public init(_ token: String) {
+        self.token = token
+        self.decodedParams = SDKKey.decodeToken(token)
+    }
+    
+    /// Whether the token contains valid encoded data
+    public var isValid: Bool {
         decodedParams != nil
     }
     
-    /// Returns the original token string.
-    public func getToken() -> String {
-        sdkToken
-    }
-    
-    /// Gets the subdomain from the token if available.
-    /// Returns nil if the token is invalid or doesn't contain a subdomain.
-    public func getSubdomain() -> String? {
+    /// The subdomain extracted from the token, if available
+    public var subdomain: String? {
         decodedParams?["cs"]
     }
-
-    /// Decodes the token and extracts parameters.
-    /// Returns nil if the token is invalid or cannot be decoded.
-    private static func decodeToken(_ tokenString: String) -> [String: String]? {
-        let components = tokenString.split(separator: ".")
+    
+    /// Attempts to decode the token and extract parameters.
+    /// - Parameter token: The raw token string to decode
+    /// - Returns: Dictionary of decoded parameters or nil if invalid
+    private static func decodeToken(_ token: String) -> [String: String]? {
+        let components = token.split(separator: ".")
         
         guard components.count >= 2 else {
             return nil
