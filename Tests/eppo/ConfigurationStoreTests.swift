@@ -5,7 +5,7 @@ import XCTest
 final class ConfigurationStoreTests: XCTestCase {
     var configurationStore: ConfigurationStore!
     var configuration: Configuration!
-    
+
     let emptyFlagConfig = UFC_Flag(
         key: "empty",
         enabled: false,
@@ -14,13 +14,13 @@ final class ConfigurationStoreTests: XCTestCase {
         allocations: [],
         totalShards: 0
     )
-    
+
     override func setUpWithError() throws {
         try super.setUpWithError()
         // Create a new instance for each test
         ConfigurationStore.clearPersistentCache()
         configurationStore = ConfigurationStore()
-        
+
         configuration = Configuration(
           flagsConfiguration: UniversalFlagConfig(
             createdAt: nil,
@@ -31,10 +31,10 @@ final class ConfigurationStoreTests: XCTestCase {
           obfuscated: false
         )
     }
-    
+
     override func tearDownWithError() throws {
         try super.tearDownWithError()
-        
+
         // Release the reference to ensure it's deallocated
         configurationStore = nil
     }
@@ -42,28 +42,28 @@ final class ConfigurationStoreTests: XCTestCase {
     func testClearPersistentCache() throws {
         configurationStore.setConfiguration(configuration: configuration)
         XCTAssertNotNil(configurationStore.getConfiguration(), "Configuration should be set")
-        
+
         ConfigurationStore.clearPersistentCache()
         XCTAssertNotNil(configurationStore.getConfiguration(), "Configuration should not be nil after clearing cache")
     }
 
     func testSetAndGetConfiguration() throws {
         configurationStore.setConfiguration(configuration: configuration)
-        
+
         XCTAssertEqual(
           configurationStore.getConfiguration()?.getFlag(flagKey: "testFlag")?.enabled, emptyFlagConfig.enabled)
     }
-    
+
     func testIsInitialized() async throws {
         XCTAssertNil(
             configurationStore.getConfiguration(),
             "Store should not be initialized before fetching configurations")
-        
+
         configurationStore.setConfiguration(configuration: configuration)
-        
+
         XCTAssertNotNil(
             configurationStore.getConfiguration(),
             "Store should be initialized after fetching configurations")
     }
-    
+
 }

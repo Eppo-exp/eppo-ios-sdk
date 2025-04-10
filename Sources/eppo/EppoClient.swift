@@ -1,5 +1,4 @@
-import Foundation;
-
+import Foundation
 
 public enum Errors: Error {
     case notConfigured
@@ -14,10 +13,10 @@ public enum Errors: Error {
     case flagConfigNotFound
 }
 
-public typealias SubjectAttributes = [String: EppoValue];
+public typealias SubjectAttributes = [String: EppoValue]
 actor EppoClientState {
     private(set) var isLoaded: Bool = false
-    
+
     func checkAndSetLoaded() -> Bool {
         if !isLoaded {
             isLoaded = true
@@ -29,22 +28,22 @@ actor EppoClientState {
 
 public class EppoClient {
     public typealias AssignmentLogger = (Assignment) -> Void
-    
+
     private static let sharedLock = NSLock()
     private static var sharedInstance: EppoClient?
     private static let initializerQueue = DispatchQueue(label: "cloud.eppo.client.initializer")
-    
+
     private var flagEvaluator: FlagEvaluator = FlagEvaluator(sharder: MD5Sharder())
-    
+
     private(set) var sdkKey: SDKKey
     private(set) var host: String
     private(set) var assignmentLogger: AssignmentLogger?
     private(set) var assignmentCache: AssignmentCache?
     private(set) var configurationStore: ConfigurationStore
     private var configurationRequester: ConfigurationRequester
-    
+
     private let state = EppoClientState()
-    
+
     private init(
         sdkKey: String,
         host: String? = nil,
@@ -57,8 +56,8 @@ public class EppoClient {
         self.assignmentLogger = assignmentLogger
         self.assignmentCache = assignmentCache
 
-        let endpoints = ApiEndpoints(baseURL: host, sdkKey: self.sdkKey);
-        self.host = endpoints.baseURL;
+        let endpoints = ApiEndpoints(baseURL: host, sdkKey: self.sdkKey)
+        self.host = endpoints.baseURL
 
         let httpClient = NetworkEppoHttpClient(baseURL: self.host, sdkKey: self.sdkKey.token, sdkName: "sdkName", sdkVersion: sdkVersion)
         self.configurationRequester = ConfigurationRequester(httpClient: httpClient)
@@ -97,7 +96,7 @@ public class EppoClient {
             }
         }
     }
-    
+
     public static func initialize(
         sdkKey: String,
         host: String? = nil,
@@ -126,7 +125,7 @@ public class EppoClient {
             }
         }
     }
-    
+
     public static func shared() throws -> EppoClient {
         try self.sharedLock.withLock {
             guard let instance = sharedInstance else {
@@ -144,26 +143,25 @@ public class EppoClient {
         let config = try await self.configurationRequester.fetchConfigurations()
         self.configurationStore.setConfiguration(configuration: config)
     }
-    
+
     public static func resetSharedInstance() {
         self.sharedLock.withLock {
             sharedInstance = nil
         }
     }
-    
+
     private func loadIfNeeded() async throws {
         let alreadyLoaded = await state.checkAndSetLoaded()
         guard !alreadyLoaded else { return }
-        
+
         try await self.load()
     }
-    
+
     public func getBooleanAssignment(
         flagKey: String,
         subjectKey: String,
         subjectAttributes: SubjectAttributes = SubjectAttributes(),
-        defaultValue: Bool) throws -> Bool
-    {
+        defaultValue: Bool) throws -> Bool {
         do {
             return try getInternalAssignment(
                 flagKey: flagKey,
@@ -176,13 +174,12 @@ public class EppoClient {
             return defaultValue
         }
     }
-    
+
     public func getJSONStringAssignment(
         flagKey: String,
         subjectKey: String,
         subjectAttributes: SubjectAttributes,
-        defaultValue: String) throws -> String
-    {
+        defaultValue: String) throws -> String {
         do {
             return try getInternalAssignment(
                 flagKey: flagKey,
@@ -195,13 +192,12 @@ public class EppoClient {
             return defaultValue
         }
     }
-    
+
     public func getIntegerAssignment(
         flagKey: String,
         subjectKey: String,
         subjectAttributes: SubjectAttributes = SubjectAttributes(),
-        defaultValue: Int) throws -> Int
-    {
+        defaultValue: Int) throws -> Int {
         do {
             let assignment = try getInternalAssignment(
                 flagKey: flagKey,
@@ -215,13 +211,12 @@ public class EppoClient {
             return defaultValue
         }
     }
-    
+
     public func getNumericAssignment(
         flagKey: String,
         subjectKey: String,
         subjectAttributes: SubjectAttributes = SubjectAttributes(),
-        defaultValue: Double) throws -> Double
-    {
+        defaultValue: Double) throws -> Double {
         do {
             return try getInternalAssignment(
                 flagKey: flagKey,
@@ -234,13 +229,12 @@ public class EppoClient {
             return defaultValue
         }
     }
-    
+
     public func getStringAssignment(
         flagKey: String,
         subjectKey: String,
         subjectAttributes: SubjectAttributes = SubjectAttributes(),
-        defaultValue: String) throws -> String
-    {
+        defaultValue: String) throws -> String {
         do {
             return try getInternalAssignment(
                 flagKey: flagKey,
@@ -253,55 +247,54 @@ public class EppoClient {
             return defaultValue
         }
     }
-    
+
     private func getInternalAssignment(
         flagKey: String,
         subjectKey: String,
         subjectAttributes: SubjectAttributes,
-        expectedVariationType: UFC_VariationType) throws -> FlagEvaluation?
-    {
-        if (self.sdkKey.token.count == 0) {
-            throw Errors.sdkKeyInvalid;
+        expectedVariationType: UFC_VariationType) throws -> FlagEvaluation? {
+        if self.sdkKey.token.count == 0 {
+            throw Errors.sdkKeyInvalid
         }
-        
-        if (self.host.count == 0) {
-            throw Errors.hostInvalid;
+
+        if self.host.count == 0 {
+            throw Errors.hostInvalid
         }
-        
+
         if subjectKey.count == 0 { throw Errors.subjectKeyRequired }
         if flagKey.count == 0 { throw Errors.flagKeyRequired }
 
         guard let configuration = self.configurationStore.getConfiguration() else {
             throw Errors.configurationNotLoaded
         }
-        
+
         let flagKeyForLookup = configuration.obfuscated ? getMD5Hex(flagKey) : flagKey
-        
+
         guard let flagConfig = configuration.getFlag(flagKey: flagKeyForLookup) else {
             throw Errors.flagConfigNotFound
         }
-        
+
         if flagConfig.variationType != expectedVariationType {
             throw Errors.variationTypeMismatch
         }
-        
+
         let flagEvaluation = flagEvaluator.evaluateFlag(
             flag: flagConfig,
             subjectKey: subjectKey,
             subjectAttributes: subjectAttributes,
             isConfigObfuscated: configuration.obfuscated
         )
-        
+
         if let variation = flagEvaluation.variation, !isValueOfType(expectedType: expectedVariationType, variationValue: variation.value) {
             throw Errors.variationWrongType
         }
-        
+
         // Optionally log assignment
         if flagEvaluation.doLog {
             if let assignmentLogger = self.assignmentLogger {
                 let allocationKey = flagEvaluation.allocationKey ?? "__eppo_no_allocation"
                 let variationKey = flagEvaluation.variation?.key ?? "__eppo_no_variation"
-                
+
                 // Prepare the assignment cache key
                 let assignmentCacheKey = AssignmentCacheKey(
                     subjectKey: subjectKey,
@@ -309,7 +302,7 @@ public class EppoClient {
                     allocationKey: allocationKey,
                     variationKey: variationKey
                 )
-                
+
                 // Check if the assignment has already been logged, if the cache is defined
                 if let cache = self.assignmentCache, cache.hasLoggedAssignment(key: assignmentCacheKey) {
                     // The assignment has already been logged, do nothing
@@ -330,14 +323,14 @@ public class EppoClient {
                         ],
                         extraLogging: flagEvaluation.extraLogging
                     )
-                    
+
                     assignmentLogger(assignment)
                     self.assignmentCache?.setLastLoggedAssignment(key: assignmentCacheKey)
                 }
             }
         }
-        
-        return flagEvaluation;
+
+        return flagEvaluation
     }
 }
 

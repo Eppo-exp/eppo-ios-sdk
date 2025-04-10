@@ -2,7 +2,7 @@
 public class ApiEndpoints {
     /// The effective base URL used for API requests
     private(set) public var baseURL: String
-    
+
     /// Creates an API endpoints helper to construct URLs for API requests.
     /// - Parameters:
     ///   - baseURL: Optional custom base URL. If nil or default host, subdomain logic will be applied.
@@ -17,7 +17,7 @@ public class ApiEndpoints {
             self.baseURL = Self.getEffectiveBaseURL(sdkKey: sdkKey)
         }
     }
-    
+
     /// Determines the effective base URL to use for API requests.
     /// If a valid subdomain is found in the SDK token, it will be inserted into the default host.
     /// Otherwise, falls back to the default host with no subdomain.

@@ -19,7 +19,7 @@ public class InMemoryAssignmentCache: AssignmentCache {
     internal struct CacheKey: Hashable {
         let subjectKey: String
         let flagKey: String
-        
+
         func hash(into hasher: inout Hasher) {
             hasher.combine(subjectKey)
             hasher.combine(flagKey)
@@ -40,14 +40,14 @@ public class InMemoryAssignmentCache: AssignmentCache {
     public init() {
         // Initialization code here
     }
-    
+
     public func hasLoggedAssignment(key: AssignmentCacheKey) -> Bool {
         return queue.sync {
             let cacheKey = CacheKey(subjectKey: key.subjectKey, flagKey: key.flagKey)
             return get(key: cacheKey) == CacheValue(allocationKey: key.allocationKey, variationKey: key.variationKey)
         }
     }
-    
+
     public func setLastLoggedAssignment(key: AssignmentCacheKey) {
         queue.sync(flags: .barrier) {
             let cacheKey = CacheKey(subjectKey: key.subjectKey, flagKey: key.flagKey)

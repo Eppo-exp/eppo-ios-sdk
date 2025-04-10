@@ -4,13 +4,13 @@ import XCTest
 
 final class AssignmentCacheTests: XCTestCase {
     var cache: InMemoryAssignmentCache!
-    
+
     override func setUp() {
         super.setUp()
-        
+
         cache = InMemoryAssignmentCache()
     }
-    
+
     override func tearDown() {
         cache = nil
         super.tearDown()
@@ -18,13 +18,13 @@ final class AssignmentCacheTests: XCTestCase {
 
     func testOscillatingAllocation() {
         let key1 = AssignmentCacheKey(
-            subjectKey: "Math", 
+            subjectKey: "Math",
             flagKey: "TestFlag",
             allocationKey: "A1", // initial
             variationKey: "VariationA"
         )
         let key2 = AssignmentCacheKey(
-            subjectKey: "Math", 
+            subjectKey: "Math",
             flagKey: "TestFlag",
             allocationKey: "A2", // changes
             variationKey: "VariationA"
@@ -46,7 +46,7 @@ final class AssignmentCacheTests: XCTestCase {
         XCTAssertFalse(cache.hasLoggedAssignment(key: key1))
         XCTAssertTrue(cache.hasLoggedAssignment(key: key2))
     }
-    
+
     func testOscillatingVariations() {
         let key1 = AssignmentCacheKey(
             subjectKey: "Math",
@@ -81,14 +81,14 @@ final class AssignmentCacheTests: XCTestCase {
     func testConcurrentCacheAccess() async throws {
         let iterations = 1000
         let concurrentTasks = 10
-        
+
         let key = AssignmentCacheKey(
             subjectKey: "Math",
             flagKey: "TestFlag",
             allocationKey: "A1",
             variationKey: "VariationA"
         )
-        
+
         await withTaskGroup(of: Void.self) { group in
             // Add reader tasks
             for _ in 0..<concurrentTasks {
@@ -98,7 +98,7 @@ final class AssignmentCacheTests: XCTestCase {
                     }
                 }
             }
-            
+
             // Add writer tasks
             for _ in 0..<concurrentTasks {
                 group.addTask {
@@ -108,7 +108,7 @@ final class AssignmentCacheTests: XCTestCase {
                 }
             }
         }
-        
+
         // If we got here without crashing, the test passed
         // The actual values don't matter as much as the fact that we didn't crash
         // due to concurrent access
