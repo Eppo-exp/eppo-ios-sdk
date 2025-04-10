@@ -1,14 +1,14 @@
 import Foundation
 
-public enum EppoHttpClientErrors : Error {
+public enum EppoHttpClientErrors: Error {
     case invalidURL
 }
 
 public protocol EppoHttpClient {
-    func get(_ path: String) async throws -> (Data, URLResponse);
+    func get(_ path: String) async throws -> (Data, URLResponse)
 }
 
-public class NetworkEppoHttpClient : EppoHttpClient {
+public class NetworkEppoHttpClient: EppoHttpClient {
     private let baseURL: String
     private let sdkKey: String
     private let sdkName: String
@@ -42,9 +42,9 @@ public class NetworkEppoHttpClient : EppoHttpClient {
         components?.queryItems = queryItems
 
         guard let url = components?.url else {
-            throw Errors.invalidURL;
+            throw Errors.invalidURL
         }
 
-        return try await URLSession.shared.data(from: url);
+        return try await URLSession.shared.data(from: url)
     }
 }

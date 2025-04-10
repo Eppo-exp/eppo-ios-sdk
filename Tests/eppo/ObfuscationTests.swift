@@ -2,7 +2,6 @@ import XCTest
 
 @testable import EppoFlagging
 
-
 final class ObfuscationTests: XCTestCase {
 
     func testParseUtcISODateElement_ValidISODate() {

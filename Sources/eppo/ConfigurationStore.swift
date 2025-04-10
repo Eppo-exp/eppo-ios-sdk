@@ -19,7 +19,7 @@ class ConfigurationStore {
     // would be sharing the cache file.
     static let persistenceQueue = DispatchQueue(
       label: "cloud.eppo.configurationStorePersistence", qos: .background)
-    
+
     // Initialize with the disk-based path for storage
     public init(withPersistentCache: Bool = true) {
         self.cacheFileURL = if withPersistentCache {
@@ -64,7 +64,7 @@ class ConfigurationStore {
     public func getConfiguration() -> Configuration? {
         return syncQueue.sync { self.configuration }
     }
-    
+
     // Set the configurations in a thread-safe manner.
     //
     // The use of a barrier ensures that this write operation completes before any other read or write
@@ -76,7 +76,7 @@ class ConfigurationStore {
             self.saveToDisk(configuration: configuration)
         }
     }
-    
+
     public static func clearPersistentCache() {
         guard let cacheFileURL = Self.findCacheFileURL() else {
             return
@@ -90,7 +90,7 @@ class ConfigurationStore {
             }
         }
     }
-    
+
     // Save the configuration to disk (in background)
     private func saveToDisk(configuration: Configuration) {
         guard let cacheFileURL = self.cacheFileURL else {
@@ -106,7 +106,7 @@ class ConfigurationStore {
             }
         }
     }
-    
+
     // Load the configuration from disk
     private func loadFromDisk() -> Configuration? {
         guard let cacheFileURL = self.cacheFileURL else {

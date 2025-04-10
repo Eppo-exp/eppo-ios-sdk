@@ -6,15 +6,14 @@ import OHHTTPStubsSwift
 
 @testable import EppoFlagging
 
-
 final class AssignmentLoggerTests: XCTestCase {
    var loggerSpy: AssignmentLoggerSpy!
    var eppoClient: EppoClient!
    var UFCTestJSON: Data!
-   
+
    override func setUpWithError() throws {
        try super.setUpWithError()
-       
+
        let fileURL = Bundle.module.url(
            forResource: "Resources/test-data/ufc/flags-v1-obfuscated.json",
            withExtension: ""
@@ -25,15 +24,15 @@ final class AssignmentLoggerTests: XCTestCase {
            let stubData = self.UFCTestJSON!
            return HTTPStubsResponse(data: stubData, statusCode: 200, headers: ["Content-Type": "application/json"])
        }
-       
+
        loggerSpy = AssignmentLoggerSpy()
    }
-   
+
     // todo: do obfuscation and not tests.
 
    func testLogger() async throws {
        eppoClient = try await EppoClient.initialize(sdkKey: "mock-api-key", assignmentLogger: loggerSpy.logger)
-       
+
        let assignment = try eppoClient.getNumericAssignment(
            flagKey: "numeric_flag",
            subjectKey: "6255e1a72a84e984aed55668",
