@@ -35,7 +35,7 @@ public class EppoClient {
 
     private var flagEvaluator: FlagEvaluator = FlagEvaluator(sharder: MD5Sharder())
 
-    private(set) var sdkKey: String
+    private(set) var sdkKey: SDKKey
     private(set) var host: String
     private(set) var assignmentLogger: AssignmentLogger?
     private(set) var assignmentCache: AssignmentCache?
@@ -46,18 +46,20 @@ public class EppoClient {
 
     private init(
         sdkKey: String,
-        host: String,
+        host: String? = nil,
         assignmentLogger: AssignmentLogger? = nil,
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
         initialConfiguration: Configuration?,
         withPersistentCache: Bool = true
     ) {
-        self.sdkKey = sdkKey
-        self.host = host
+        self.sdkKey = SDKKey(sdkKey)
         self.assignmentLogger = assignmentLogger
         self.assignmentCache = assignmentCache
 
-        let httpClient = NetworkEppoHttpClient(baseURL: host, sdkKey: sdkKey, sdkName: "sdkName", sdkVersion: sdkVersion)
+        let endpoints = ApiEndpoints(baseURL: host, sdkKey: self.sdkKey)
+        self.host = endpoints.baseURL
+
+        let httpClient = NetworkEppoHttpClient(baseURL: self.host, sdkKey: self.sdkKey.token, sdkName: "sdkName", sdkVersion: sdkVersion)
         self.configurationRequester = ConfigurationRequester(httpClient: httpClient)
 
         self.configurationStore = ConfigurationStore(withPersistentCache: withPersistentCache)
@@ -71,7 +73,7 @@ public class EppoClient {
     /// Configuration can later be loaded with `load()` method.
     public static func initializeOffline(
         sdkKey: String,
-        host: String = defaultHost,
+        host: String? = nil,
         assignmentLogger: AssignmentLogger? = nil,
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
         initialConfiguration: Configuration?,
@@ -97,7 +99,7 @@ public class EppoClient {
 
     public static func initialize(
         sdkKey: String,
-        host: String = defaultHost,
+        host: String? = nil,
         assignmentLogger: AssignmentLogger? = nil,
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
         initialConfiguration: Configuration? = nil
@@ -251,7 +253,7 @@ public class EppoClient {
         subjectKey: String,
         subjectAttributes: SubjectAttributes,
         expectedVariationType: UFC_VariationType) throws -> FlagEvaluation? {
-        if self.sdkKey.count == 0 {
+        if self.sdkKey.token.count == 0 {
             throw Errors.sdkKeyInvalid
         }
 
