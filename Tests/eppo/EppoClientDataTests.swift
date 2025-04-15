@@ -153,8 +153,9 @@ final class EppoClientDataTests: XCTestCase {
 
         let flagConfigs = eppoClient.getFlagConfigurations()
         XCTAssertNotNil(flagConfigs, "Flag configurations should not be nil")
-        XCTAssertTrue(flagConfigs?.contains(where: { $0.key == "empty_flag" }) ?? false, "Should contain empty_flag")
-        XCTAssertTrue(flagConfigs?.contains(where: { $0.key == "numeric_flag" }) ?? false, "Should contain numeric_flag")
+        XCTAssertNotNil(flagConfigs?["empty_flag"], "Should contain empty_flag")
+        XCTAssertNotNil(flagConfigs?["numeric_flag"], "Should contain numeric_flag")
+        
         let numericFlag = flagConfigs?["numeric_flag"]
         XCTAssertEqual(numericFlag?.variationType, UFC_VariationType.numeric)
         XCTAssertEqual(numericFlag?.totalShards, 10000)
