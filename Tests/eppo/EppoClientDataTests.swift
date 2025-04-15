@@ -144,4 +144,19 @@ final class EppoClientDataTests: XCTestCase {
     func assertMessage(testCase: AssignmentTestCase, subjectKey: String, obfuscated: Bool) -> String {
         return "FlagKey: \(testCase.flag), SubjectKey: \(subjectKey), Obfuscated: \(obfuscated)"
     }
+
+    func testGetFlagConfigurations() throws {
+        try setUpTestsWithFile(
+            resourceName: "Resources/test-data/ufc/flags-v1.json",
+            obfuscated: false
+        )
+
+        let flagConfigs = eppoClient.getFlagConfigurations()
+        XCTAssertNotNil(flagConfigs, "Flag configurations should not be nil")
+        XCTAssertTrue(flagConfigs?.contains(where: { $0.key == "empty_flag" }) ?? false, "Should contain empty_flag")
+        XCTAssertTrue(flagConfigs?.contains(where: { $0.key == "numeric_flag" }) ?? false, "Should contain numeric_flag")
+        let numericFlag = flagConfigs?["numeric_flag"]
+        XCTAssertEqual(numericFlag?.variationType, UFC_VariationType.numeric)
+        XCTAssertEqual(numericFlag?.totalShards, 10000)
+    }
 }
