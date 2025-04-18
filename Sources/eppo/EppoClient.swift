@@ -26,12 +26,6 @@ actor EppoClientState {
     }
 }
 
-// Constants can live in their own enum outside the actor
-public enum EppoConstants {
-    public static let DEFAULT_POLL_INTERVAL_MS = 300_000 // 5 minutes in milliseconds
-    public static let DEFAULT_JITTER_INTERVAL_RATIO = 300 // Makes default jitter 1 second
-}
-
 public class EppoClient {
     public typealias AssignmentLogger = (Assignment) -> Void
 
@@ -111,8 +105,8 @@ public class EppoClient {
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
         initialConfiguration: Configuration? = nil,
         pollingEnabled: Bool = false,
-        pollingIntervalMs: Int = EppoConstants.DEFAULT_POLL_INTERVAL_MS,
-        pollingJitterMs: Int = EppoConstants.DEFAULT_POLL_INTERVAL_MS / EppoConstants.DEFAULT_JITTER_INTERVAL_RATIO
+        pollingIntervalMs: Int = EppoPollerConstants.DEFAULT_POLL_INTERVAL_MS,
+        pollingJitterMs: Int = EppoPollerConstants.DEFAULT_POLL_INTERVAL_MS / EppoPollerConstants.DEFAULT_JITTER_INTERVAL_RATIO
     ) async throws -> EppoClient {
         let instance = Self.initializeOffline(
             sdkKey: sdkKey,
@@ -348,8 +342,8 @@ public class EppoClient {
     }
 
     public func startPolling(
-        intervalMs: Int = EppoConstants.DEFAULT_POLL_INTERVAL_MS,
-        jitterMs: Int = EppoConstants.DEFAULT_POLL_INTERVAL_MS / EppoConstants.DEFAULT_JITTER_INTERVAL_RATIO
+        intervalMs: Int = EppoPollerConstants.DEFAULT_POLL_INTERVAL_MS,
+        jitterMs: Int = EppoPollerConstants.DEFAULT_POLL_INTERVAL_MS / EppoPollerConstants.DEFAULT_JITTER_INTERVAL_RATIO
     ) async throws {
         // Stop any existing poller
         poller?.stop()

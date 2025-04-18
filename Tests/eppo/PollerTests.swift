@@ -29,6 +29,9 @@ final class PollerTests: XCTestCase {
         // Stop the poller
         poller.stop()
         
+        // Give it some time to execute multiple polls
+        try await Task.sleep(nanoseconds: 50_000_000) // 50ms
+        
         // Counts should remain the same after stopping
         XCTAssertEqual(callCount, 1, "Call count should not change after stopping")
         XCTAssertEqual(testTimer.executeCount, 1, "Timer executions should not change after stopping")

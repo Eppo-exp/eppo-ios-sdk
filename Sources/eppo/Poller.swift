@@ -1,5 +1,11 @@
 import Foundation
 
+public enum EppoPollerConstants {
+    public static let DEFAULT_POLL_INTERVAL_MS = 300_000 // 5 minutes in milliseconds
+    public static let DEFAULT_JITTER_INTERVAL_RATIO = 300 // Makes default jitter 1 second
+    public static let DEFAULT_MAX_POLL_RETRIES = 7
+}
+
 class Logger {
     func info(_ message: String) {
         print("INFO: \(message)")
@@ -81,7 +87,6 @@ public class Poller {
     private var nextPollMs: Int
     private var logger: Logger
     private let timer: TimerType
-    private static let DEFAULT_MAX_POLL_RETRIES = 7
     
     public init(
         intervalMs: Int,
@@ -153,7 +158,7 @@ public class Poller {
             nextPollMs = intervalMs
         } catch {
             failedAttempts += 1
-            if failedAttempts < Poller.DEFAULT_MAX_POLL_RETRIES {
+            if failedAttempts < EppoPollerConstants.DEFAULT_MAX_POLL_RETRIES {
                 let failureWaitMultiplier = pow(2.0, Double(failedAttempts))
                 nextPollMs = Int(failureWaitMultiplier) * intervalMs
             } else {
