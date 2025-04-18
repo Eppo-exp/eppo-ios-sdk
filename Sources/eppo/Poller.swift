@@ -44,17 +44,23 @@ class RealTimer: TimerType {
 class TestTimer: TimerType {
     private(set) var executeCount: Int = 0
     private var isRunning = true
+    private var startTime: TimeInterval
+    
+    init() {
+        self.startTime = Date().timeIntervalSince1970
+    }
     
     func schedule(deadline: TimeInterval, callback: @escaping () async -> Void) {
         executeCount += 1
         
-        // Execute callback after a tiny delay to simulate timing
         if isRunning {
             Task {
-                try? await Task.sleep(nanoseconds: 1_000_000) // 1ms delay
+                // Convert deadline to nanoseconds and wait
+                let delayNanos = UInt64(deadline * 1_000_000_000) // Convert seconds to nanoseconds
+                try? await Task.sleep(nanoseconds: delayNanos)
+                
                 if self.isRunning {
                     await callback()
-                } else {
                 }
             }
         }

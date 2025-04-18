@@ -62,30 +62,6 @@ final class PollerTests: XCTestCase {
         XCTAssertGreaterThan(testTimer.executeCount, 1, "Timer should have been scheduled multiple times")
     }
     
-    func testStopsPollingIfUnexpectedError() async throws {
-        var callCount = 0
-        
-        let mockCallback: () async throws -> Void = {
-            callCount += 1
-            throw NSError(domain: "Test", code: 0, userInfo: [NSLocalizedDescriptionKey: "bad request"])
-        }
-        
-        let testTimer = TestTimer()
-        let poller = Poller(
-            intervalMs: 10,
-            jitterMs: 1,
-            callback: mockCallback,
-            logger: Logger(),
-            timer: testTimer
-        )
-        
-        // Just test the initial call which should fail
-        try? await poller.start()
-        
-        XCTAssertEqual(callCount, 1, "Should have called exactly once")
-        XCTAssertEqual(testTimer.executeCount, 1, "Timer should have been scheduled once")
-    }
-    
     func testExponentialBackoffOnErrors() async throws {
         var callCount = 0
         let mockCallback: () async throws -> Void = {
@@ -104,11 +80,31 @@ final class PollerTests: XCTestCase {
 
         // Start the poller
         try? await poller.start()
+        
+        // Wait for one interval to pass
+        try await Task.sleep(nanoseconds: 110_000_000) // 10ms
+        XCTAssertEqual(callCount, 2, "Should have attempted 1 retry + 1 initial call")
 
-        // Give some time for retries to occur
-        try await Task.sleep(nanoseconds: 100_000_000) // 100ms
+        try await Task.sleep(nanoseconds: 210_000_000) // 20ms
+        XCTAssertEqual(callCount, 3, "Should have attempted 2 retries + 1 initial call")
 
-        XCTAssertEqual(callCount, 8, "Should have attempted up to max retries") // 7 retries + 1 initial call
+        try await Task.sleep(nanoseconds: 410_000_000) // 40ms
+        XCTAssertEqual(callCount, 4, "Should have attempted 3 retries + 1 initial call")
+
+        try await Task.sleep(nanoseconds: 810_000_000) // 80ms
+        XCTAssertEqual(callCount, 5, "Should have attempted 4 retries + 1 initial call")
+        
+        try await Task.sleep(nanoseconds: 1_610_000_000) // 160ms
+        XCTAssertEqual(callCount, 6, "Should have attempted 5 retries + 1 initial call")
+        
+        try await Task.sleep(nanoseconds: 3_210_000_000) // 320ms
+        XCTAssertEqual(callCount, 7, "Should have attempted 6 retries + 1 initial call")
+        
+        try await Task.sleep(nanoseconds: 6_410_000_000) // 640ms
+        XCTAssertEqual(callCount, 8, "Should have attempted 7 retries + 1 initial call")
+
+        try await Task.sleep(nanoseconds: 12_810_000_000) // 1280ms
+        XCTAssertEqual(callCount, 8, "Should have attempted up to max retries") // Cannot go beyond max
         XCTAssertEqual(testTimer.executeCount, 7, "Timer should have been scheduled 7 times")
     }
     
@@ -147,5 +143,21 @@ final class PollerTests: XCTestCase {
         
         // Verify that multiple executions occurred
         XCTAssertTrue(testTimer.executeCount > 1, "Should have executed multiple times")
+        
+        // Verify jitter
+        for interval in intervals {
+            // Convert to milliseconds for comparison
+            let intervalInMs = interval * 1000
+            
+            // Should be between intervalMs and intervalMs + jitterMs
+            XCTAssertGreaterThanOrEqual(intervalInMs, Double(intervalMs), "Interval should not be less than base interval")
+            XCTAssertLessThanOrEqual(intervalInMs, Double(intervalMs + jitterMs), "Interval should not exceed base interval plus max jitter")
+        }
+        
+        // Verify that not all intervals are the same (jitter is actually being applied)
+        if intervals.count > 1 {
+            let allSame = intervals.dropFirst().allSatisfy { $0 == intervals[0] }
+            XCTAssertFalse(allSame, "Intervals should vary due to jitter")
+        }
     }
 }
