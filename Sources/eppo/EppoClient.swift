@@ -26,6 +26,12 @@ actor EppoClientState {
     }
 }
 
+// Constants can live in their own enum outside the actor
+public enum EppoConstants {
+    public static let DEFAULT_POLL_INTERVAL_MS = 300_000 // 5 minutes in milliseconds
+    public static let DEFAULT_JITTER_INTERVAL_RATIO = 300 // Makes default jitter 1 second
+}
+
 public class EppoClient {
     public typealias AssignmentLogger = (Assignment) -> Void
 
@@ -42,9 +48,6 @@ public class EppoClient {
     private(set) var configurationStore: ConfigurationStore
     private var configurationRequester: ConfigurationRequester
     private var poller: Poller?
-    private static let DEFAULT_POLL_INTERVAL_MS = 300_000 // 5 minutes in milliseconds
-    private static let DEFAULT_POLL_CONFIG_REQUEST_RETRIES = 3
-    private static let DEFAULT_INITIAL_CONFIG_REQUEST_RETRIES = 1
 
     private let state = EppoClientState()
 
@@ -107,14 +110,9 @@ public class EppoClient {
         assignmentLogger: AssignmentLogger? = nil,
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
         initialConfiguration: Configuration? = nil,
-        // Polling parameters
-        pollingIntervalMs: Int = DEFAULT_POLL_INTERVAL_MS,
-        maxPollRetries: Int = DEFAULT_POLL_CONFIG_REQUEST_RETRIES,
-        maxStartRetries: Int = DEFAULT_INITIAL_CONFIG_REQUEST_RETRIES,
-        pollAfterSuccessfulStart: Bool = false,
-        pollAfterFailedStart: Bool = false,
-        errorOnFailedStart: Bool = false,
-        skipInitialPoll: Bool = false
+        pollingEnabled: Bool = false,
+        pollingIntervalMs: Int = EppoConstants.DEFAULT_POLL_INTERVAL_MS,
+        pollingJitterMs: Int = EppoConstants.DEFAULT_POLL_INTERVAL_MS / EppoConstants.DEFAULT_JITTER_INTERVAL_RATIO
     ) async throws -> EppoClient {
         let instance = Self.initializeOffline(
             sdkKey: sdkKey,
@@ -125,34 +123,18 @@ public class EppoClient {
         )
 
         return try await withCheckedThrowingContinuation { continuation in
-            initializerQueue.async {
-                Task {
-                    do {
-                        if !skipInitialPoll {
-                            try await instance.loadIfNeeded()
-                        }
-                        
-                        // Only start polling if either success or failure polling is enabled
-                        if pollAfterSuccessfulStart || pollAfterFailedStart {
-                            let options = Poller.PollerOptions(
-                                maxPollRetries: maxPollRetries,
-                                maxStartRetries: maxStartRetries,
-                                pollAfterSuccessfulStart: pollAfterSuccessfulStart,
-                                errorOnFailedStart: errorOnFailedStart,
-                                pollAfterFailedStart: pollAfterFailedStart,
-                                skipInitialPoll: skipInitialPoll
-                            )
-                            
-                            try await instance.startPolling(
-                                intervalMs: pollingIntervalMs,
-                                options: options
-                            )
-                        }
-                        
-                        continuation.resume(returning: instance)
-                    } catch {
-                        continuation.resume(throwing: error)
+            Task {
+                do {
+                    try await instance.loadIfNeeded()
+                    if pollingEnabled {
+                        try await instance.startPolling(
+                            intervalMs: pollingIntervalMs,
+                            jitterMs: pollingJitterMs
+                        )
                     }
+                    continuation.resume(returning: instance)
+                } catch {
+                    continuation.resume(throwing: error)
                 }
             }
         }
@@ -366,8 +348,8 @@ public class EppoClient {
     }
 
     public func startPolling(
-        intervalMs: Int = DEFAULT_POLL_INTERVAL_MS,
-        options: Poller.PollerOptions = Poller.PollerOptions()
+        intervalMs: Int = EppoConstants.DEFAULT_POLL_INTERVAL_MS,
+        jitterMs: Int = EppoConstants.DEFAULT_POLL_INTERVAL_MS / EppoConstants.DEFAULT_JITTER_INTERVAL_RATIO
     ) async throws {
         // Stop any existing poller
         poller?.stop()
@@ -375,12 +357,11 @@ public class EppoClient {
         // Create a new poller with the load callback
         poller = Poller(
             intervalMs: intervalMs,
+            jitterMs: jitterMs,
             callback: { [weak self] in
                 guard let self = self else { return }
-                // Only fetch if needed (similar to TypeScript implementation)
                 try await self.load()
-            },
-            options: options
+            }
         )
         
         // Start the poller
