@@ -140,7 +140,7 @@ public class Poller {
     
     private func schedulePoll() {
         let nextInterval = nextPollMs + randomJitterMs()
-        timer.schedule(deadline: TimeInterval(nextInterval) / 1000.0) { [weak self] in
+        timer.schedule(deadline: TimeInterval(nextInterval) / 1000.0) { [self] in
             Task {
                 await self?.poll()
             }
