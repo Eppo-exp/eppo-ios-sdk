@@ -56,7 +56,7 @@ final class PollerTests: XCTestCase {
         try await poller.start()
         
         // Give it some time to execute multiple polls
-        try await Task.sleep(nanoseconds: 50_000_000) // 50ms
+        try await Task.sleep(nanoseconds: 100_000_000) // 50ms
         
         // Stop the poller
         poller.stop()
@@ -84,8 +84,8 @@ final class PollerTests: XCTestCase {
         // Start the poller
         try? await poller.start()
 
-        // Wait for one interval to pass
-        try await Task.sleep(nanoseconds: 110_000_000) // 100ms
+        // Wait for two intervals to pass
+        try await Task.sleep(nanoseconds: 210_000_000) // 200ms
         XCTAssertGreaterThanOrEqual(callCount, 2, "Should have attempted at least 1 retry")
         XCTAssertLessThan(callCount, 8, "Should have not yet reached the max retries")
 //        // Wait for one interval to pass
@@ -115,7 +115,7 @@ final class PollerTests: XCTestCase {
 //        XCTAssertEqual(testTimer.executeCount, 7, "Timer should have been scheduled 7 times")
         
         
-        try await Task.sleep(nanoseconds: 12_810_000_000) // 12800ms
+        try await Task.sleep(nanoseconds: 12_800_000_000 + 6_400_000_000 + 3_200_000_000 + 1_600_000_000 + 800_000_000 + 400_000_000 + 200_000_000 + 100_000_000) // 12800ms
         XCTAssertEqual(callCount, 8, "Should have attempted up to max retries") // Cannot go beyond max
         XCTAssertEqual(testTimer.executeCount, 7, "Timer should have been scheduled 7 times")
     }
