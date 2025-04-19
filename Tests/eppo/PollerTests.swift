@@ -30,7 +30,7 @@ final class PollerTests: XCTestCase {
         poller.stop()
         
         // Give it some time to execute multiple polls
-        try await Task.sleep(nanoseconds: 50_000_000) // 50ms
+        try await Task.sleep(nanoseconds: 100_000_000) // 100ms
         
         // Counts should remain the same after stopping
         XCTAssertEqual(callCount, 1, "Call count should not change after stopping")
@@ -56,7 +56,7 @@ final class PollerTests: XCTestCase {
         try await poller.start()
         
         // Give it some time to execute multiple polls
-        try await Task.sleep(nanoseconds: 100_000_000) // 50ms
+        try await Task.sleep(nanoseconds: 100_000_000) // 100ms
         
         // Stop the poller
         poller.stop()
@@ -85,37 +85,12 @@ final class PollerTests: XCTestCase {
         try? await poller.start()
 
         // Wait for two intervals to pass
-        try await Task.sleep(nanoseconds: 210_000_000) // 200ms
-        XCTAssertGreaterThanOrEqual(callCount, 2, "Should have attempted at least 1 retry")
+        try await Task.sleep(nanoseconds: 200_000_000 + 100_000_000) // 200ms
+        XCTAssertGreaterThan(callCount, 1, "Should have attempted at least 1 retry")
         XCTAssertLessThan(callCount, 8, "Should have not yet reached the max retries")
-//        // Wait for one interval to pass
-//        try await Task.sleep(nanoseconds: 110_000_000) // 100ms
-//        XCTAssertEqual(callCount, 2, "Should have attempted 1 retry + 1 initial call")
-//
-//        try await Task.sleep(nanoseconds: 210_000_000) // 200ms
-//        XCTAssertEqual(callCount, 3, "Should have attempted 2 retries + 1 initial call")
-//
-//        try await Task.sleep(nanoseconds: 410_000_000) // 400ms
-//        XCTAssertEqual(callCount, 4, "Should have attempted 3 retries + 1 initial call")
-//
-//        try await Task.sleep(nanoseconds: 810_000_000) // 800ms
-//        XCTAssertEqual(callCount, 5, "Should have attempted 4 retries + 1 initial call")
-//        
-//        try await Task.sleep(nanoseconds: 1_610_000_000) // 1600ms
-//        XCTAssertEqual(callCount, 6, "Should have attempted 5 retries + 1 initial call")
-//        
-//        try await Task.sleep(nanoseconds: 3_210_000_000) // 3200ms
-//        XCTAssertEqual(callCount, 7, "Should have attempted 6 retries + 1 initial call")
-//        
-//        try await Task.sleep(nanoseconds: 6_410_000_000) // 6400ms
-//        XCTAssertEqual(callCount, 8, "Should have attempted 7 retries + 1 initial call")
-//
-//        try await Task.sleep(nanoseconds: 12_810_000_000) // 12800ms
-//        XCTAssertEqual(callCount, 8, "Should have attempted up to max retries") // Cannot go beyond max
-//        XCTAssertEqual(testTimer.executeCount, 7, "Timer should have been scheduled 7 times")
         
         
-        try await Task.sleep(nanoseconds: 12_800_000_000 + 6_400_000_000 + 3_200_000_000 + 1_600_000_000 + 800_000_000 + 400_000_000 + 200_000_000 + 100_000_000) // 12800ms
+        try await Task.sleep(nanoseconds: 12_800_000_000 + 6_400_000_000 + 3_200_000_000 + 1_600_000_000 + 800_000_000 + 400_000_000) // Last retry interval is 6_400_000_000
         XCTAssertEqual(callCount, 8, "Should have attempted up to max retries") // Cannot go beyond max
         XCTAssertEqual(testTimer.executeCount, 7, "Timer should have been scheduled 7 times")
     }
