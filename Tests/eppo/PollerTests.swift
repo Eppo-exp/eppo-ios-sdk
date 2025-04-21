@@ -86,7 +86,8 @@ final class PollerTests: XCTestCase {
         // Start the poller
         try? await poller.start()
 
-        var buffer: UInt64 = 20_000_000
+        // Buffer to account for the time it takes for the callback to execute
+        var buffer: UInt64 = 50_000_000
         // Wait for one interval to pass
         try await Task.sleep(nanoseconds: 100_000_000 + buffer) // 100ms
         XCTAssertEqual(callCount, 2, "Should have attempted 1 retry + 1 initial call")
