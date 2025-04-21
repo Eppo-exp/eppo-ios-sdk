@@ -154,6 +154,7 @@ public class Poller {
         
         do {
             try await callback()
+            logger.info("Eppo SDK successfully requested configuration")
             failedAttempts = 0
             nextPollMs = intervalMs
         } catch {
