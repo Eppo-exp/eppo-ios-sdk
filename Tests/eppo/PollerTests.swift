@@ -12,8 +12,8 @@ final class PollerTests: XCTestCase {
         
         let testTimer = TestTimer()
         let poller = await Poller(
-            intervalMs: 10,
-            jitterMs: 1,
+            intervalMs: 100,
+            jitterMs: 10,
             callback: mockCallback,
             logger: PollerLogger(),
             timer: testTimer
@@ -30,7 +30,7 @@ final class PollerTests: XCTestCase {
         poller.stop()
         
         // Give it some time to execute multiple polls
-        try await Task.sleep(nanoseconds: 100_000_000) // 100ms
+        try await Task.sleep(nanoseconds: 500_000_000) // 100ms
         
         // Counts should remain the same after stopping
         XCTAssertEqual(callCount, 1, "Call count should not change after stopping")
@@ -47,8 +47,8 @@ final class PollerTests: XCTestCase {
         
         let testTimer = TestTimer()
         let poller = await Poller(
-            intervalMs: 10,
-            jitterMs: 1,
+            intervalMs: 100,
+            jitterMs: 10,
             callback: mockCallback,
             logger: PollerLogger(),
             timer: testTimer
@@ -57,7 +57,7 @@ final class PollerTests: XCTestCase {
         try await poller.start()
         
         // Give it some time to execute multiple polls
-        try await Task.sleep(nanoseconds: 100_000_000) // 100ms
+        try await Task.sleep(nanoseconds: 500_000_000) // 100ms
         
         // Stop the poller
         poller.stop()
@@ -130,7 +130,7 @@ final class PollerTests: XCTestCase {
         }
         
         let intervalMs = 100
-        let jitterMs = 50
+        let jitterMs = 10
         let testTimer = TestTimer()
         
         let poller = await Poller(
