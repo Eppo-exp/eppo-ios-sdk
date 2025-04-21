@@ -105,8 +105,8 @@ public class EppoClient {
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
         initialConfiguration: Configuration? = nil,
         pollingEnabled: Bool = false,
-        pollingIntervalMs: Int = EppoPollerConstants.DEFAULT_POLL_INTERVAL_MS,
-        pollingJitterMs: Int = EppoPollerConstants.DEFAULT_POLL_INTERVAL_MS / EppoPollerConstants.DEFAULT_JITTER_INTERVAL_RATIO
+        pollingIntervalMs: Int = PollerConstants.DEFAULT_POLL_INTERVAL_MS,
+        pollingJitterMs: Int = PollerConstants.DEFAULT_POLL_INTERVAL_MS / PollerConstants.DEFAULT_JITTER_INTERVAL_RATIO
     ) async throws -> EppoClient {
         let instance = Self.initializeOffline(
             sdkKey: sdkKey,
@@ -342,8 +342,8 @@ public class EppoClient {
     }
 
     public func startPolling(
-        intervalMs: Int = EppoPollerConstants.DEFAULT_POLL_INTERVAL_MS,
-        jitterMs: Int = EppoPollerConstants.DEFAULT_POLL_INTERVAL_MS / EppoPollerConstants.DEFAULT_JITTER_INTERVAL_RATIO
+        intervalMs: Int = PollerConstants.DEFAULT_POLL_INTERVAL_MS,
+        jitterMs: Int = PollerConstants.DEFAULT_POLL_INTERVAL_MS / PollerConstants.DEFAULT_JITTER_INTERVAL_RATIO
     ) async throws {
         // Stop any existing poller
         poller?.stop()

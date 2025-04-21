@@ -15,7 +15,7 @@ final class PollerTests: XCTestCase {
             intervalMs: 10,
             jitterMs: 1,
             callback: mockCallback,
-            logger: Logger(),
+            logger: PollerLogger(),
             timer: testTimer
         )
         
@@ -49,7 +49,7 @@ final class PollerTests: XCTestCase {
             intervalMs: 10,
             jitterMs: 1,
             callback: mockCallback,
-            logger: Logger(),
+            logger: PollerLogger(),
             timer: testTimer
         )
         
@@ -77,7 +77,7 @@ final class PollerTests: XCTestCase {
             intervalMs: 100,
             jitterMs: 0,
             callback: mockCallback,
-            logger: Logger(),
+            logger: PollerLogger(),
             timer: testTimer
         )
 
@@ -116,7 +116,7 @@ final class PollerTests: XCTestCase {
             intervalMs: intervalMs,
             jitterMs: jitterMs,
             callback: mockCallback,
-            logger: Logger(),
+            logger: PollerLogger(),
             timer: testTimer
         )
         
