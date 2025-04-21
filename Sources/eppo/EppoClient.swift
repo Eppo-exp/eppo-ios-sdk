@@ -345,10 +345,10 @@ public class EppoClient {
         jitterMs: Int = PollerConstants.DEFAULT_POLL_INTERVAL_MS / PollerConstants.DEFAULT_JITTER_INTERVAL_RATIO
     ) async throws {
         // Stop any existing poller
-        poller?.stop()
+        await poller?.stop()
         
         // Create a new poller with the load callback
-        poller = Poller(
+        poller = await Poller(
             intervalMs: intervalMs,
             jitterMs: jitterMs,
             callback: { [weak self] in
@@ -361,6 +361,7 @@ public class EppoClient {
         try await poller?.start()
     }
 
+    @MainActor
     public func stopPolling() {
         poller?.stop()
         poller = nil

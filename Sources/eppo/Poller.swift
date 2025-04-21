@@ -7,37 +7,49 @@ public enum PollerConstants {
 }
 
 class PollerLogger {
-    func info(_ message: String) {
+    nonisolated init() { }  // Explicitly mark as nonisolated
+
+    nonisolated func info(_ message: String) {
         print("INFO: \(message)")
     }
     
-    func warn(_ message: String) {
+    nonisolated func warn(_ message: String) {
         print("WARN: \(message)")
     }
     
-    func error(_ message: String) {
+    nonisolated func error(_ message: String) {
         print("ERROR: \(message)")
     }
 }
 
 // Protocol for timing mechanism
-protocol TimerType {
+@MainActor protocol TimerType {
     var executeCount: Int { get }
     func schedule(deadline: TimeInterval, callback: @escaping () async -> Void)
     func cancel()
 }
 
 // Real timer implementation
+@MainActor
 class RealTimer: TimerType {
     var executeCount: Int = 0
     private var timer: Timer?
     
+    init() {
+        executeCount = 0
+    }
+    
     func schedule(deadline: TimeInterval, callback: @escaping () async -> Void) {
         executeCount += 1
         timer?.invalidate()
+        
         timer = Timer.scheduledTimer(withTimeInterval: deadline, repeats: false) { _ in
-            Task { await callback() }
+            Task {
+                await callback()
+            }
         }
+        // Make sure the timer is added to the main run loop
+        RunLoop.main.add(timer!, forMode: .common)
     }
     
     func cancel() {
@@ -47,6 +59,7 @@ class RealTimer: TimerType {
 }
 
 // Test timer implementation that respects scheduling
+@MainActor
 class TestTimer: TimerType {
     private(set) var executeCount: Int = 0
     private var isRunning = true
@@ -77,6 +90,7 @@ class TestTimer: TimerType {
     }
 }
 
+@MainActor
 public class Poller {
     private let intervalMs: Int
     private let jitterMs: Int
@@ -92,7 +106,7 @@ public class Poller {
         intervalMs: Int,
         jitterMs: Int,
         callback: @escaping () async throws -> Void
-    ) {
+    ) async {
         self.intervalMs = intervalMs
         self.jitterMs = jitterMs
         self.callback = callback
@@ -108,7 +122,7 @@ public class Poller {
         callback: @escaping () async throws -> Void,
         logger: PollerLogger,
         timer: TimerType
-    ) {
+    ) async {
         self.intervalMs = intervalMs
         self.jitterMs = jitterMs
         self.callback = callback
@@ -140,7 +154,9 @@ public class Poller {
     
     private func schedulePoll() {
         let nextInterval = nextPollMs + randomJitterMs()
+        let now = Date()
         timer.schedule(deadline: TimeInterval(nextInterval) / 1000.0) { [self] in
+            let callbackTime = Date()
             Task {
                 await poll()
             }
@@ -154,15 +170,21 @@ public class Poller {
         
         do {
             try await callback()
-            logger.info("Eppo SDK successfully requested configuration")
             failedAttempts = 0
             nextPollMs = intervalMs
+            if failedAttempts > 0 {
+                logger.info("Eppo SDK poll successful; resuming normal polling")
+            }
         } catch {
+            logger.warn("Eppo SDK encountered an error polling configurations: \(error.localizedDescription)")
             failedAttempts += 1
             if failedAttempts < PollerConstants.DEFAULT_MAX_POLL_RETRIES {
                 let failureWaitMultiplier = pow(2.0, Double(failedAttempts))
                 nextPollMs = Int(failureWaitMultiplier) * intervalMs
+                let remainingAttempts = PollerConstants.DEFAULT_MAX_POLL_RETRIES - failedAttempts
+                logger.warn("Eppo SDK will try polling again in \(nextPollMs) ms (\(remainingAttempts) attempts remaining)")
             } else {
+                logger.error("Eppo SDK reached maximum of \(failedAttempts) failed polling attempts. Stopping polling")
                 stop()
                 return
             }
