@@ -2,7 +2,7 @@ import Foundation
 
 public enum PollerConstants {
     public static let DEFAULT_POLL_INTERVAL_MS = 300_000 // 5 minutes in milliseconds
-    public static let DEFAULT_JITTER_INTERVAL_RATIO = 300 // Makes default jitter 1 second
+    public static let DEFAULT_JITTER_INTERVAL_RATIO = 10 // 10% of poll interval
     public static let DEFAULT_MAX_POLL_RETRIES = 7
 }
 
