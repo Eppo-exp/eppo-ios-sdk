@@ -248,10 +248,9 @@ public class EppoClient {
         }
     }
 
-    /// Returns all flag configurations currently stored in the client.
-    /// - Returns: A dictionary mapping flag keys to their configurations, or nil if no configuration is loaded
-    public func getFlagConfigurations() -> [String: UFC_Flag]? {
-        return self.configurationStore.getConfiguration()?.flagsConfiguration.flags
+    /// Returns the current configuration stored in the client.
+    public func getFlagsConfiguration() -> Configuration? {
+        return self.configurationStore.getConfiguration()
     }
 
     private func getInternalAssignment(

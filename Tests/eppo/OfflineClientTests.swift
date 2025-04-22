@@ -125,4 +125,79 @@ final class OfflineClientTests: XCTestCase {
         // Verify the updated assignment
         XCTAssertEqual(updatedAssignment, 3.1415926, "Updated assignment uses variation value.")
     }
+
+    func testGetFlagsConfigurationAndOfflineInitialization() throws {
+        // Initialize first client with test configuration
+        let testJsonString = """
+        {
+          "createdAt": "2024-04-17T19:40:53.716Z",
+          "environment": {
+            "name": "Test"
+          },
+          "flags": {
+            "numeric_flag": {
+              "key": "numeric_flag",
+              "enabled": true,
+              "variationType": "NUMERIC",
+              "variations": {
+                "e": {
+                  "key": "e",
+                  "value": 2.7182818
+                },
+                "pi": {
+                  "key": "pi",
+                  "value": 3.1415926
+                }
+              },
+              "allocations": [
+                {
+                  "key": "rollout",
+                  "doLog": true,
+                  "splits": [
+                    {
+                      "variationKey": "pi",
+                      "shards": []
+                    }
+                  ]
+                }
+              ],
+              "totalShards": 10000
+            }
+          }
+        }
+        """
+
+        eppoClient = EppoClient.initializeOffline(
+            sdkKey: "mock-api-key",
+            assignmentLogger: loggerSpy?.logger,
+            initialConfiguration: try Configuration(
+                flagsConfigurationJson: Data(testJsonString.utf8),
+                obfuscated: false
+            )
+        )
+
+        // Get the configuration from the first client
+        let flagsConfig = eppoClient.getFlagsConfiguration()
+        XCTAssertNotNil(flagsConfig, "Flags configuration should not be nil")
+        XCTAssertNotNil(flagsConfig?.getFlag(flagKey: "numeric_flag"), "Should contain numeric_flag")
+        let numericFlag = flagsConfig?.getFlag(flagKey: "numeric_flag")
+        XCTAssertEqual(numericFlag?.variationType, UFC_VariationType.numeric)
+
+        // Reset the singleton and create a new client with the configuration
+        EppoClient.resetSharedInstance()
+        
+        let newEppoClient = EppoClient.initializeOffline(
+            sdkKey: "mock-api-key",
+            assignmentLogger: loggerSpy?.logger,
+            initialConfiguration: flagsConfig
+        )
+        
+        // Verify the new client works with the transferred configuration
+        try XCTAssertNotEqual(newEppoClient.getNumericAssignment(
+            flagKey: "numeric_flag",
+            subjectKey: "test-subject",
+            subjectAttributes: [:],
+            defaultValue: 0
+        ), 0)
+    }
 }
