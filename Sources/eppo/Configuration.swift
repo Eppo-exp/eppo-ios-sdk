@@ -17,4 +17,23 @@ public struct Configuration: Codable {
     internal func getFlag(flagKey: String) -> UFC_Flag? {
         return self.flagsConfiguration.flags[flagKey]
     }
+    
+    public func toJsonString() throws -> String {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .custom { date, encoder in
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            let string = formatter.string(from: date)
+            var container = encoder.singleValueContainer()
+            try container.encode(string)
+        }
+        let jsonData = try encoder.encode(self.flagsConfiguration)
+        guard let string = String(data: jsonData, encoding: .utf8) else {
+            throw EncodingError.invalidValue(self, EncodingError.Context(
+                codingPath: [],
+                debugDescription: "Failed to convert JSON data to string"
+            ))
+        }
+        return string
+    }
 }
