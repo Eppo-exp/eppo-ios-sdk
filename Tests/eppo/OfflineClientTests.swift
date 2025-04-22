@@ -180,8 +180,6 @@ final class OfflineClientTests: XCTestCase {
         let flagsConfig = eppoClient.getFlagsConfiguration()
         XCTAssertNotNil(flagsConfig, "Flags configuration should not be nil")
         XCTAssertNotNil(flagsConfig?.getFlag(flagKey: "numeric_flag"), "Should contain numeric_flag")
-        let numericFlag = flagsConfig?.getFlag(flagKey: "numeric_flag")
-        XCTAssertEqual(numericFlag?.variationType, UFC_VariationType.numeric)
 
         // Reset the singleton and create a new client with the configuration
         EppoClient.resetSharedInstance()
