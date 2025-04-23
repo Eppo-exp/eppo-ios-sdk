@@ -107,10 +107,10 @@ public class Poller {
         jitterMs: Int,
         callback: @escaping () async throws -> Void
     ) async {
-        self.intervalMs = intervalMs
+        self.intervalMs = max(1, intervalMs)  // Ensure minimum interval of 1ms
         self.jitterMs = jitterMs
         self.callback = callback
-        self.nextPollMs = intervalMs
+        self.nextPollMs = self.intervalMs
         self.logger = PollerLogger()
         self.timer = RealTimer()
     }
@@ -123,10 +123,10 @@ public class Poller {
         logger: PollerLogger,
         timer: TimerType
     ) async {
-        self.intervalMs = intervalMs
+        self.intervalMs = max(1, intervalMs)  // Ensure minimum interval of 1ms
         self.jitterMs = jitterMs
         self.callback = callback
-        self.nextPollMs = intervalMs
+        self.nextPollMs = self.intervalMs
         self.logger = logger
         self.timer = timer
     }
