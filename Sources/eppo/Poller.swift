@@ -133,6 +133,8 @@ public class Poller {
     
     public func start() async throws {
         stopped = false
+        failedAttempts = 0  // Reset the failed attempts counter
+        nextPollMs = intervalMs  // Reset to base interval
         
         do {
             try await callback()
