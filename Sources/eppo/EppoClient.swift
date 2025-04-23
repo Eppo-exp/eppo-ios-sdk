@@ -31,6 +31,7 @@ public class EppoClient {
 
     private static let sharedLock = NSLock()
     private static var sharedInstance: EppoClient?
+    private static let initializerQueue = DispatchQueue(label: "cloud.eppo.client.initializer")
 
     private var flagEvaluator: FlagEvaluator = FlagEvaluator(sharder: MD5Sharder())
 
@@ -116,18 +117,20 @@ public class EppoClient {
         )
 
         return try await withCheckedThrowingContinuation { continuation in
-            Task {
-                do {
-                    try await instance.loadIfNeeded()
-                    if pollingEnabled {
-                        try await instance.startPolling(
-                            intervalMs: pollingIntervalMs,
-                            jitterMs: pollingJitterMs
-                        )
+            initializerQueue.async {
+                Task {
+                    do {
+                        try await instance.loadIfNeeded()
+                        if pollingEnabled {
+                            try await instance.startPolling(
+                                intervalMs: pollingIntervalMs,
+                                jitterMs: pollingJitterMs
+                            )
+                        }
+                        continuation.resume(returning: instance)
+                    } catch {
+                        continuation.resume(throwing: error)
                     }
-                    continuation.resume(returning: instance)
-                } catch {
-                    continuation.resume(throwing: error)
                 }
             }
         }
