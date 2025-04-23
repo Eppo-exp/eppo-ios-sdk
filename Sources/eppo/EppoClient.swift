@@ -332,6 +332,183 @@ public class EppoClient {
 
         return flagEvaluation
     }
+
+    public struct AssignmentDetails<T> {
+        public let variation: T
+        public let action: String?
+        public let evaluationDetails: FlagEvaluationDetails
+    }
+
+    public struct FlagEvaluationDetails {
+        public let flagEvaluationCode: String
+        public let flagEvaluationDescription: String
+        public let banditKey: String?
+        public let banditAction: String?
+    }
+
+    public func getStringAssignmentDetails(
+        flagKey: String,
+        subjectKey: String,
+        subjectAttributes: SubjectAttributes = SubjectAttributes(),
+        defaultValue: String) throws -> AssignmentDetails<String> {
+        do {
+            let flagEvaluation = try getInternalAssignment(
+                flagKey: flagKey,
+                subjectKey: subjectKey,
+                subjectAttributes: subjectAttributes,
+                expectedVariationType: UFC_VariationType.string
+            )
+            
+            let variation = try flagEvaluation?.variation?.value.getStringValue() ?? defaultValue
+            let evaluationDetails = FlagEvaluationDetails(
+                flagEvaluationCode: flagEvaluation?.doLog == true ? "MATCH" : "NO_MATCH",
+                flagEvaluationDescription: flagEvaluation?.doLog == true ? "Assignment successful" : "No assignment found",
+                banditKey: nil,
+                banditAction: nil
+            )
+            
+            return AssignmentDetails(
+                variation: variation,
+                action: nil,
+                evaluationDetails: evaluationDetails
+            )
+        } catch {
+            // todo: implement graceful mode
+            return AssignmentDetails(
+                variation: defaultValue,
+                action: nil,
+                evaluationDetails: FlagEvaluationDetails(
+                    flagEvaluationCode: "ASSIGNMENT_ERROR",
+                    flagEvaluationDescription: "Error getting assignment: \(error.localizedDescription)",
+                    banditKey: nil,
+                    banditAction: nil
+                )
+            )
+        }
+    }
+
+    public func getBooleanAssignmentDetails(
+        flagKey: String,
+        subjectKey: String,
+        subjectAttributes: SubjectAttributes = SubjectAttributes(),
+        defaultValue: Bool) throws -> AssignmentDetails<Bool> {
+        do {
+            let flagEvaluation = try getInternalAssignment(
+                flagKey: flagKey,
+                subjectKey: subjectKey,
+                subjectAttributes: subjectAttributes,
+                expectedVariationType: UFC_VariationType.boolean
+            )
+            
+            let variation = try flagEvaluation?.variation?.value.getBoolValue() ?? defaultValue
+            let evaluationDetails = FlagEvaluationDetails(
+                flagEvaluationCode: flagEvaluation?.doLog == true ? "MATCH" : "NO_MATCH",
+                flagEvaluationDescription: flagEvaluation?.doLog == true ? "Assignment successful" : "No assignment found",
+                banditKey: nil,
+                banditAction: nil
+            )
+            
+            return AssignmentDetails(
+                variation: variation,
+                action: nil,
+                evaluationDetails: evaluationDetails
+            )
+        } catch {
+            // todo: implement graceful mode
+            return AssignmentDetails(
+                variation: defaultValue,
+                action: nil,
+                evaluationDetails: FlagEvaluationDetails(
+                    flagEvaluationCode: "ASSIGNMENT_ERROR",
+                    flagEvaluationDescription: "Error getting assignment: \(error.localizedDescription)",
+                    banditKey: nil,
+                    banditAction: nil
+                )
+            )
+        }
+    }
+
+    public func getIntegerAssignmentDetails(
+        flagKey: String,
+        subjectKey: String,
+        subjectAttributes: SubjectAttributes = SubjectAttributes(),
+        defaultValue: Int) throws -> AssignmentDetails<Int> {
+        do {
+            let flagEvaluation = try getInternalAssignment(
+                flagKey: flagKey,
+                subjectKey: subjectKey,
+                subjectAttributes: subjectAttributes,
+                expectedVariationType: UFC_VariationType.integer
+            )
+            
+            let variation = Int(try flagEvaluation?.variation?.value.getDoubleValue() ?? Double(defaultValue))
+            let evaluationDetails = FlagEvaluationDetails(
+                flagEvaluationCode: flagEvaluation?.doLog == true ? "MATCH" : "NO_MATCH",
+                flagEvaluationDescription: flagEvaluation?.doLog == true ? "Assignment successful" : "No assignment found",
+                banditKey: nil,
+                banditAction: nil
+            )
+            
+            return AssignmentDetails(
+                variation: variation,
+                action: nil,
+                evaluationDetails: evaluationDetails
+            )
+        } catch {
+            // todo: implement graceful mode
+            return AssignmentDetails(
+                variation: defaultValue,
+                action: nil,
+                evaluationDetails: FlagEvaluationDetails(
+                    flagEvaluationCode: "ASSIGNMENT_ERROR",
+                    flagEvaluationDescription: "Error getting assignment: \(error.localizedDescription)",
+                    banditKey: nil,
+                    banditAction: nil
+                )
+            )
+        }
+    }
+
+    public func getNumericAssignmentDetails(
+        flagKey: String,
+        subjectKey: String,
+        subjectAttributes: SubjectAttributes = SubjectAttributes(),
+        defaultValue: Double) throws -> AssignmentDetails<Double> {
+        do {
+            let flagEvaluation = try getInternalAssignment(
+                flagKey: flagKey,
+                subjectKey: subjectKey,
+                subjectAttributes: subjectAttributes,
+                expectedVariationType: UFC_VariationType.numeric
+            )
+            
+            let variation = try flagEvaluation?.variation?.value.getDoubleValue() ?? defaultValue
+            let evaluationDetails = FlagEvaluationDetails(
+                flagEvaluationCode: flagEvaluation?.doLog == true ? "MATCH" : "NO_MATCH",
+                flagEvaluationDescription: flagEvaluation?.doLog == true ? "Assignment successful" : "No assignment found",
+                banditKey: nil,
+                banditAction: nil
+            )
+            
+            return AssignmentDetails(
+                variation: variation,
+                action: nil,
+                evaluationDetails: evaluationDetails
+            )
+        } catch {
+            // todo: implement graceful mode
+            return AssignmentDetails(
+                variation: defaultValue,
+                action: nil,
+                evaluationDetails: FlagEvaluationDetails(
+                    flagEvaluationCode: "ASSIGNMENT_ERROR",
+                    flagEvaluationDescription: "Error getting assignment: \(error.localizedDescription)",
+                    banditKey: nil,
+                    banditAction: nil
+                )
+            )
+        }
+    }
 }
 
 func isValueOfType(expectedType: UFC_VariationType, variationValue: EppoValue) -> Bool {
