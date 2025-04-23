@@ -17,4 +17,8 @@ public struct Configuration: Codable {
     internal func getFlag(flagKey: String) -> UFC_Flag? {
         return self.flagsConfiguration.flags[flagKey]
     }
+
+    public var environmentName: String {
+        return self.flagsConfiguration.environment.name
+    }
 }
