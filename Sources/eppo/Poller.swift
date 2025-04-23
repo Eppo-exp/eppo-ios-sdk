@@ -168,11 +168,11 @@ public class Poller {
         
         do {
             try await callback()
-            failedAttempts = 0
-            nextPollMs = intervalMs
             if failedAttempts > 0 {
                 logger.info("Eppo SDK poll successful; resuming normal polling")
             }
+            failedAttempts = 0
+            nextPollMs = intervalMs
         } catch {
             logger.warn("Eppo SDK encountered an error polling configurations: \(error.localizedDescription)")
             failedAttempts += 1
