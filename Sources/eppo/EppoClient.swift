@@ -258,6 +258,11 @@ public class EppoClient {
         }
     }
 
+    /// Returns the current configuration stored in the client.
+    public func getFlagsConfiguration() -> Configuration? {
+        return self.configurationStore.getConfiguration()
+    }
+
     private func getInternalAssignment(
         flagKey: String,
         subjectKey: String,
