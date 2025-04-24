@@ -21,14 +21,19 @@ final class ConfigurationStoreTests: XCTestCase {
         ConfigurationStore.clearPersistentCache()
         configurationStore = ConfigurationStore()
 
+        let now = ISO8601DateFormatter().string(from: Date())
         configuration = Configuration(
-          flagsConfiguration: UniversalFlagConfig(
-            createdAt: nil,
-            flags: [
-              "testFlag": emptyFlagConfig
-            ]
-          ),
-          obfuscated: false
+            flagsConfiguration: UniversalFlagConfig(
+                createdAt: nil,
+                format: "SERVER",
+                environment: Environment(name: "Test"),
+                flags: [
+                    "testFlag": emptyFlagConfig
+                ]
+            ),
+            obfuscated: false,
+            fetchedAt: now,
+            publishedAt: now
         )
     }
 
@@ -51,7 +56,7 @@ final class ConfigurationStoreTests: XCTestCase {
         configurationStore.setConfiguration(configuration: configuration)
 
         XCTAssertEqual(
-          configurationStore.getConfiguration()?.getFlag(flagKey: "testFlag")?.enabled, emptyFlagConfig.enabled)
+            configurationStore.getConfiguration()?.getFlag(flagKey: "testFlag")?.enabled, emptyFlagConfig.enabled)
     }
 
     func testIsInitialized() async throws {
@@ -65,5 +70,4 @@ final class ConfigurationStoreTests: XCTestCase {
             configurationStore.getConfiguration(),
             "Store should be initialized after fetching configurations")
     }
-
 }
