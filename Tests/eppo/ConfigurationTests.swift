@@ -85,13 +85,13 @@ final class ConfigurationTests: XCTestCase {
             assignmentLogger: loggerSpy?.logger,
             initialConfiguration: configurationObject
         )
-        
-        try XCTAssertNotEqual(newClient.getNumericAssignment(
+
+        try XCTAssertEqual(newClient.getNumericAssignment(
             flagKey: "numeric_flag",
             subjectKey: "test-subject",
             subjectAttributes: [:],
             defaultValue: 0
-        ), 0)
+        ), 3.1415926)
     }
 
     // Test initializing a new client with a JSON string
@@ -123,12 +123,12 @@ final class ConfigurationTests: XCTestCase {
             )
         )
         
-        try XCTAssertNotEqual(newClient.getNumericAssignment(
+        try XCTAssertEqual(newClient.getNumericAssignment(
             flagKey: "numeric_flag",
             subjectKey: "test-subject",
             subjectAttributes: [:],
             defaultValue: 0
-        ), 0)
+        ), 3.1415926)
     }
 
     // Test JSON string equivalence
