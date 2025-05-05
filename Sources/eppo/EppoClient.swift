@@ -41,6 +41,7 @@ public class EppoClient {
     private(set) var assignmentCache: AssignmentCache?
     private(set) var configurationStore: ConfigurationStore
     private var configurationRequester: ConfigurationRequester
+    private var poller: Poller?
 
     private let state = EppoClientState()
 
@@ -102,14 +103,17 @@ public class EppoClient {
         host: String? = nil,
         assignmentLogger: AssignmentLogger? = nil,
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
-        initialConfiguration: Configuration? = nil
+        initialConfiguration: Configuration? = nil,
+        pollingEnabled: Bool = false,
+        pollingIntervalMs: Int = PollerConstants.DEFAULT_POLL_INTERVAL_MS,
+        pollingJitterMs: Int = PollerConstants.DEFAULT_POLL_INTERVAL_MS / PollerConstants.DEFAULT_JITTER_INTERVAL_RATIO
     ) async throws -> EppoClient {
         let instance = Self.initializeOffline(
-          sdkKey: sdkKey,
-          host: host,
-          assignmentLogger: assignmentLogger,
-          assignmentCache: assignmentCache,
-          initialConfiguration: initialConfiguration
+            sdkKey: sdkKey,
+            host: host,
+            assignmentLogger: assignmentLogger,
+            assignmentCache: assignmentCache,
+            initialConfiguration: initialConfiguration
         )
 
         return try await withCheckedThrowingContinuation { continuation in
@@ -117,6 +121,12 @@ public class EppoClient {
                 Task {
                     do {
                         try await instance.loadIfNeeded()
+                        if pollingEnabled {
+                            try await instance.startPolling(
+                                intervalMs: pollingIntervalMs,
+                                jitterMs: pollingJitterMs
+                            )
+                        }
                         continuation.resume(returning: instance)
                     } catch {
                         continuation.resume(throwing: error)
@@ -246,6 +256,11 @@ public class EppoClient {
             // todo: implement graceful mode
             return defaultValue
         }
+    }
+
+    /// Returns the current configuration stored in the client.
+    public func getFlagsConfiguration() -> Configuration? {
+        return self.configurationStore.getConfiguration()
     }
 
     private func getInternalAssignment(
@@ -614,6 +629,33 @@ public class EppoClient {
                 )
             )
         }
+    }
+
+    public func startPolling(
+        intervalMs: Int = PollerConstants.DEFAULT_POLL_INTERVAL_MS,
+        jitterMs: Int = PollerConstants.DEFAULT_POLL_INTERVAL_MS / PollerConstants.DEFAULT_JITTER_INTERVAL_RATIO
+    ) async throws {
+        // Stop any existing poller
+        await poller?.stop()
+        
+        // Create a new poller with the load callback
+        poller = await Poller(
+            intervalMs: intervalMs,
+            jitterMs: jitterMs,
+            callback: { [weak self] in
+                guard let self = self else { return }
+                try await self.load()
+            }
+        )
+        
+        // Start the poller
+        try await poller?.start()
+    }
+
+    @MainActor
+    public func stopPolling() {
+        poller?.stop()
+        poller = nil
     }
 }
 
