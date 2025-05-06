@@ -1,4 +1,5 @@
 import Foundation
+import Semver
 
 public enum Errors: Error {
     case notConfigured
@@ -263,6 +264,44 @@ public class EppoClient {
         return self.configurationStore.getConfiguration()
     }
 
+    private func getMatchedEvaluationCodeAndDescription(
+        variation: UFC_Variation,
+        allocation: UFC_Allocation,
+        split: UFC_Split,
+        subjectKey: String,
+        expectedVariationType: UFC_VariationType
+    ) -> (flagEvaluationCode: FlagEvaluationCode, flagEvaluationDescription: String) {
+        // Check for type mismatch
+        if !isValueOfType(expectedType: expectedVariationType, variationValue: variation.value) {
+            return (
+                flagEvaluationCode: .assignmentError,
+                flagEvaluationDescription: "Variation (\(variation.key)) is configured for type \(expectedVariationType), but is set to incompatible value (\(variation.value))"
+            )
+        }
+
+        let hasDefinedRules = !(allocation.rules?.isEmpty ?? true)
+        let isExperiment = allocation.splits.count > 1
+        let isPartialRollout = split.shards.count > 1
+        let isExperimentOrPartialRollout = isExperiment || isPartialRollout
+
+        if hasDefinedRules && isExperimentOrPartialRollout {
+            return (
+                flagEvaluationCode: .match,
+                flagEvaluationDescription: "Supplied attributes match rules defined in allocation \"\(allocation.key)\" and \(subjectKey) belongs to the range of traffic assigned to \"\(split.variationKey)\"."
+            )
+        }
+        if hasDefinedRules && !isExperimentOrPartialRollout {
+            return (
+                flagEvaluationCode: .match,
+                flagEvaluationDescription: "Supplied attributes match rules defined in allocation \"\(allocation.key)\"."
+            )
+        }
+        return (
+            flagEvaluationCode: .match,
+            flagEvaluationDescription: "\(subjectKey) belongs to the range of traffic assigned to \"\(split.variationKey)\" defined in allocation \"\(allocation.key)\"."
+        )
+    }
+
     private func getInternalAssignment(
         flagKey: String,
         subjectKey: String,
@@ -286,11 +325,34 @@ public class EppoClient {
         let flagKeyForLookup = configuration.obfuscated ? getMD5Hex(flagKey) : flagKey
 
         guard let flagConfig = configuration.getFlag(flagKey: flagKeyForLookup) else {
-            throw Errors.flagConfigNotFound
+            return FlagEvaluation.noneResult(
+                flagKey: flagKey,
+                subjectKey: subjectKey,
+                subjectAttributes: subjectAttributes,
+                flagEvaluationCode: .flagUnrecognizedOrDisabled,
+                flagEvaluationDescription: "Unrecognized or disabled flag: \(flagKey)"
+            )
         }
 
         if flagConfig.variationType != expectedVariationType {
-            throw Errors.variationTypeMismatch
+            // Get all allocations from the flag config
+            let allAllocations = flagConfig.allocations.enumerated().map { index, allocation in
+                AllocationEvaluation(
+                    key: allocation.key,
+                    allocationEvaluationCode: .unevaluated,
+                    orderPosition: index + 1
+                )
+            }
+            
+            return FlagEvaluation.noneResult(
+                flagKey: flagKey,
+                subjectKey: subjectKey,
+                subjectAttributes: subjectAttributes,
+                flagEvaluationCode: .typeMismatch,
+                flagEvaluationDescription: "Variation value does not have the correct type. Found \(flagConfig.variationType.rawValue.uppercased()), but expected \(expectedVariationType.rawValue.uppercased()) for flag \(flagKey)",
+                unmatchedAllocations: [],
+                unevaluatedAllocations: allAllocations
+            )
         }
 
         let flagEvaluation = flagEvaluator.evaluateFlag(
@@ -299,10 +361,6 @@ public class EppoClient {
             subjectAttributes: subjectAttributes,
             isConfigObfuscated: configuration.obfuscated
         )
-
-        if let variation = flagEvaluation.variation, !isValueOfType(expectedType: expectedVariationType, variationValue: variation.value) {
-            throw Errors.variationWrongType
-        }
 
         // Optionally log assignment
         if flagEvaluation.doLog {
@@ -389,11 +447,7 @@ public class EppoClient {
         case failingRule = "FAILING_RULE"
     }
 
-    public struct AllocationEvaluation {
-        public let key: String
-        public let allocationEvaluationCode: AllocationEvaluationCode
-        public let orderPosition: Int
-    }
+    public typealias AllocationEvaluation = EppoFlagging.AllocationEvaluation
 
     public func getStringAssignmentDetails(
         flagKey: String,
@@ -409,20 +463,21 @@ public class EppoClient {
             )
             
             let variation = try flagEvaluation?.variation?.value.getStringValue() ?? defaultValue
+            
             let evaluationDetails = FlagEvaluationDetails(
                 environmentName: configurationStore.getConfiguration()?.getFlagConfigDetails().configEnvironment.name ?? "",
-                flagEvaluationCode: flagEvaluation?.doLog == true ? .match : .flagUnrecognizedOrDisabled,
-                flagEvaluationDescription: flagEvaluation?.doLog == true ? "Assignment successful" : "No assignment found",
+                flagEvaluationCode: flagEvaluation?.flagEvaluationCode ?? .flagUnrecognizedOrDisabled,
+                flagEvaluationDescription: flagEvaluation?.flagEvaluationDescription ?? "No assignment found",
                 variationKey: flagEvaluation?.variation?.key,
                 variationValue: flagEvaluation?.variation?.value,
                 banditKey: nil,
                 banditAction: nil,
                 configFetchedAt: configurationStore.getConfiguration()?.getFlagConfigDetails().configFetchedAt ?? "",
                 configPublishedAt: configurationStore.getConfiguration()?.getFlagConfigDetails().configPublishedAt ?? "",
-                matchedRule: nil,
-                matchedAllocation: nil,
-                unmatchedAllocations: [],
-                unevaluatedAllocations: []
+                matchedRule: flagEvaluation?.matchedRule,
+                matchedAllocation: flagEvaluation?.matchedAllocation.map { AllocationEvaluation(key: $0.key, allocationEvaluationCode: $0.allocationEvaluationCode, orderPosition: $0.orderPosition) },
+                unmatchedAllocations: flagEvaluation?.unmatchedAllocations.map { AllocationEvaluation(key: $0.key, allocationEvaluationCode: $0.allocationEvaluationCode, orderPosition: $0.orderPosition) } ?? [],
+                unevaluatedAllocations: flagEvaluation?.unevaluatedAllocations.map { AllocationEvaluation(key: $0.key, allocationEvaluationCode: $0.allocationEvaluationCode, orderPosition: $0.orderPosition) } ?? []
             )
             
             return AssignmentDetails(
@@ -437,8 +492,8 @@ public class EppoClient {
                 action: nil,
                 evaluationDetails: FlagEvaluationDetails(
                     environmentName: configurationStore.getConfiguration()?.getFlagConfigDetails().configEnvironment.name ?? "",
-                    flagEvaluationCode: .assignmentError,
-                    flagEvaluationDescription: "Error getting assignment: \(error.localizedDescription)",
+                    flagEvaluationCode: .flagUnrecognizedOrDisabled,
+                    flagEvaluationDescription: "Unrecognized or disabled flag: \(flagKey)",
                     variationKey: nil,
                     variationValue: nil,
                     banditKey: nil,
@@ -468,20 +523,21 @@ public class EppoClient {
             )
             
             let variation = try flagEvaluation?.variation?.value.getBoolValue() ?? defaultValue
+            
             let evaluationDetails = FlagEvaluationDetails(
                 environmentName: configurationStore.getConfiguration()?.getFlagConfigDetails().configEnvironment.name ?? "",
-                flagEvaluationCode: flagEvaluation?.doLog == true ? .match : .flagUnrecognizedOrDisabled,
-                flagEvaluationDescription: flagEvaluation?.doLog == true ? "Assignment successful" : "No assignment found",
+                flagEvaluationCode: flagEvaluation?.flagEvaluationCode ?? .flagUnrecognizedOrDisabled,
+                flagEvaluationDescription: flagEvaluation?.flagEvaluationDescription ?? "No assignment found",
                 variationKey: flagEvaluation?.variation?.key,
                 variationValue: flagEvaluation?.variation?.value,
                 banditKey: nil,
                 banditAction: nil,
                 configFetchedAt: configurationStore.getConfiguration()?.getFlagConfigDetails().configFetchedAt ?? "",
                 configPublishedAt: configurationStore.getConfiguration()?.getFlagConfigDetails().configPublishedAt ?? "",
-                matchedRule: nil,
-                matchedAllocation: nil,
-                unmatchedAllocations: [],
-                unevaluatedAllocations: []
+                matchedRule: flagEvaluation?.matchedRule,
+                matchedAllocation: flagEvaluation?.matchedAllocation.map { AllocationEvaluation(key: $0.key, allocationEvaluationCode: $0.allocationEvaluationCode, orderPosition: $0.orderPosition) },
+                unmatchedAllocations: flagEvaluation?.unmatchedAllocations.map { AllocationEvaluation(key: $0.key, allocationEvaluationCode: $0.allocationEvaluationCode, orderPosition: $0.orderPosition) } ?? [],
+                unevaluatedAllocations: flagEvaluation?.unevaluatedAllocations.map { AllocationEvaluation(key: $0.key, allocationEvaluationCode: $0.allocationEvaluationCode, orderPosition: $0.orderPosition) } ?? []
             )
             
             return AssignmentDetails(
@@ -496,8 +552,8 @@ public class EppoClient {
                 action: nil,
                 evaluationDetails: FlagEvaluationDetails(
                     environmentName: configurationStore.getConfiguration()?.getFlagConfigDetails().configEnvironment.name ?? "",
-                    flagEvaluationCode: .assignmentError,
-                    flagEvaluationDescription: "Error getting assignment: \(error.localizedDescription)",
+                    flagEvaluationCode: .flagUnrecognizedOrDisabled,
+                    flagEvaluationDescription: "Unrecognized or disabled flag: \(flagKey)",
                     variationKey: nil,
                     variationValue: nil,
                     banditKey: nil,
@@ -523,24 +579,25 @@ public class EppoClient {
                 flagKey: flagKey,
                 subjectKey: subjectKey,
                 subjectAttributes: subjectAttributes,
-                expectedVariationType: UFC_VariationType.integer
+                expectedVariationType: .integer
             )
             
-            let variation = Int(try flagEvaluation?.variation?.value.getDoubleValue() ?? Double(defaultValue))
+            let variation = try Int(flagEvaluation?.variation?.value.getDoubleValue() ?? Double(defaultValue))
+            
             let evaluationDetails = FlagEvaluationDetails(
                 environmentName: configurationStore.getConfiguration()?.getFlagConfigDetails().configEnvironment.name ?? "",
-                flagEvaluationCode: flagEvaluation?.doLog == true ? .match : .flagUnrecognizedOrDisabled,
-                flagEvaluationDescription: flagEvaluation?.doLog == true ? "Assignment successful" : "No assignment found",
+                flagEvaluationCode: flagEvaluation?.flagEvaluationCode ?? .flagUnrecognizedOrDisabled,
+                flagEvaluationDescription: flagEvaluation?.flagEvaluationDescription ?? "No assignment found",
                 variationKey: flagEvaluation?.variation?.key,
                 variationValue: flagEvaluation?.variation?.value,
                 banditKey: nil,
                 banditAction: nil,
                 configFetchedAt: configurationStore.getConfiguration()?.getFlagConfigDetails().configFetchedAt ?? "",
                 configPublishedAt: configurationStore.getConfiguration()?.getFlagConfigDetails().configPublishedAt ?? "",
-                matchedRule: nil,
-                matchedAllocation: nil,
-                unmatchedAllocations: [],
-                unevaluatedAllocations: []
+                matchedRule: flagEvaluation?.matchedRule,
+                matchedAllocation: flagEvaluation?.matchedAllocation.map { AllocationEvaluation(key: $0.key, allocationEvaluationCode: $0.allocationEvaluationCode, orderPosition: $0.orderPosition) },
+                unmatchedAllocations: flagEvaluation?.unmatchedAllocations.map { AllocationEvaluation(key: $0.key, allocationEvaluationCode: $0.allocationEvaluationCode, orderPosition: $0.orderPosition) } ?? [],
+                unevaluatedAllocations: flagEvaluation?.unevaluatedAllocations.map { AllocationEvaluation(key: $0.key, allocationEvaluationCode: $0.allocationEvaluationCode, orderPosition: $0.orderPosition) } ?? []
             )
             
             return AssignmentDetails(
@@ -555,8 +612,8 @@ public class EppoClient {
                 action: nil,
                 evaluationDetails: FlagEvaluationDetails(
                     environmentName: configurationStore.getConfiguration()?.getFlagConfigDetails().configEnvironment.name ?? "",
-                    flagEvaluationCode: .assignmentError,
-                    flagEvaluationDescription: "Error getting assignment: \(error.localizedDescription)",
+                    flagEvaluationCode: .flagUnrecognizedOrDisabled,
+                    flagEvaluationDescription: "Unrecognized or disabled flag: \(flagKey)",
                     variationKey: nil,
                     variationValue: nil,
                     banditKey: nil,
@@ -586,20 +643,21 @@ public class EppoClient {
             )
             
             let variation = try flagEvaluation?.variation?.value.getDoubleValue() ?? defaultValue
+            
             let evaluationDetails = FlagEvaluationDetails(
                 environmentName: configurationStore.getConfiguration()?.getFlagConfigDetails().configEnvironment.name ?? "",
-                flagEvaluationCode: flagEvaluation?.doLog == true ? .match : .flagUnrecognizedOrDisabled,
-                flagEvaluationDescription: flagEvaluation?.doLog == true ? "Assignment successful" : "No assignment found",
+                flagEvaluationCode: flagEvaluation?.flagEvaluationCode ?? .flagUnrecognizedOrDisabled,
+                flagEvaluationDescription: flagEvaluation?.flagEvaluationDescription ?? "No assignment found",
                 variationKey: flagEvaluation?.variation?.key,
                 variationValue: flagEvaluation?.variation?.value,
                 banditKey: nil,
                 banditAction: nil,
                 configFetchedAt: configurationStore.getConfiguration()?.getFlagConfigDetails().configFetchedAt ?? "",
                 configPublishedAt: configurationStore.getConfiguration()?.getFlagConfigDetails().configPublishedAt ?? "",
-                matchedRule: nil,
-                matchedAllocation: nil,
-                unmatchedAllocations: [],
-                unevaluatedAllocations: []
+                matchedRule: flagEvaluation?.matchedRule,
+                matchedAllocation: flagEvaluation?.matchedAllocation.map { AllocationEvaluation(key: $0.key, allocationEvaluationCode: $0.allocationEvaluationCode, orderPosition: $0.orderPosition) },
+                unmatchedAllocations: flagEvaluation?.unmatchedAllocations.map { AllocationEvaluation(key: $0.key, allocationEvaluationCode: $0.allocationEvaluationCode, orderPosition: $0.orderPosition) } ?? [],
+                unevaluatedAllocations: flagEvaluation?.unevaluatedAllocations.map { AllocationEvaluation(key: $0.key, allocationEvaluationCode: $0.allocationEvaluationCode, orderPosition: $0.orderPosition) } ?? []
             )
             
             return AssignmentDetails(
@@ -614,14 +672,14 @@ public class EppoClient {
                 action: nil,
                 evaluationDetails: FlagEvaluationDetails(
                     environmentName: configurationStore.getConfiguration()?.getFlagConfigDetails().configEnvironment.name ?? "",
-                    flagEvaluationCode: .assignmentError,
-                    flagEvaluationDescription: "Error getting assignment: \(error.localizedDescription)",
+                    flagEvaluationCode: .flagUnrecognizedOrDisabled,
+                    flagEvaluationDescription: "Unrecognized or disabled flag: \(flagKey)",
                     variationKey: nil,
                     variationValue: nil,
                     banditKey: nil,
                     banditAction: nil,
-                    configFetchedAt: configurationStore.getConfiguration()?.fetchedAt ?? "",
-                    configPublishedAt: configurationStore.getConfiguration()?.publishedAt ?? "",
+                    configFetchedAt: configurationStore.getConfiguration()?.getFlagConfigDetails().configFetchedAt ?? "",
+                    configPublishedAt: configurationStore.getConfiguration()?.getFlagConfigDetails().configPublishedAt ?? "",
                     matchedRule: nil,
                     matchedAllocation: nil,
                     unmatchedAllocations: [],

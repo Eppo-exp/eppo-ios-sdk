@@ -11,6 +11,7 @@ final class EppoClientAssignmentDetailsTests: XCTestCase {
     override func setUpWithError() throws {
         try super.setUpWithError()
         configurationStore = ConfigurationStore(withPersistentCache: false)
+        EppoClient.resetSharedInstance()
 
         // Load test data from JSON file
         let fileURL = Bundle.module.url(
@@ -66,6 +67,7 @@ final class EppoClientAssignmentDetailsTests: XCTestCase {
             result.evaluationDetails.flagEvaluationDescription,
             "Supplied attributes match rules defined in allocation \"targeted allocation\"."
         )
+        
         XCTAssertGreaterThanOrEqual(
             UTC_ISO_DATE_FORMAT.date(from: result.evaluationDetails.configFetchedAt)?.timeIntervalSince1970 ?? 0,
             testStart.timeIntervalSince1970 - 1  // Allow for 1 second difference

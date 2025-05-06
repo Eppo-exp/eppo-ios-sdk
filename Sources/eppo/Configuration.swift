@@ -23,7 +23,9 @@ public struct Configuration: Codable {
 
     public init(flagsConfigurationJson: Data, obfuscated: Bool) throws {
         let flagsConfiguration = try UniversalFlagConfig.decodeFromJSON(from: flagsConfigurationJson)
-        let now = ISO8601DateFormatter().string(from: Date())
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let now = formatter.string(from: Date())
         self.init(
             flagsConfiguration: flagsConfiguration,
             obfuscated: obfuscated,
