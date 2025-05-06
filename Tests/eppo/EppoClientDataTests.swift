@@ -66,12 +66,6 @@ final class EppoClientDataTests: XCTestCase {
         for testFile in testFiles {
             let caseData = try! Data(contentsOf: testFile)
             let testCase = try JSONDecoder().decode(AssignmentTestCase.self, from: caseData)
-            
-            // Skip all tests except invalid-value-flag
-//            if !testCase.flag.contains("invalid-value-flag") {
-//                continue
-//            }
-            
             testCase.subjects.forEach { subject in
                 switch testCase.variationType {
                 case UFC_VariationType.boolean:
