@@ -1,5 +1,4 @@
 import Foundation
-import Semver
 
 public enum Errors: Error {
     case notConfigured
