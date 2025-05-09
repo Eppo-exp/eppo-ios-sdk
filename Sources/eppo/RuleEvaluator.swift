@@ -14,87 +14,7 @@ class Compare {
     }
 }
 
-struct FlagEvaluation {
-    let flagKey: String
-    let subjectKey: String
-    let subjectAttributes: SubjectAttributes
-    let allocationKey: String?
-    let variation: UFC_Variation?
-    let variationType: UFC_VariationType?
-    let extraLogging: [String: String]
-    let doLog: Bool
-
-    static func matchedResult(
-        flagKey: String,
-        subjectKey: String,
-        subjectAttributes: SubjectAttributes,
-        allocationKey: String?,
-        variation: UFC_Variation?,
-        variationType: UFC_VariationType?,
-        extraLogging: [String: String],
-        doLog: Bool,
-        isConfigObfuscated: Bool
-    ) -> FlagEvaluation {
-        // If the config is obfuscated, we need to unobfuscate the allocation key.
-        var decodedAllocationKey: String = allocationKey ?? ""
-        if isConfigObfuscated,
-           let allocationKey = allocationKey,
-           let decoded = base64Decode(allocationKey) {
-            decodedAllocationKey = decoded
-        }
-
-        var decodedVariation: UFC_Variation? = variation
-        if isConfigObfuscated,
-           let variation = variation,
-           let variationType = variationType,
-           let decodedVariationKey = base64Decode(variation.key),
-           let variationValue = try? variation.value.getStringValue(),
-           let decodedVariationValue = base64Decode(variationValue) {
-
-            var decodedValue: EppoValue = EppoValue.nullValue()
-
-            switch variationType {
-            case .boolean:
-                decodedValue = EppoValue(value: "true" == decodedVariationValue)
-            case .integer, .numeric:
-                if let doubleValue = Double(decodedVariationValue) {
-                    decodedValue = EppoValue(value: doubleValue)
-                }
-            case .string, .json:
-                decodedValue = EppoValue(value: decodedVariationValue)
-            }
-
-            decodedVariation = UFC_Variation(key: decodedVariationKey, value: decodedValue)
-        }
-
-        return FlagEvaluation(
-            flagKey: flagKey,
-            subjectKey: subjectKey,
-            subjectAttributes: subjectAttributes,
-            allocationKey: decodedAllocationKey,
-            variation: decodedVariation,
-            variationType: variationType,
-            extraLogging: extraLogging,
-            doLog: doLog
-        )
-    }
-
-    static func noneResult(flagKey: String, subjectKey: String, subjectAttributes: SubjectAttributes) -> FlagEvaluation {
-        return FlagEvaluation(
-            flagKey: flagKey,
-            subjectKey: subjectKey,
-            subjectAttributes: subjectAttributes,
-            allocationKey: Optional<String>.none,
-            variation: Optional<UFC_Variation>.none,
-            variationType: Optional<UFC_VariationType>.none,
-            extraLogging: [:],
-            doLog: false
-        )
-    }
-}
-
 public class FlagEvaluator {
-
     let sharder: Sharder
 
     init(sharder: Sharder) {
@@ -119,55 +39,279 @@ public class FlagEvaluator {
             )
         }
 
-        let now = Date()
-        for allocation in flag.allocations {
-            // # Skip allocations that are not active
-            if let startAt = allocation.startAt, now < startAt {
-                continue
-            }
-            if let endAt = allocation.endAt, now > endAt {
-                continue
-            }
-
-            // Add the subject key as an attribute so rules can use it
-            // If the "id" attribute is already present, keep the existing value
-            let subjectAttributesWithID = subjectAttributes.merging(["id": EppoValue.valueOf(subjectKey)]) { (old, _) in old }
-            if matchesRules(
-                subjectAttributes: subjectAttributesWithID,
-                rules: allocation.rules ?? [],
-                isConfigObfuscated: isConfigObfuscated
-            ) {
-                // Split needs to match all shards
-                for split in allocation.splits {
-                    let allShardsMatch = split.shards.allSatisfy { shard in
-                        matchesShard(
-                            shard: shard,
-                            subjectKey: subjectKey,
-                            totalShards: flag.totalShards,
-                            isConfigObfuscated: isConfigObfuscated
-                        )
-                    }
-                    if allShardsMatch {
-                        return FlagEvaluation.matchedResult(
-                            flagKey: flag.key,
-                            subjectKey: subjectKey,
-                            subjectAttributes: subjectAttributes,
-                            allocationKey: String?.some(allocation.key),
-                            variation: flag.variations[split.variationKey],
-                            variationType: flag.variationType,
-                            extraLogging: split.extraLogging ?? [:],
-                            doLog: allocation.doLog,
-                            isConfigObfuscated: isConfigObfuscated
-                        )
-                    }
-                }
-            }
+        // Check if flag is unrecognized
+        if flag.key.isEmpty {
+            return FlagEvaluation.noneResult(
+                flagKey: flag.key,
+                subjectKey: subjectKey,
+                subjectAttributes: subjectAttributes
+            )
         }
 
+        // Handle case where flag has no allocations
+        if flag.allocations.isEmpty {
+            let result = FlagEvaluation.noneResult(
+                flagKey: flag.key,
+                subjectKey: subjectKey,
+                subjectAttributes: subjectAttributes,
+                flagEvaluationCode: .flagUnrecognizedOrDisabled,
+                flagEvaluationDescription: "Unrecognized or disabled flag: \(flag.key)"
+            )
+            return result
+        }
+
+        var unmatchedAllocations: [AllocationEvaluation] = []
+        var unevaluatedAllocations: [AllocationEvaluation] = []
+        var matchedRule: UFC_Rule? = nil
+        var matchedAllocation: AllocationEvaluation? = nil
+
+        for (index, allocation) in flag.allocations.enumerated() {
+            let orderPosition = index + 1
+
+            // Check if allocation is within time range
+            if let startAt = allocation.startAt {
+                if Date() < startAt {
+                    unmatchedAllocations.append(AllocationEvaluation(
+                        key: allocation.key,
+                        allocationEvaluationCode: .beforeStartTime,
+                        orderPosition: orderPosition
+                    ))
+                    continue
+                }
+            }
+
+            if let endAt = allocation.endAt {
+                if Date() > endAt {
+                    unmatchedAllocations.append(AllocationEvaluation(
+                        key: allocation.key,
+                        allocationEvaluationCode: .afterEndTime,
+                        orderPosition: orderPosition
+                    ))
+                    continue
+                }
+            }
+
+            // Check if allocation has rules
+            if let rules = allocation.rules, !rules.isEmpty {
+                var rulesMatch = false
+                for rule in rules {
+                    if matchesRule(
+                        subjectAttributes: subjectAttributes,
+                        rule: rule,
+                        isConfigObfuscated: isConfigObfuscated,
+                        subjectKey: subjectKey
+                    ) {
+                        rulesMatch = true
+                        matchedRule = rule
+                        break
+                    }
+                }
+                
+                if !rulesMatch {
+                    unmatchedAllocations.append(AllocationEvaluation(
+                        key: allocation.key,
+                        allocationEvaluationCode: .failingRule,
+                        orderPosition: orderPosition
+                    ))
+                    continue
+                }
+            }
+
+            // Check if subject is in any traffic range
+            for split in allocation.splits {
+                let allShardsMatch = split.shards.allSatisfy { shard in
+                    matchesShard(
+                        shard: shard,
+                        subjectKey: subjectKey,
+                        totalShards: flag.totalShards,
+                        isConfigObfuscated: isConfigObfuscated
+                    )
+                }
+                
+                if allShardsMatch {
+                    // Mark remaining allocations as unevaluated
+                    for remainingIndex in (index + 1)..<flag.allocations.count {
+                        unevaluatedAllocations.append(AllocationEvaluation(
+                            key: flag.allocations[remainingIndex].key,
+                            allocationEvaluationCode: .unevaluated,
+                            orderPosition: remainingIndex + 1
+                        ))
+                    }
+
+                    matchedAllocation = AllocationEvaluation(
+                        key: allocation.key,
+                        allocationEvaluationCode: .match,
+                        orderPosition: orderPosition
+                    )
+                    
+                    let variation = flag.variations[split.variationKey]
+
+                    // Check for assignment errors
+                    if flag.variationType == .integer {
+                        if let variation = variation {
+                            // First try to get double value directly
+                            if let doubleValue = try? variation.value.getDoubleValue() {
+                                if !doubleValue.isInteger {
+                                    // Create a new variation with the original double value
+                                    let errorVariation = UFC_Variation(
+                                        key: variation.key,
+                                        value: EppoValue.valueOf(doubleValue)
+                                    )
+                                    let evaluation = FlagEvaluation(
+                                        flagKey: flag.key,
+                                        subjectKey: subjectKey,
+                                        subjectAttributes: subjectAttributes,
+                                        allocationKey: allocation.key,
+                                        variation: errorVariation,
+                                        variationType: flag.variationType,
+                                        extraLogging: split.extraLogging ?? [:],
+                                        doLog: allocation.doLog,
+                                        matchedRule: matchedRule,
+                                        matchedAllocation: matchedAllocation,
+                                        unmatchedAllocations: unmatchedAllocations,
+                                        unevaluatedAllocations: unevaluatedAllocations,
+                                        flagEvaluationCode: .assignmentError,
+                                        flagEvaluationDescription: "Variation (\(variation.key)) is configured for type INTEGER, but is set to incompatible value (\(doubleValue))"
+                                    )
+                                    return evaluation
+                                }
+                                // Create a new variation with the double value
+                                let decodedVariation = UFC_Variation(
+                                    key: variation.key,
+                                    value: EppoValue.valueOf(doubleValue)
+                                )
+                                return FlagEvaluation.matchedResult(
+                                    flagKey: flag.key,
+                                    subjectKey: subjectKey,
+                                    subjectAttributes: subjectAttributes,
+                                    allocationKey: allocation.key,
+                                    variation: decodedVariation,
+                                    variationType: flag.variationType,
+                                    extraLogging: split.extraLogging ?? [:],
+                                    doLog: allocation.doLog,
+                                    isConfigObfuscated: isConfigObfuscated,
+                                    matchedRule: matchedRule,
+                                    matchedAllocation: matchedAllocation,
+                                    allocation: allocation,
+                                    unmatchedAllocations: unmatchedAllocations,
+                                    unevaluatedAllocations: unevaluatedAllocations
+                                )
+                            }
+                            
+                            // If not a double, try string value
+                            if let stringValue = try? variation.value.getStringValue() {
+                                var decodedValue: String? = stringValue
+                                if isConfigObfuscated {
+                                    decodedValue = base64Decode(stringValue)
+                                }
+                                if let finalValue = decodedValue, let doubleValue = Double(finalValue) {
+                                    if !doubleValue.isInteger {
+                                        // Create a new variation with the original double value
+                                        let errorVariation = UFC_Variation(
+                                            key: variation.key,
+                                            value: EppoValue.valueOf(doubleValue)
+                                        )
+                                        return FlagEvaluation(
+                                            flagKey: flag.key,
+                                            subjectKey: subjectKey,
+                                            subjectAttributes: subjectAttributes,
+                                            allocationKey: allocation.key,
+                                            variation: errorVariation,
+                                            variationType: flag.variationType,
+                                            extraLogging: split.extraLogging ?? [:],
+                                            doLog: allocation.doLog,
+                                            matchedRule: matchedRule,
+                                            matchedAllocation: matchedAllocation,
+                                            unmatchedAllocations: unmatchedAllocations,
+                                            unevaluatedAllocations: unevaluatedAllocations,
+                                            flagEvaluationCode: .assignmentError,
+                                            flagEvaluationDescription: "Variation (\(variation.key)) is configured for type INTEGER, but is set to incompatible value (\(doubleValue))"
+                                        )
+                                    }
+                                    // Create a new variation with the decoded value
+                                    let decodedVariation = UFC_Variation(
+                                        key: variation.key,
+                                        value: EppoValue.valueOf(doubleValue)
+                                    )
+                                    return FlagEvaluation.matchedResult(
+                                        flagKey: flag.key,
+                                        subjectKey: subjectKey,
+                                        subjectAttributes: subjectAttributes,
+                                        allocationKey: allocation.key,
+                                        variation: decodedVariation,
+                                        variationType: flag.variationType,
+                                        extraLogging: split.extraLogging ?? [:],
+                                        doLog: allocation.doLog,
+                                        isConfigObfuscated: isConfigObfuscated,
+                                        matchedRule: matchedRule,
+                                        matchedAllocation: matchedAllocation,
+                                        allocation: allocation,
+                                        unmatchedAllocations: unmatchedAllocations,
+                                        unevaluatedAllocations: unevaluatedAllocations
+                                    )
+                                }
+                            }
+                            return FlagEvaluation(
+                                flagKey: flag.key,
+                                subjectKey: subjectKey,
+                                subjectAttributes: subjectAttributes,
+                                allocationKey: allocation.key,
+                                variation: variation,
+                                variationType: flag.variationType,
+                                extraLogging: split.extraLogging ?? [:],
+                                doLog: allocation.doLog,
+                                matchedRule: matchedRule,
+                                matchedAllocation: matchedAllocation,
+                                unmatchedAllocations: unmatchedAllocations,
+                                unevaluatedAllocations: unevaluatedAllocations,
+                                flagEvaluationCode: .assignmentError,
+                                flagEvaluationDescription: "Variation (\(variation.key)) is configured for type INTEGER, but is set to incompatible value"
+                            )
+                        } else {
+                            return FlagEvaluation.noneResult(
+                                flagKey: flag.key,
+                                subjectKey: subjectKey,
+                                subjectAttributes: subjectAttributes,
+                                unmatchedAllocations: unmatchedAllocations,
+                                unevaluatedAllocations: unevaluatedAllocations
+                            )
+                        }
+                    }
+                    
+                    return FlagEvaluation.matchedResult(
+                        flagKey: flag.key,
+                        subjectKey: subjectKey,
+                        subjectAttributes: subjectAttributes,
+                        allocationKey: allocation.key,
+                        variation: variation,
+                        variationType: flag.variationType,
+                        extraLogging: split.extraLogging ?? [:],
+                        doLog: allocation.doLog,
+                        isConfigObfuscated: isConfigObfuscated,
+                        matchedRule: matchedRule,
+                        matchedAllocation: matchedAllocation,
+                        allocation: allocation,
+                        unmatchedAllocations: unmatchedAllocations,
+                        unevaluatedAllocations: unevaluatedAllocations
+                    )
+                }
+            }
+
+            // If we get here, the subject is not in any traffic range
+            unmatchedAllocations.append(AllocationEvaluation(
+                key: allocation.key,
+                allocationEvaluationCode: .trafficExposureMiss,
+                orderPosition: orderPosition
+            ))
+        }
+
+        // If we get here, no allocation matched
         return FlagEvaluation.noneResult(
             flagKey: flag.key,
             subjectKey: subjectKey,
-            subjectAttributes: subjectAttributes
+            subjectAttributes: subjectAttributes,
+            unmatchedAllocations: unmatchedAllocations,
+            unevaluatedAllocations: unevaluatedAllocations
         )
     }
 
@@ -192,29 +336,11 @@ public class FlagEvaluator {
         return false
     }
 
-    private func matchesRules(
-        subjectAttributes: SubjectAttributes,
-        rules: [UFC_Rule],
-        isConfigObfuscated: Bool
-    ) -> Bool {
-        if rules.isEmpty {
-            return true
-        }
-
-        // If any rule matches, return true.
-        return rules.contains { rule in
-            return matchesRule(
-                subjectAttributes: subjectAttributes,
-                rule: rule,
-                isConfigObfuscated: isConfigObfuscated
-            )
-        }
-    }
-
     private func matchesRule(
         subjectAttributes: SubjectAttributes,
         rule: UFC_Rule,
-        isConfigObfuscated: Bool
+        isConfigObfuscated: Bool,
+        subjectKey: String
     ) -> Bool {
         // Check that all conditions within the rule are met
         return rule.conditions.allSatisfy { condition in
@@ -222,9 +348,9 @@ public class FlagEvaluator {
             return evaluateCondition(
                 subjectAttributes: subjectAttributes,
                 condition: condition,
-                isConfigObfuscated: isConfigObfuscated
+                isConfigObfuscated: isConfigObfuscated,
+                subjectKey: subjectKey
             )
-
         }
     }
 
@@ -239,11 +365,14 @@ public class FlagEvaluator {
     private func evaluateCondition(
         subjectAttributes: SubjectAttributes,
         condition: UFC_TargetingRuleCondition,
-        isConfigObfuscated: Bool
+        isConfigObfuscated: Bool,
+        subjectKey: String
     ) -> Bool {
         // attribute names are hashed if obfuscated
         let attributeKey = condition.attribute
         var attributeValue: EppoValue?
+        
+        // First check if the attribute exists in subject attributes
         if isConfigObfuscated {
             for (key, value) in subjectAttributes {
                 if getMD5Hex(key) == attributeKey {
@@ -254,9 +383,19 @@ public class FlagEvaluator {
         } else {
             attributeValue = subjectAttributes[condition.attribute]
         }
+        
+        // If not found in attributes and the attribute is "id", use the subject key
+        if attributeValue == nil {
+            if !isConfigObfuscated && attributeKey == "id" {
+                attributeValue = EppoValue.valueOf(subjectKey)
+            } else if isConfigObfuscated && attributeKey == getMD5Hex("id") {
+                attributeValue = EppoValue.valueOf(subjectKey)
+            }
+        }
 
         // First we do any NULL check
         let attributeValueIsNull = attributeValue?.isNull() ?? true
+        
         if condition.operator == .isNull {
             if isConfigObfuscated, let value: String = try? condition.value.getStringValue() {
                 let expectNull: Bool = getMD5Hex("true") == value
@@ -272,10 +411,9 @@ public class FlagEvaluator {
 
         // Safely unwrap attributeValue for further use
         guard let value = attributeValue else {
-            // Handle the nil case, perhaps throw an error or return a default value
             return false
         }
-
+        
         switch condition.operator {
         case .greaterThanEqual, .greaterThan, .lessThanEqual, .lessThan:
             let valueStr = try? value.getStringValue()
@@ -336,7 +474,6 @@ public class FlagEvaluator {
         case .matches, .notMatches:
             if let conditionString = try? condition.value.toEppoString(),
                let valueString = try? value.toEppoString() {
-
                 if isConfigObfuscated,
                    let decoded = base64Decode(conditionString) {
                     return condition.operator == .matches ? Compare.matchesRegex(valueString, decoded) : !Compare.matchesRegex(valueString, decoded)
@@ -344,12 +481,10 @@ public class FlagEvaluator {
                     return condition.operator == .matches ? Compare.matchesRegex(valueString, conditionString) : !Compare.matchesRegex(valueString, conditionString)
                 }
             }
-
             return false
         case .oneOf, .notOneOf:
             if let valueString = try? value.toEppoString(),
                let conditionArray = try? condition.value.getStringArrayValue() {
-
                 if isConfigObfuscated {
                     let valueStringHash = getMD5Hex(valueString)
                     return condition.operator == .oneOf ? Compare.isOneOf(valueStringHash, conditionArray) : !Compare.isOneOf(valueStringHash, conditionArray)
@@ -357,7 +492,6 @@ public class FlagEvaluator {
                     return condition.operator == .oneOf ? Compare.isOneOf(valueString, conditionArray) : !Compare.isOneOf(valueString, conditionArray)
                 }
             }
-
             return false
         default:
             return false
