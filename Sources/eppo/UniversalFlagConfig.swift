@@ -2,7 +2,7 @@ import Foundation
 
 public struct UniversalFlagConfig: Codable {
     let createdAt: Date
-    let format: String?
+    let format: String
     let environment: Environment
     let flags: [String: UFC_Flag]
 

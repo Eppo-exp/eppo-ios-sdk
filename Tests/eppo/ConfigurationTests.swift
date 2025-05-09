@@ -6,6 +6,7 @@ final class ConfigurationTests: XCTestCase {
     var eppoClient: EppoClient!
     let testJsonString = """
     {
+      "format": "SERVER",
       "createdAt": "2024-04-17T19:40:53.716Z",
       "environment": {
         "name": "Test"
