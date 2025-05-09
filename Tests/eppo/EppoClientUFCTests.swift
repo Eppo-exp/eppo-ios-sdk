@@ -137,10 +137,10 @@ final class EppoClientUFCTests: XCTestCase {
         // Get all test case files
         let testFiles = try getTestFiles()
         
-        // Focus on specific test cases if needed
+        // Focus on specific test cases if needed for development or debugging
         let focusOn = (
-            testFilePath: "",
-            subjectKey: ""
+            testFilePath: "", // Focus on test file paths (don't forget to set back to empty string!)
+            subjectKey: "" // Focus on subject (don't forget to set back to empty string!)
         )
 
         for testFile in testFiles {
