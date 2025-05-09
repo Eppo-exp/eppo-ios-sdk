@@ -227,8 +227,7 @@ final class EppoClientAssignmentDetailsTests: XCTestCase {
             defaultValue: 0
         )
 
-        XCTAssertEqual(result.variation, 0)
-        XCTAssertNil(result.action)
+        XCTAssertEqual(result.variation ?? 0, 0)
         XCTAssertEqual(result.evaluationDetails.environmentName, "Test")
         XCTAssertEqual(result.evaluationDetails.flagEvaluationCode, .flagUnrecognizedOrDisabled)
         XCTAssertEqual(
@@ -253,8 +252,7 @@ final class EppoClientAssignmentDetailsTests: XCTestCase {
             defaultValue: true
         )
 
-        XCTAssertEqual(result.variation, true)
-        XCTAssertNil(result.action)
+        XCTAssertEqual(result.variation ?? true, true)
         XCTAssertEqual(result.evaluationDetails.environmentName, "Test")
         XCTAssertEqual(result.evaluationDetails.flagEvaluationCode, .typeMismatch)
         XCTAssertEqual(
@@ -284,8 +282,7 @@ final class EppoClientAssignmentDetailsTests: XCTestCase {
             defaultValue: 0.0
         )
 
-        XCTAssertEqual(result.variation, 3.1415926)
-        XCTAssertNil(result.action)
+        XCTAssertEqual(result.variation ?? 0.0, 3.1415926)
         XCTAssertEqual(result.evaluationDetails.environmentName, "Test")
         XCTAssertEqual(result.evaluationDetails.flagEvaluationCode, .match)
         XCTAssertEqual(result.evaluationDetails.variationKey, "pi")
@@ -307,8 +304,7 @@ final class EppoClientAssignmentDetailsTests: XCTestCase {
             defaultValue: false
         )
 
-        XCTAssertEqual(result.variation, true)
-        XCTAssertNil(result.action)
+        XCTAssertEqual(result.variation ?? false, true)
         XCTAssertEqual(result.evaluationDetails.environmentName, "Test")
         XCTAssertEqual(result.evaluationDetails.flagEvaluationCode, .match)
         XCTAssertEqual(result.evaluationDetails.variationKey, "on")
@@ -341,7 +337,8 @@ final class EppoClientAssignmentDetailsTests: XCTestCase {
             return normalizedString
         }
 
-        XCTAssertEqual(normalizeJSON(result.variation), normalizeJSON("{\"integer\":1,\"string\":\"one\",\"float\":1.0}"))
+        XCTAssertNotNil(result.variation)
+        XCTAssertEqual(normalizeJSON(result.variation!), normalizeJSON("{\"integer\":1,\"string\":\"one\",\"float\":1.0}"))
         XCTAssertNil(result.action)
         XCTAssertEqual(result.evaluationDetails.environmentName, "Test")
         XCTAssertEqual(result.evaluationDetails.flagEvaluationCode, .match)

@@ -215,7 +215,21 @@ public class EppoClient {
                 subjectAttributes: subjectAttributes,
                 expectedVariationType: UFC_VariationType.integer
             )
-            return Int(try assignment?.variation?.value.getDoubleValue() ?? Double(defaultValue))
+            
+            // If we got an assignment error, return the default value
+            if assignment?.flagEvaluationCode == .assignmentError {
+                return defaultValue
+            }
+            
+            // Get the double value and check if it's an integer
+            if let doubleValue = try? assignment?.variation?.value.getDoubleValue() {
+                if !doubleValue.isInteger {
+                    return defaultValue
+                }
+                return Int(doubleValue)
+            }
+            
+            return defaultValue
         } catch {
             // todo: implement graceful mode
             return defaultValue
@@ -412,7 +426,7 @@ public class EppoClient {
     }
 
     public struct AssignmentDetails<T> {
-        public let variation: T
+        public let variation: T?
         public let action: String?
         public let evaluationDetails: FlagEvaluationDetails
     }
@@ -520,6 +534,7 @@ public class EppoClient {
         subjectAttributes: SubjectAttributes = SubjectAttributes(),
         defaultValue: String) throws -> AssignmentDetails<String> {
         do {
+            print("DEBUG: getJSONStringAssignmentDetails - Starting evaluation for flag: \(flagKey)")
             let flagEvaluation = try getInternalAssignment(
                 flagKey: flagKey,
                 subjectKey: subjectKey,
@@ -527,7 +542,23 @@ public class EppoClient {
                 expectedVariationType: UFC_VariationType.json
             )
             
-            let variation = try flagEvaluation?.variation?.value.getStringValue() ?? defaultValue
+            print("DEBUG: getJSONStringAssignmentDetails - Got flag evaluation: \(String(describing: flagEvaluation))")
+            print("DEBUG: getJSONStringAssignmentDetails - Flag evaluation code: \(String(describing: flagEvaluation?.flagEvaluationCode))")
+            print("DEBUG: getJSONStringAssignmentDetails - Flag evaluation variation: \(String(describing: flagEvaluation?.variation))")
+            
+            // Only use defaultValue if we have a variation but failed to get its string value
+            let variation: String?
+            if let flagVariation = flagEvaluation?.variation {
+                print("DEBUG: getJSONStringAssignmentDetails - Found flag variation, attempting to get string value")
+                variation = try flagVariation.value.getStringValue()
+                print("DEBUG: getJSONStringAssignmentDetails - Got string value: \(String(describing: variation))")
+            } else {
+                print("DEBUG: getJSONStringAssignmentDetails - No flag variation found, setting variation to nil")
+                variation = nil
+            }
+            
+            print("DEBUG: getJSONStringAssignmentDetails - Final variation value: \(String(describing: variation))")
+            print("DEBUG: getJSONStringAssignmentDetails - Default value: \(defaultValue)")
             
             let evaluationDetails = FlagEvaluationDetails(
                 environmentName: configurationStore.getConfiguration()?.getFlagConfigDetails().configEnvironment.name ?? "",
@@ -545,12 +576,18 @@ public class EppoClient {
                 unevaluatedAllocations: flagEvaluation?.unevaluatedAllocations.map { AllocationEvaluation(key: $0.key, allocationEvaluationCode: $0.allocationEvaluationCode, orderPosition: $0.orderPosition) } ?? []
             )
             
+            // If we have no variation and the flag evaluation code is FLAG_UNRECOGNIZED_OR_DISABLED,
+            // return nil instead of the default value
+            let finalVariation = (variation == nil && flagEvaluation?.flagEvaluationCode == .flagUnrecognizedOrDisabled) ? nil : (variation ?? defaultValue)
+            print("DEBUG: getJSONStringAssignmentDetails - Final assignment details variation: \(String(describing: finalVariation))")
+            
             return AssignmentDetails(
-                variation: variation,
+                variation: finalVariation,
                 action: nil,
                 evaluationDetails: evaluationDetails
             )
         } catch {
+            print("DEBUG: getJSONStringAssignmentDetails - Error occurred: \(error)")
             // todo: implement graceful mode
             return AssignmentDetails(
                 variation: defaultValue,
@@ -587,7 +624,7 @@ public class EppoClient {
                 expectedVariationType: UFC_VariationType.boolean
             )
             
-            let variation = try flagEvaluation?.variation?.value.getBoolValue() ?? defaultValue
+            let variation = try flagEvaluation?.variation?.value.getBoolValue()
             
             let evaluationDetails = FlagEvaluationDetails(
                 environmentName: configurationStore.getConfiguration()?.getFlagConfigDetails().configEnvironment.name ?? "",
@@ -606,7 +643,7 @@ public class EppoClient {
             )
             
             return AssignmentDetails(
-                variation: variation,
+                variation: variation ?? defaultValue,
                 action: nil,
                 evaluationDetails: evaluationDetails
             )
@@ -652,8 +689,19 @@ public class EppoClient {
             
             // If we have an assignment error, return the error details with the default value
             if flagEvaluation?.flagEvaluationCode == .assignmentError {
-                print("DEBUG: Found assignment error: \(String(describing: flagEvaluation?.flagEvaluationDescription))")
-                return AssignmentDetails(
+                print("DEBUG: EppoClient - Found assignment error")
+                print("DEBUG: EppoClient - Flag evaluation variation: \(String(describing: flagEvaluation?.variation))")
+                print("DEBUG: EppoClient - Flag evaluation variation value: \(String(describing: try? flagEvaluation?.variation?.value.getDoubleValue()))")
+                if let variationValue = flagEvaluation?.variation?.value {
+                    print("DEBUG: EppoClient - Variation value type: \(type(of: variationValue))")
+                    print("DEBUG: EppoClient - Can get double value: \(try? variationValue.getDoubleValue())")
+                    print("DEBUG: EppoClient - Can get string value: \(try? variationValue.getStringValue())")
+                    print("DEBUG: EppoClient - Can get bool value: \(try? variationValue.getBoolValue())")
+                    print("DEBUG: EppoClient - Is numeric: \(variationValue.isNumeric())")
+                    print("DEBUG: EppoClient - Is string: \(variationValue.isString())")
+                    print("DEBUG: EppoClient - Is bool: \(variationValue.isBool())")
+                }
+                let details = AssignmentDetails(
                     variation: defaultValue,
                     action: nil,
                     evaluationDetails: FlagEvaluationDetails(
@@ -672,6 +720,8 @@ public class EppoClient {
                         unevaluatedAllocations: flagEvaluation?.unevaluatedAllocations ?? []
                     )
                 )
+                print("DEBUG: EppoClient - Created assignment details: \(details)")
+                return details
             }
             
             // Check if the value is a valid integer
@@ -759,7 +809,7 @@ public class EppoClient {
                 expectedVariationType: UFC_VariationType.numeric
             )
             
-            let variation = try flagEvaluation?.variation?.value.getDoubleValue() ?? defaultValue
+            let variation = try flagEvaluation?.variation?.value.getDoubleValue()
             
             let evaluationDetails = FlagEvaluationDetails(
                 environmentName: configurationStore.getConfiguration()?.getFlagConfigDetails().configEnvironment.name ?? "",
@@ -778,7 +828,7 @@ public class EppoClient {
             )
             
             return AssignmentDetails(
-                variation: variation,
+                variation: variation ?? defaultValue,
                 action: nil,
                 evaluationDetails: evaluationDetails
             )

@@ -40,12 +40,29 @@ public class FlagEvaluator {
         }
 
         // Check if flag is unrecognized
-        if flag.key.isEmpty || flag.allocations.isEmpty {
+        if flag.key.isEmpty {
             return FlagEvaluation.noneResult(
                 flagKey: flag.key,
                 subjectKey: subjectKey,
                 subjectAttributes: subjectAttributes
             )
+        }
+
+        // Handle case where flag has no allocations
+        if flag.allocations.isEmpty {
+            print("DEBUG: Flag has no allocations")
+            print("DEBUG: Flag key: \(flag.key)")
+            print("DEBUG: Flag variations: \(flag.variations)")
+            let result = FlagEvaluation.noneResult(
+                flagKey: flag.key,
+                subjectKey: subjectKey,
+                subjectAttributes: subjectAttributes,
+                flagEvaluationCode: .flagUnrecognizedOrDisabled,
+                flagEvaluationDescription: "Unrecognized or disabled flag: \(flag.key)"
+            )
+            print("DEBUG: Created noneResult with variation: \(String(describing: result.variation))")
+            print("DEBUG: Created noneResult with variationType: \(String(describing: result.variationType))")
+            return result
         }
 
         var unmatchedAllocations: [AllocationEvaluation] = []
@@ -59,7 +76,7 @@ public class FlagEvaluator {
             // Check if allocation is within time range
             if let startAt = allocation.startAt {
                 if Date() < startAt {
-                    unevaluatedAllocations.append(AllocationEvaluation(
+                    unmatchedAllocations.append(AllocationEvaluation(
                         key: allocation.key,
                         allocationEvaluationCode: .beforeStartTime,
                         orderPosition: orderPosition
@@ -70,7 +87,7 @@ public class FlagEvaluator {
 
             if let endAt = allocation.endAt {
                 if Date() > endAt {
-                    unevaluatedAllocations.append(AllocationEvaluation(
+                    unmatchedAllocations.append(AllocationEvaluation(
                         key: allocation.key,
                         allocationEvaluationCode: .afterEndTime,
                         orderPosition: orderPosition
@@ -139,14 +156,33 @@ public class FlagEvaluator {
                         if let variation = variation {
                             // First try to get double value directly
                             if let doubleValue = try? variation.value.getDoubleValue() {
-                                if doubleValue.truncatingRemainder(dividingBy: 1) != 0 {
-                                    return FlagEvaluation.noneResult(
+                                print("DEBUG: RuleEvaluator - Got double value: \(doubleValue)")
+                                if !doubleValue.isInteger {
+                                    print("DEBUG: RuleEvaluator - Value is not an integer")
+                                    // Create a new variation with the original double value
+                                    let errorVariation = UFC_Variation(
+                                        key: variation.key,
+                                        value: EppoValue.valueOf(doubleValue)
+                                    )
+                                    print("DEBUG: RuleEvaluator - Created error variation: \(errorVariation)")
+                                    let evaluation = FlagEvaluation(
                                         flagKey: flag.key,
                                         subjectKey: subjectKey,
                                         subjectAttributes: subjectAttributes,
+                                        allocationKey: allocation.key,
+                                        variation: errorVariation,
+                                        variationType: flag.variationType,
+                                        extraLogging: split.extraLogging ?? [:],
+                                        doLog: allocation.doLog,
+                                        matchedRule: matchedRule,
+                                        matchedAllocation: matchedAllocation,
                                         unmatchedAllocations: unmatchedAllocations,
-                                        unevaluatedAllocations: unevaluatedAllocations
+                                        unevaluatedAllocations: unevaluatedAllocations,
+                                        flagEvaluationCode: .assignmentError,
+                                        flagEvaluationDescription: "Variation (\(variation.key)) is configured for type INTEGER, but is set to incompatible value (\(doubleValue))"
                                     )
+                                    print("DEBUG: RuleEvaluator - Created evaluation with error variation: \(evaluation)")
+                                    return evaluation
                                 }
                                 // Create a new variation with the double value
                                 let decodedVariation = UFC_Variation(
@@ -178,13 +214,27 @@ public class FlagEvaluator {
                                     decodedValue = base64Decode(stringValue)
                                 }
                                 if let finalValue = decodedValue, let doubleValue = Double(finalValue) {
-                                    if doubleValue.truncatingRemainder(dividingBy: 1) != 0 {
-                                        return FlagEvaluation.noneResult(
+                                    if !doubleValue.isInteger {
+                                        // Create a new variation with the original double value
+                                        let errorVariation = UFC_Variation(
+                                            key: variation.key,
+                                            value: EppoValue.valueOf(doubleValue)
+                                        )
+                                        return FlagEvaluation(
                                             flagKey: flag.key,
                                             subjectKey: subjectKey,
                                             subjectAttributes: subjectAttributes,
+                                            allocationKey: allocation.key,
+                                            variation: errorVariation,
+                                            variationType: flag.variationType,
+                                            extraLogging: split.extraLogging ?? [:],
+                                            doLog: allocation.doLog,
+                                            matchedRule: matchedRule,
+                                            matchedAllocation: matchedAllocation,
                                             unmatchedAllocations: unmatchedAllocations,
-                                            unevaluatedAllocations: unevaluatedAllocations
+                                            unevaluatedAllocations: unevaluatedAllocations,
+                                            flagEvaluationCode: .assignmentError,
+                                            flagEvaluationDescription: "Variation (\(variation.key)) is configured for type INTEGER, but is set to incompatible value (\(doubleValue))"
                                         )
                                     }
                                     // Create a new variation with the decoded value
@@ -210,12 +260,21 @@ public class FlagEvaluator {
                                     )
                                 }
                             }
-                            return FlagEvaluation.noneResult(
+                            return FlagEvaluation(
                                 flagKey: flag.key,
                                 subjectKey: subjectKey,
                                 subjectAttributes: subjectAttributes,
+                                allocationKey: allocation.key,
+                                variation: variation,
+                                variationType: flag.variationType,
+                                extraLogging: split.extraLogging ?? [:],
+                                doLog: allocation.doLog,
+                                matchedRule: matchedRule,
+                                matchedAllocation: matchedAllocation,
                                 unmatchedAllocations: unmatchedAllocations,
-                                unevaluatedAllocations: unevaluatedAllocations
+                                unevaluatedAllocations: unevaluatedAllocations,
+                                flagEvaluationCode: .assignmentError,
+                                flagEvaluationDescription: "Variation (\(variation.key)) is configured for type INTEGER, but is set to incompatible value"
                             )
                         } else {
                             return FlagEvaluation.noneResult(

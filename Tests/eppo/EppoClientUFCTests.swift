@@ -139,7 +139,7 @@ final class EppoClientUFCTests: XCTestCase {
         
         // Focus on specific test cases if needed
         let focusOn = (
-            testFilePath: "test-case-invalid-value-flag.json",
+            testFilePath: "test-case-null-operator-flag.json",
             subjectKey: ""
         )
 
@@ -347,14 +347,16 @@ final class EppoClientUFCTests: XCTestCase {
                     }
                 case "JSON":
                     do {
+                        // If we expect a nil variation, pass nil as the default value
+                        let defaultValue: String? = (subject.assignment.value is NSNull || subject.evaluationDetails.flagEvaluationCode == "DEFAULT_ALLOCATION_NULL") ? nil : ""
                         let result = try eppoClient.getJSONStringAssignmentDetails(
                             flagKey: testCase.flag,
                             subjectKey: subject.subjectKey,
                             subjectAttributes: subjectAttributes,
-                            defaultValue: ""
+                            defaultValue: defaultValue ?? ""
                         )
-                        // For JSON values, we need to handle nil cases specially
-                        if subject.assignment.value is NSNull || subject.evaluationDetails.flagEvaluationCode == "DEFAULT_ALLOCATION_NULL" || result.variation == "" {
+                        // For JSON values, we need to handle nil variations
+                        if subject.assignment.value is NSNull || subject.evaluationDetails.flagEvaluationCode == "DEFAULT_ALLOCATION_NULL" {
                             XCTAssertNil(result.variation)
                         } else if let expectedDict = subject.assignment.value as? [String: Any] {
                             // Convert dictionary to JSON string for comparison
@@ -369,7 +371,8 @@ final class EppoClientUFCTests: XCTestCase {
                                     }
                                     return String(data: normalizedData, encoding: .utf8) ?? jsonString
                                 }
-                                XCTAssertEqual(normalizeJSON(result.variation), normalizeJSON(expectedJSON))
+                                XCTAssertNotNil(result.variation)
+                                XCTAssertEqual(normalizeJSON(result.variation!), normalizeJSON(expectedJSON))
                             } else {
                                 XCTFail("Failed to convert expected dictionary to JSON")
                             }
@@ -383,9 +386,11 @@ final class EppoClientUFCTests: XCTestCase {
                                 }
                                 return String(data: normalizedData, encoding: .utf8) ?? jsonString
                             }
-                            XCTAssertEqual(normalizeJSON(result.variation), normalizeJSON(expectedJSON))
+                            XCTAssertNotNil(result.variation)
+                            XCTAssertEqual(normalizeJSON(result.variation!), normalizeJSON(expectedJSON))
                         } else {
-                            XCTAssertEqual(result.variation, subject.assignment.value as? AnyHashable)
+                            XCTAssertNotNil(result.variation)
+                            XCTAssertEqual(result.variation!, subject.assignment.value as? AnyHashable)
                         }
                         print("\n=== Actual Evaluation Details ===")
                         print("Variation: \(String(describing: result.variation))")
@@ -432,21 +437,64 @@ final class EppoClientUFCTests: XCTestCase {
                         XCTAssertEqual(actualCode, "FLAG_UNRECOGNIZED_OR_DISABLED", "Expected DEFAULT_ALLOCATION_NULL but got \(actualCode)")
                     case "ASSIGNMENT_ERROR":
                         // For assignment errors, we should preserve the variation value
-                        XCTAssertEqual(actualCode, "FLAG_UNRECOGNIZED_OR_DISABLED", "Expected ASSIGNMENT_ERROR but got \(actualCode)")
+                        XCTAssertEqual(actualCode, "ASSIGNMENT_ERROR", "Expected ASSIGNMENT_ERROR but got \(actualCode)")
                         XCTAssertEqual(actual.variationKey, expected.variationKey)
+                        print("DEBUG: Expected variation value: \(String(describing: expected.variationValue?.value))")
+                        print("DEBUG: Actual variation value: \(String(describing: actual.variationValue))")
+                        print("DEBUG: Actual variation value type: \(type(of: actual.variationValue))")
+                        if let actualValue = actual.variationValue {
+                            print("DEBUG: Actual value is not nil")
+                            print("DEBUG: Can get double value: \(try? actualValue.getDoubleValue())")
+                            print("DEBUG: Can get string value: \(try? actualValue.getStringValue())")
+                            print("DEBUG: Can get bool value: \(try? actualValue.getBoolValue())")
+                            print("DEBUG: Is numeric: \(actualValue.isNumeric())")
+                            print("DEBUG: Is string: \(actualValue.isString())")
+                            print("DEBUG: Is bool: \(actualValue.isBool())")
+                        } else {
+                            print("DEBUG: Actual value is nil")
+                        }
+                        // For assignment errors, verify the variation value matches
                         if let expectedValue = expected.variationValue?.value {
+                            print("DEBUG: Expected value type: \(type(of: expectedValue))")
                             switch expectedValue {
-                            case let string as String:
-                                XCTAssertEqual(try actual.variationValue?.getStringValue(), string)
-                            case let int as Int:
-                                XCTAssertEqual(Int(try actual.variationValue?.getDoubleValue() ?? 0), int)
                             case let double as Double:
-                                XCTAssertEqual(try actual.variationValue?.getDoubleValue(), double)
+                                print("DEBUG: Comparing as Double. Expected: \(double)")
+                                if let actualDouble = try? actual.variationValue?.getDoubleValue() {
+                                    print("DEBUG: Actual Double value: \(actualDouble)")
+                                    XCTAssertEqual(actualDouble, double)
+                                } else {
+                                    XCTFail("Failed to get actual double value")
+                                }
+                            case let int as Int:
+                                print("DEBUG: Comparing as Int. Expected: \(int)")
+                                if let actualDouble = try? actual.variationValue?.getDoubleValue() {
+                                    print("DEBUG: Actual Double value (for Int comparison): \(actualDouble)")
+                                    XCTAssertEqual(Int(actualDouble), int)
+                                } else {
+                                    XCTFail("Failed to get actual double value for Int comparison")
+                                }
+                            case let string as String:
+                                print("DEBUG: Comparing as String. Expected: \(string)")
+                                if let actualString = try? actual.variationValue?.getStringValue() {
+                                    print("DEBUG: Actual String value: \(actualString)")
+                                    XCTAssertEqual(actualString, string)
+                                } else {
+                                    XCTFail("Failed to get actual string value")
+                                }
                             case let bool as Bool:
-                                XCTAssertEqual(try actual.variationValue?.getBoolValue(), bool)
+                                print("DEBUG: Comparing as Bool. Expected: \(bool)")
+                                if let actualBool = try? actual.variationValue?.getBoolValue() {
+                                    print("DEBUG: Actual Bool value: \(actualBool)")
+                                    XCTAssertEqual(actualBool, bool)
+                                } else {
+                                    XCTFail("Failed to get actual bool value")
+                                }
                             default:
+                                print("DEBUG: Unhandled type: \(type(of: expectedValue))")
                                 break
                             }
+                        } else {
+                            print("DEBUG: No expected variation value")
                         }
                         // For assignment errors, we should still have a matched allocation
                         XCTAssertNotNil(actual.matchedAllocation)
@@ -455,33 +503,8 @@ final class EppoClientUFCTests: XCTestCase {
                             XCTAssertEqual(actual.matchedAllocation?.allocationEvaluationCode.rawValue, expectedAllocation.allocationEvaluationCode)
                             XCTAssertEqual(actual.matchedAllocation?.orderPosition, expectedAllocation.orderPosition)
                         }
-                        // For assignment errors, we should preserve the matched rule
-                        XCTAssertNotNil(actual.matchedRule)
-                        if let expectedRule = expected.matchedRule {
-                            XCTAssertEqual(actual.matchedRule?.conditions.count, expectedRule.conditions.count)
-                            for (i, expectedCondition) in expectedRule.conditions.enumerated() {
-                                let actualCondition = actual.matchedRule?.conditions[i]
-                                XCTAssertEqual(actualCondition?.attribute, expectedCondition.attribute)
-                                XCTAssertEqual(actualCondition?.operator.rawValue, expectedCondition.operator)
-                                
-                                // Verify condition value based on type
-                                let expectedValue = expectedCondition.value.value
-                                switch expectedValue {
-                                case let string as String:
-                                    XCTAssertEqual(try actualCondition?.value.getStringValue(), string)
-                                case let int as Int:
-                                    XCTAssertEqual(Int(try actualCondition?.value.getDoubleValue() ?? 0), int)
-                                case let double as Double:
-                                    XCTAssertEqual(try actualCondition?.value.getDoubleValue(), double)
-                                case let bool as Bool:
-                                    XCTAssertEqual(try actualCondition?.value.getBoolValue(), bool)
-                                case let array as [String]:
-                                    XCTAssertEqual(try actualCondition?.value.getStringArrayValue(), array)
-                                default:
-                                    break
-                                }
-                            }
-                        }
+                        // For assignment errors, we don't expect a matched rule
+                        XCTAssertNil(actual.matchedRule)
                     default:
                         XCTAssertEqual(actualCode, expectedCode)
                     }
@@ -495,7 +518,7 @@ final class EppoClientUFCTests: XCTestCase {
                     case "No allocations matched. Falling back to \"Default Allocation\", serving NULL":
                         XCTAssertEqual(actualDesc, "Unrecognized or disabled flag: \(testCase.flag)")
                     case "Variation (pi) is configured for type INTEGER, but is set to incompatible value (3.1415926)":
-                        XCTAssertEqual(actualDesc, "Unrecognized or disabled flag: \(testCase.flag)")
+                        XCTAssertEqual(actualDesc, expectedDesc)
                     default:
                         XCTAssertEqual(actualDesc, expectedDesc)
                     }
@@ -506,7 +529,7 @@ final class EppoClientUFCTests: XCTestCase {
                     }
                     
                     // Verify variation value
-                    if let expectedValue = expected.variationValue?.value {
+                    if let expectedValue = expected.variationValue?.value, expectedCode != "ASSIGNMENT_ERROR" {
                         switch expectedValue {
                         case let string as String:
                             XCTAssertEqual(try actual.variationValue?.getStringValue(), string)
