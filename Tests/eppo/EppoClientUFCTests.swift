@@ -139,7 +139,7 @@ final class EppoClientUFCTests: XCTestCase {
         
         // Focus on specific test cases if needed
         let focusOn = (
-            testFilePath: "test-case-null-operator-flag.json",
+            testFilePath: "",
             subjectKey: ""
         )
 
@@ -154,35 +154,6 @@ final class EppoClientUFCTests: XCTestCase {
             for subject in testCase.subjects {
                 if !focusOn.subjectKey.isEmpty && focusOn.subjectKey != subject.subjectKey {
                     continue
-                }
-
-                print("\n=== Test Case Details ===")
-                print("Flag: \(testCase.flag)")
-                print("Variation Type: \(testCase.variationType)")
-                print("Default Value: \(testCase.defaultValue.value)")
-                print("\n=== Subject Details ===")
-                print("Subject Key: \(subject.subjectKey)")
-                print("Subject Attributes: \(subject.subjectAttributes)")
-                print("Expected Assignment: \(subject.assignment.value)")
-                print("\n=== Expected Evaluation Details ===")
-                print("Environment: \(subject.evaluationDetails.environmentName)")
-                print("Evaluation Code: \(subject.evaluationDetails.flagEvaluationCode)")
-                print("Evaluation Description: \(subject.evaluationDetails.flagEvaluationDescription)")
-                print("Variation Key: \(String(describing: subject.evaluationDetails.variationKey))")
-                print("Variation Value: \(String(describing: subject.evaluationDetails.variationValue?.value))")
-                if let matchedAllocation = subject.evaluationDetails.matchedAllocation {
-                    print("\nExpected Matched Allocation:")
-                    print("Key: \(matchedAllocation.key)")
-                    print("Evaluation Code: \(matchedAllocation.allocationEvaluationCode)")
-                    print("Order Position: \(matchedAllocation.orderPosition)")
-                }
-                print("\nExpected Unmatched Allocations: \(subject.evaluationDetails.unmatchedAllocations.count)")
-                for allocation in subject.evaluationDetails.unmatchedAllocations {
-                    print("- \(allocation.key) (Code: \(allocation.allocationEvaluationCode), Position: \(allocation.orderPosition))")
-                }
-                print("\nExpected Unevaluated Allocations: \(subject.evaluationDetails.unevaluatedAllocations.count)")
-                for allocation in subject.evaluationDetails.unevaluatedAllocations {
-                    print("- \(allocation.key) (Code: \(allocation.allocationEvaluationCode), Position: \(allocation.orderPosition))")
                 }
 
                 // Convert subject attributes to EppoValue
@@ -214,30 +185,8 @@ final class EppoClientUFCTests: XCTestCase {
                             defaultValue: (testCase.defaultValue.value as? Bool) ?? false
                         )
                         XCTAssertEqual(result.variation, subject.assignment.value as? AnyHashable)
-                        print("\n=== Actual Evaluation Details ===")
-                        print("Variation: \(String(describing: result.variation))")
-                        print("Environment: \(result.evaluationDetails.environmentName)")
-                        print("Evaluation Code: \(result.evaluationDetails.flagEvaluationCode.rawValue)")
-                        print("Evaluation Description: \(result.evaluationDetails.flagEvaluationDescription)")
-                        print("Variation Key: \(String(describing: result.evaluationDetails.variationKey))")
-                        print("Variation Value: \(String(describing: try? result.evaluationDetails.variationValue?.getStringValue()))")
-                        if let matchedAllocation = result.evaluationDetails.matchedAllocation {
-                            print("\nActual Matched Allocation:")
-                            print("Key: \(matchedAllocation.key)")
-                            print("Evaluation Code: \(matchedAllocation.allocationEvaluationCode.rawValue)")
-                            print("Order Position: \(matchedAllocation.orderPosition)")
-                        }
-                        print("\nActual Unmatched Allocations: \(result.evaluationDetails.unmatchedAllocations.count)")
-                        for allocation in result.evaluationDetails.unmatchedAllocations {
-                            print("- \(allocation.key) (Code: \(allocation.allocationEvaluationCode.rawValue), Position: \(allocation.orderPosition))")
-                        }
-                        print("\nActual Unevaluated Allocations: \(result.evaluationDetails.unevaluatedAllocations.count)")
-                        for allocation in result.evaluationDetails.unevaluatedAllocations {
-                            print("- \(allocation.key) (Code: \(allocation.allocationEvaluationCode.rawValue), Position: \(allocation.orderPosition))")
-                        }
                         verifyEvaluationDetails(result.evaluationDetails, subject.evaluationDetails)
                     } catch {
-                        print("\nFailed test: \(testFile) - Subject: \(subject.subjectKey)")
                         throw error
                     }
                 case "NUMERIC":
@@ -249,30 +198,8 @@ final class EppoClientUFCTests: XCTestCase {
                             defaultValue: (testCase.defaultValue.value as? Double) ?? 0.0
                         )
                         XCTAssertEqual(result.variation, subject.assignment.value as? AnyHashable)
-                        print("\n=== Actual Evaluation Details ===")
-                        print("Variation: \(String(describing: result.variation))")
-                        print("Environment: \(result.evaluationDetails.environmentName)")
-                        print("Evaluation Code: \(result.evaluationDetails.flagEvaluationCode.rawValue)")
-                        print("Evaluation Description: \(result.evaluationDetails.flagEvaluationDescription)")
-                        print("Variation Key: \(String(describing: result.evaluationDetails.variationKey))")
-                        print("Variation Value: \(String(describing: try? result.evaluationDetails.variationValue?.getStringValue()))")
-                        if let matchedAllocation = result.evaluationDetails.matchedAllocation {
-                            print("\nActual Matched Allocation:")
-                            print("Key: \(matchedAllocation.key)")
-                            print("Evaluation Code: \(matchedAllocation.allocationEvaluationCode.rawValue)")
-                            print("Order Position: \(matchedAllocation.orderPosition)")
-                        }
-                        print("\nActual Unmatched Allocations: \(result.evaluationDetails.unmatchedAllocations.count)")
-                        for allocation in result.evaluationDetails.unmatchedAllocations {
-                            print("- \(allocation.key) (Code: \(allocation.allocationEvaluationCode.rawValue), Position: \(allocation.orderPosition))")
-                        }
-                        print("\nActual Unevaluated Allocations: \(result.evaluationDetails.unevaluatedAllocations.count)")
-                        for allocation in result.evaluationDetails.unevaluatedAllocations {
-                            print("- \(allocation.key) (Code: \(allocation.allocationEvaluationCode.rawValue), Position: \(allocation.orderPosition))")
-                        }
                         verifyEvaluationDetails(result.evaluationDetails, subject.evaluationDetails)
                     } catch {
-                        print("\nFailed test: \(testFile) - Subject: \(subject.subjectKey)")
                         throw error
                     }
                 case "INTEGER":
@@ -284,30 +211,8 @@ final class EppoClientUFCTests: XCTestCase {
                             defaultValue: (testCase.defaultValue.value as? Int) ?? 0
                         )
                         XCTAssertEqual(result.variation, subject.assignment.value as? AnyHashable)
-                        print("\n=== Actual Evaluation Details ===")
-                        print("Variation: \(String(describing: result.variation))")
-                        print("Environment: \(result.evaluationDetails.environmentName)")
-                        print("Evaluation Code: \(result.evaluationDetails.flagEvaluationCode.rawValue)")
-                        print("Evaluation Description: \(result.evaluationDetails.flagEvaluationDescription)")
-                        print("Variation Key: \(String(describing: result.evaluationDetails.variationKey))")
-                        print("Variation Value: \(String(describing: try? result.evaluationDetails.variationValue?.getStringValue()))")
-                        if let matchedAllocation = result.evaluationDetails.matchedAllocation {
-                            print("\nActual Matched Allocation:")
-                            print("Key: \(matchedAllocation.key)")
-                            print("Evaluation Code: \(matchedAllocation.allocationEvaluationCode.rawValue)")
-                            print("Order Position: \(matchedAllocation.orderPosition)")
-                        }
-                        print("\nActual Unmatched Allocations: \(result.evaluationDetails.unmatchedAllocations.count)")
-                        for allocation in result.evaluationDetails.unmatchedAllocations {
-                            print("- \(allocation.key) (Code: \(allocation.allocationEvaluationCode.rawValue), Position: \(allocation.orderPosition))")
-                        }
-                        print("\nActual Unevaluated Allocations: \(result.evaluationDetails.unevaluatedAllocations.count)")
-                        for allocation in result.evaluationDetails.unevaluatedAllocations {
-                            print("- \(allocation.key) (Code: \(allocation.allocationEvaluationCode.rawValue), Position: \(allocation.orderPosition))")
-                        }
                         verifyEvaluationDetails(result.evaluationDetails, subject.evaluationDetails)
                     } catch {
-                        print("\nFailed test: \(testFile) - Subject: \(subject.subjectKey)")
                         throw error
                     }
                 case "STRING":
@@ -319,30 +224,8 @@ final class EppoClientUFCTests: XCTestCase {
                             defaultValue: (testCase.defaultValue.value as? String) ?? ""
                         )
                         XCTAssertEqual(result.variation, subject.assignment.value as? AnyHashable)
-                        print("\n=== Actual Evaluation Details ===")
-                        print("Variation: \(String(describing: result.variation))")
-                        print("Environment: \(result.evaluationDetails.environmentName)")
-                        print("Evaluation Code: \(result.evaluationDetails.flagEvaluationCode.rawValue)")
-                        print("Evaluation Description: \(result.evaluationDetails.flagEvaluationDescription)")
-                        print("Variation Key: \(String(describing: result.evaluationDetails.variationKey))")
-                        print("Variation Value: \(String(describing: try? result.evaluationDetails.variationValue?.getStringValue()))")
-                        if let matchedAllocation = result.evaluationDetails.matchedAllocation {
-                            print("\nActual Matched Allocation:")
-                            print("Key: \(matchedAllocation.key)")
-                            print("Evaluation Code: \(matchedAllocation.allocationEvaluationCode.rawValue)")
-                            print("Order Position: \(matchedAllocation.orderPosition)")
-                        }
-                        print("\nActual Unmatched Allocations: \(result.evaluationDetails.unmatchedAllocations.count)")
-                        for allocation in result.evaluationDetails.unmatchedAllocations {
-                            print("- \(allocation.key) (Code: \(allocation.allocationEvaluationCode.rawValue), Position: \(allocation.orderPosition))")
-                        }
-                        print("\nActual Unevaluated Allocations: \(result.evaluationDetails.unevaluatedAllocations.count)")
-                        for allocation in result.evaluationDetails.unevaluatedAllocations {
-                            print("- \(allocation.key) (Code: \(allocation.allocationEvaluationCode.rawValue), Position: \(allocation.orderPosition))")
-                        }
                         verifyEvaluationDetails(result.evaluationDetails, subject.evaluationDetails)
                     } catch {
-                        print("\nFailed test: \(testFile) - Subject: \(subject.subjectKey)")
                         throw error
                     }
                 case "JSON":
@@ -392,30 +275,8 @@ final class EppoClientUFCTests: XCTestCase {
                             XCTAssertNotNil(result.variation)
                             XCTAssertEqual(result.variation!, subject.assignment.value as? AnyHashable)
                         }
-                        print("\n=== Actual Evaluation Details ===")
-                        print("Variation: \(String(describing: result.variation))")
-                        print("Environment: \(result.evaluationDetails.environmentName)")
-                        print("Evaluation Code: \(result.evaluationDetails.flagEvaluationCode.rawValue)")
-                        print("Evaluation Description: \(result.evaluationDetails.flagEvaluationDescription)")
-                        print("Variation Key: \(String(describing: result.evaluationDetails.variationKey))")
-                        print("Variation Value: \(String(describing: try? result.evaluationDetails.variationValue?.getStringValue()))")
-                        if let matchedAllocation = result.evaluationDetails.matchedAllocation {
-                            print("\nActual Matched Allocation:")
-                            print("Key: \(matchedAllocation.key)")
-                            print("Evaluation Code: \(matchedAllocation.allocationEvaluationCode.rawValue)")
-                            print("Order Position: \(matchedAllocation.orderPosition)")
-                        }
-                        print("\nActual Unmatched Allocations: \(result.evaluationDetails.unmatchedAllocations.count)")
-                        for allocation in result.evaluationDetails.unmatchedAllocations {
-                            print("- \(allocation.key) (Code: \(allocation.allocationEvaluationCode.rawValue), Position: \(allocation.orderPosition))")
-                        }
-                        print("\nActual Unevaluated Allocations: \(result.evaluationDetails.unevaluatedAllocations.count)")
-                        for allocation in result.evaluationDetails.unevaluatedAllocations {
-                            print("- \(allocation.key) (Code: \(allocation.allocationEvaluationCode.rawValue), Position: \(allocation.orderPosition))")
-                        }
                         verifyEvaluationDetails(result.evaluationDetails, subject.evaluationDetails)
                     } catch {
-                        print("\nFailed test: \(testFile) - Subject: \(subject.subjectKey)")
                         throw error
                     }
                 default:
@@ -439,9 +300,6 @@ final class EppoClientUFCTests: XCTestCase {
                         // For assignment errors, we should preserve the variation value
                         XCTAssertEqual(actualCode, "ASSIGNMENT_ERROR", "Expected ASSIGNMENT_ERROR but got \(actualCode)")
                         XCTAssertEqual(actual.variationKey, expected.variationKey)
-                        if let actualValue = actual.variationValue {
-                        } else {
-                        }
                         // For assignment errors, verify the variation value matches
                         if let expectedValue = expected.variationValue?.value {
                             switch expectedValue {
@@ -472,7 +330,6 @@ final class EppoClientUFCTests: XCTestCase {
                             default:
                                 break
                             }
-                        } else {
                         }
                         // For assignment errors, we should still have a matched allocation
                         XCTAssertNotNil(actual.matchedAllocation)
