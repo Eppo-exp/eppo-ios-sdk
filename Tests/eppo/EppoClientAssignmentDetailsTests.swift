@@ -354,12 +354,34 @@ final class EppoClientAssignmentDetailsTests: XCTestCase {
         }
         XCTAssertEqual(matchedAllocation.key, "50/50 split")
         XCTAssertEqual(matchedAllocation.allocationEvaluationCode, .match)
-        XCTAssertEqual(matchedAllocation.orderPosition, 1)
+        XCTAssertEqual(matchedAllocation.orderPosition, 2)
 
         // Test unmatched allocations
-        XCTAssertEqual(result.evaluationDetails.unmatchedAllocations.count, 0)
+        XCTAssertEqual(result.evaluationDetails.unmatchedAllocations.count, 1)
+        let unmatchedAllocation = result.evaluationDetails.unmatchedAllocations[0]
+        XCTAssertEqual(unmatchedAllocation.key, "Optionally Force Empty")
+        XCTAssertEqual(unmatchedAllocation.allocationEvaluationCode, .failingRule)
+        XCTAssertEqual(unmatchedAllocation.orderPosition, 1)
 
         // Test unevaluated allocations
         XCTAssertEqual(result.evaluationDetails.unevaluatedAllocations.count, 0)
+    }
+
+    func testConfigPublishedAtTimestamp() throws {
+        let result = try eppoClient.getIntegerAssignmentDetails(
+            flagKey: "integer-flag",
+            subjectKey: "alice",
+            subjectAttributes: [:],
+            defaultValue: 0
+        )
+        
+        // Get the expected publishedAt from the configuration
+        let expectedPublishedAt = configurationStore.getConfiguration()?.publishedAt
+        
+        // Verify the configPublishedAt timestamp matches the configuration
+        XCTAssertEqual(
+            result.evaluationDetails.configPublishedAt,
+            expectedPublishedAt
+        )
     }
 } 

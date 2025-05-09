@@ -24,7 +24,7 @@ final class ConfigurationStoreTests: XCTestCase {
         let now = ISO8601DateFormatter().string(from: Date())
         configuration = Configuration(
             flagsConfiguration: UniversalFlagConfig(
-                createdAt: nil,
+                createdAt: Date(),
                 format: "SERVER",
                 environment: Environment(name: "Test"),
                 flags: [

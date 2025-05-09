@@ -30,7 +30,7 @@ public struct Configuration: Codable {
             flagsConfiguration: flagsConfiguration,
             obfuscated: obfuscated,
             fetchedAt: now,
-            publishedAt: now
+            publishedAt: formatter.string(from: flagsConfiguration.createdAt)
         )
     }
 
