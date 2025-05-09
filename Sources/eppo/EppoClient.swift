@@ -338,7 +338,6 @@ public class EppoClient {
         let flagKeyForLookup = configuration.obfuscated ? getMD5Hex(flagKey) : flagKey
 
         guard let flagConfig = configuration.getFlag(flagKey: flagKeyForLookup) else {
-            print("DEBUG: Flag config not found for key: \(flagKey)")
             return FlagEvaluation.noneResult(
                 flagKey: flagKey,
                 subjectKey: subjectKey,
@@ -348,10 +347,7 @@ public class EppoClient {
             )
         }
 
-        print("DEBUG: Found flag config: \(flagConfig)")
-
         if flagConfig.variationType != expectedVariationType {
-            print("DEBUG: Type mismatch - Expected: \(expectedVariationType), Got: \(flagConfig.variationType)")
             // Get all allocations from the flag config
             let allAllocations = flagConfig.allocations.enumerated().map { index, allocation in
                 AllocationEvaluation(
@@ -378,8 +374,6 @@ public class EppoClient {
             subjectAttributes: subjectAttributes,
             isConfigObfuscated: configuration.obfuscated
         )
-
-        print("DEBUG: Flag evaluation result: \(flagEvaluation)")
 
         // Optionally log assignment
         if flagEvaluation.doLog && flagEvaluation.flagEvaluationCode != .assignmentError {
@@ -534,7 +528,6 @@ public class EppoClient {
         subjectAttributes: SubjectAttributes = SubjectAttributes(),
         defaultValue: String) throws -> AssignmentDetails<String> {
         do {
-            print("DEBUG: getJSONStringAssignmentDetails - Starting evaluation for flag: \(flagKey)")
             let flagEvaluation = try getInternalAssignment(
                 flagKey: flagKey,
                 subjectKey: subjectKey,
@@ -542,23 +535,13 @@ public class EppoClient {
                 expectedVariationType: UFC_VariationType.json
             )
             
-            print("DEBUG: getJSONStringAssignmentDetails - Got flag evaluation: \(String(describing: flagEvaluation))")
-            print("DEBUG: getJSONStringAssignmentDetails - Flag evaluation code: \(String(describing: flagEvaluation?.flagEvaluationCode))")
-            print("DEBUG: getJSONStringAssignmentDetails - Flag evaluation variation: \(String(describing: flagEvaluation?.variation))")
-            
             // Only use defaultValue if we have a variation but failed to get its string value
             let variation: String?
             if let flagVariation = flagEvaluation?.variation {
-                print("DEBUG: getJSONStringAssignmentDetails - Found flag variation, attempting to get string value")
                 variation = try flagVariation.value.getStringValue()
-                print("DEBUG: getJSONStringAssignmentDetails - Got string value: \(String(describing: variation))")
             } else {
-                print("DEBUG: getJSONStringAssignmentDetails - No flag variation found, setting variation to nil")
                 variation = nil
             }
-            
-            print("DEBUG: getJSONStringAssignmentDetails - Final variation value: \(String(describing: variation))")
-            print("DEBUG: getJSONStringAssignmentDetails - Default value: \(defaultValue)")
             
             let evaluationDetails = FlagEvaluationDetails(
                 environmentName: configurationStore.getConfiguration()?.getFlagConfigDetails().configEnvironment.name ?? "",
@@ -579,7 +562,6 @@ public class EppoClient {
             // If we have no variation and the flag evaluation code is FLAG_UNRECOGNIZED_OR_DISABLED,
             // return nil instead of the default value
             let finalVariation = (variation == nil && flagEvaluation?.flagEvaluationCode == .flagUnrecognizedOrDisabled) ? nil : (variation ?? defaultValue)
-            print("DEBUG: getJSONStringAssignmentDetails - Final assignment details variation: \(String(describing: finalVariation))")
             
             return AssignmentDetails(
                 variation: finalVariation,
@@ -587,7 +569,6 @@ public class EppoClient {
                 evaluationDetails: evaluationDetails
             )
         } catch {
-            print("DEBUG: getJSONStringAssignmentDetails - Error occurred: \(error)")
             // todo: implement graceful mode
             return AssignmentDetails(
                 variation: defaultValue,
@@ -677,7 +658,6 @@ public class EppoClient {
         subjectAttributes: SubjectAttributes = SubjectAttributes(),
         defaultValue: Int) throws -> AssignmentDetails<Int> {
         do {
-            print("DEBUG: Getting integer assignment details for flag: \(flagKey)")
             let flagEvaluation = try getInternalAssignment(
                 flagKey: flagKey,
                 subjectKey: subjectKey,
@@ -685,22 +665,8 @@ public class EppoClient {
                 expectedVariationType: .integer
             )
             
-            print("DEBUG: Got flag evaluation: \(String(describing: flagEvaluation))")
-            
             // If we have an assignment error, return the error details with the default value
             if flagEvaluation?.flagEvaluationCode == .assignmentError {
-                print("DEBUG: EppoClient - Found assignment error")
-                print("DEBUG: EppoClient - Flag evaluation variation: \(String(describing: flagEvaluation?.variation))")
-                print("DEBUG: EppoClient - Flag evaluation variation value: \(String(describing: try? flagEvaluation?.variation?.value.getDoubleValue()))")
-                if let variationValue = flagEvaluation?.variation?.value {
-                    print("DEBUG: EppoClient - Variation value type: \(type(of: variationValue))")
-                    print("DEBUG: EppoClient - Can get double value: \(try? variationValue.getDoubleValue())")
-                    print("DEBUG: EppoClient - Can get string value: \(try? variationValue.getStringValue())")
-                    print("DEBUG: EppoClient - Can get bool value: \(try? variationValue.getBoolValue())")
-                    print("DEBUG: EppoClient - Is numeric: \(variationValue.isNumeric())")
-                    print("DEBUG: EppoClient - Is string: \(variationValue.isString())")
-                    print("DEBUG: EppoClient - Is bool: \(variationValue.isBool())")
-                }
                 let details = AssignmentDetails(
                     variation: defaultValue,
                     action: nil,
@@ -720,7 +686,6 @@ public class EppoClient {
                         unevaluatedAllocations: flagEvaluation?.unevaluatedAllocations ?? []
                     )
                 )
-                print("DEBUG: EppoClient - Created assignment details: \(details)")
                 return details
             }
             

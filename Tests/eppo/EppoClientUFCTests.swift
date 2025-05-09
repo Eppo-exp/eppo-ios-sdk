@@ -439,62 +439,40 @@ final class EppoClientUFCTests: XCTestCase {
                         // For assignment errors, we should preserve the variation value
                         XCTAssertEqual(actualCode, "ASSIGNMENT_ERROR", "Expected ASSIGNMENT_ERROR but got \(actualCode)")
                         XCTAssertEqual(actual.variationKey, expected.variationKey)
-                        print("DEBUG: Expected variation value: \(String(describing: expected.variationValue?.value))")
-                        print("DEBUG: Actual variation value: \(String(describing: actual.variationValue))")
-                        print("DEBUG: Actual variation value type: \(type(of: actual.variationValue))")
                         if let actualValue = actual.variationValue {
-                            print("DEBUG: Actual value is not nil")
-                            print("DEBUG: Can get double value: \(try? actualValue.getDoubleValue())")
-                            print("DEBUG: Can get string value: \(try? actualValue.getStringValue())")
-                            print("DEBUG: Can get bool value: \(try? actualValue.getBoolValue())")
-                            print("DEBUG: Is numeric: \(actualValue.isNumeric())")
-                            print("DEBUG: Is string: \(actualValue.isString())")
-                            print("DEBUG: Is bool: \(actualValue.isBool())")
                         } else {
-                            print("DEBUG: Actual value is nil")
                         }
                         // For assignment errors, verify the variation value matches
                         if let expectedValue = expected.variationValue?.value {
-                            print("DEBUG: Expected value type: \(type(of: expectedValue))")
                             switch expectedValue {
                             case let double as Double:
-                                print("DEBUG: Comparing as Double. Expected: \(double)")
                                 if let actualDouble = try? actual.variationValue?.getDoubleValue() {
-                                    print("DEBUG: Actual Double value: \(actualDouble)")
                                     XCTAssertEqual(actualDouble, double)
                                 } else {
                                     XCTFail("Failed to get actual double value")
                                 }
                             case let int as Int:
-                                print("DEBUG: Comparing as Int. Expected: \(int)")
                                 if let actualDouble = try? actual.variationValue?.getDoubleValue() {
-                                    print("DEBUG: Actual Double value (for Int comparison): \(actualDouble)")
                                     XCTAssertEqual(Int(actualDouble), int)
                                 } else {
                                     XCTFail("Failed to get actual double value for Int comparison")
                                 }
                             case let string as String:
-                                print("DEBUG: Comparing as String. Expected: \(string)")
                                 if let actualString = try? actual.variationValue?.getStringValue() {
-                                    print("DEBUG: Actual String value: \(actualString)")
                                     XCTAssertEqual(actualString, string)
                                 } else {
                                     XCTFail("Failed to get actual string value")
                                 }
                             case let bool as Bool:
-                                print("DEBUG: Comparing as Bool. Expected: \(bool)")
                                 if let actualBool = try? actual.variationValue?.getBoolValue() {
-                                    print("DEBUG: Actual Bool value: \(actualBool)")
                                     XCTAssertEqual(actualBool, bool)
                                 } else {
                                     XCTFail("Failed to get actual bool value")
                                 }
                             default:
-                                print("DEBUG: Unhandled type: \(type(of: expectedValue))")
                                 break
                             }
                         } else {
-                            print("DEBUG: No expected variation value")
                         }
                         // For assignment errors, we should still have a matched allocation
                         XCTAssertNotNil(actual.matchedAllocation)
