@@ -488,9 +488,9 @@ public class EppoClient {
                 configFetchedAt: configurationStore.getConfiguration()?.getFlagConfigDetails().configFetchedAt ?? "",
                 configPublishedAt: configurationStore.getConfiguration()?.getFlagConfigDetails().configPublishedAt ?? "",
                 matchedRule: flagEvaluation?.matchedRule,
-                matchedAllocation: flagEvaluation?.matchedAllocation.map { AllocationEvaluation(key: $0.key, allocationEvaluationCode: $0.allocationEvaluationCode, orderPosition: $0.orderPosition) },
-                unmatchedAllocations: flagEvaluation?.unmatchedAllocations.map { AllocationEvaluation(key: $0.key, allocationEvaluationCode: $0.allocationEvaluationCode, orderPosition: $0.orderPosition) } ?? [],
-                unevaluatedAllocations: flagEvaluation?.unevaluatedAllocations.map { AllocationEvaluation(key: $0.key, allocationEvaluationCode: $0.allocationEvaluationCode, orderPosition: $0.orderPosition) } ?? []
+                matchedAllocation: flagEvaluation?.matchedAllocation,
+                unmatchedAllocations: flagEvaluation?.unmatchedAllocations ?? [],
+                unevaluatedAllocations: flagEvaluation?.unevaluatedAllocations ?? []
             )
             
             return AssignmentDetails(
@@ -554,9 +554,9 @@ public class EppoClient {
                 configFetchedAt: configurationStore.getConfiguration()?.getFlagConfigDetails().configFetchedAt ?? "",
                 configPublishedAt: configurationStore.getConfiguration()?.getFlagConfigDetails().configPublishedAt ?? "",
                 matchedRule: flagEvaluation?.matchedRule,
-                matchedAllocation: flagEvaluation?.matchedAllocation.map { AllocationEvaluation(key: $0.key, allocationEvaluationCode: $0.allocationEvaluationCode, orderPosition: $0.orderPosition) },
-                unmatchedAllocations: flagEvaluation?.unmatchedAllocations.map { AllocationEvaluation(key: $0.key, allocationEvaluationCode: $0.allocationEvaluationCode, orderPosition: $0.orderPosition) } ?? [],
-                unevaluatedAllocations: flagEvaluation?.unevaluatedAllocations.map { AllocationEvaluation(key: $0.key, allocationEvaluationCode: $0.allocationEvaluationCode, orderPosition: $0.orderPosition) } ?? []
+                matchedAllocation: flagEvaluation?.matchedAllocation,
+                unmatchedAllocations: flagEvaluation?.unmatchedAllocations ?? [],
+                unevaluatedAllocations: flagEvaluation?.unevaluatedAllocations ?? []
             )
             
             // If we have no variation and the flag evaluation code is FLAG_UNRECOGNIZED_OR_DISABLED,
@@ -618,9 +618,9 @@ public class EppoClient {
                 configFetchedAt: configurationStore.getConfiguration()?.getFlagConfigDetails().configFetchedAt ?? "",
                 configPublishedAt: configurationStore.getConfiguration()?.getFlagConfigDetails().configPublishedAt ?? "",
                 matchedRule: flagEvaluation?.matchedRule,
-                matchedAllocation: flagEvaluation?.matchedAllocation.map { AllocationEvaluation(key: $0.key, allocationEvaluationCode: $0.allocationEvaluationCode, orderPosition: $0.orderPosition) },
-                unmatchedAllocations: flagEvaluation?.unmatchedAllocations.map { AllocationEvaluation(key: $0.key, allocationEvaluationCode: $0.allocationEvaluationCode, orderPosition: $0.orderPosition) } ?? [],
-                unevaluatedAllocations: flagEvaluation?.unevaluatedAllocations.map { AllocationEvaluation(key: $0.key, allocationEvaluationCode: $0.allocationEvaluationCode, orderPosition: $0.orderPosition) } ?? []
+                matchedAllocation: flagEvaluation?.matchedAllocation,
+                unmatchedAllocations: flagEvaluation?.unmatchedAllocations ?? [],
+                unevaluatedAllocations: flagEvaluation?.unevaluatedAllocations ?? []
             )
             
             return AssignmentDetails(
@@ -787,9 +787,9 @@ public class EppoClient {
                 configFetchedAt: configurationStore.getConfiguration()?.getFlagConfigDetails().configFetchedAt ?? "",
                 configPublishedAt: configurationStore.getConfiguration()?.getFlagConfigDetails().configPublishedAt ?? "",
                 matchedRule: flagEvaluation?.matchedRule,
-                matchedAllocation: flagEvaluation?.matchedAllocation.map { AllocationEvaluation(key: $0.key, allocationEvaluationCode: $0.allocationEvaluationCode, orderPosition: $0.orderPosition) },
-                unmatchedAllocations: flagEvaluation?.unmatchedAllocations.map { AllocationEvaluation(key: $0.key, allocationEvaluationCode: $0.allocationEvaluationCode, orderPosition: $0.orderPosition) } ?? [],
-                unevaluatedAllocations: flagEvaluation?.unevaluatedAllocations.map { AllocationEvaluation(key: $0.key, allocationEvaluationCode: $0.allocationEvaluationCode, orderPosition: $0.orderPosition) } ?? []
+                matchedAllocation: flagEvaluation?.matchedAllocation,
+                unmatchedAllocations: flagEvaluation?.unmatchedAllocations ?? [],
+                unevaluatedAllocations: flagEvaluation?.unevaluatedAllocations ?? []
             )
             
             return AssignmentDetails(

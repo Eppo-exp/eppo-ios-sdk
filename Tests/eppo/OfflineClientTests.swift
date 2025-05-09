@@ -21,6 +21,7 @@ final class OfflineClientTests: XCTestCase {
         // No allocations.
         let localJsonString = """
         {
+          "format": "SERVER",
           "createdAt": "2024-04-17T19:40:53.716Z",
           "environment": {
             "name": "Test"
@@ -70,6 +71,7 @@ final class OfflineClientTests: XCTestCase {
         // Step 2: Stub the remote JSON response
         let remoteJsonString = """
         {
+          "format": "SERVER",
           "createdAt": "2024-04-17T19:40:53.716Z",
           "environment": {
             "name": "Test"
