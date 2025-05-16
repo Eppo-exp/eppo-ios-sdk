@@ -215,7 +215,21 @@ public class EppoClient {
                 subjectAttributes: subjectAttributes,
                 expectedVariationType: UFC_VariationType.integer
             )
-            return Int(try assignment?.variation?.value.getDoubleValue() ?? Double(defaultValue))
+            
+            // If we got an assignment error, return the default value
+            if assignment?.flagEvaluationCode == .assignmentError {
+                return defaultValue
+            }
+            
+            // Get the double value and check if it's an integer
+            if let doubleValue = try? assignment?.variation?.value.getDoubleValue() {
+                if !doubleValue.isInteger {
+                    return defaultValue
+                }
+                return Int(doubleValue)
+            }
+            
+            return defaultValue
         } catch {
             // todo: implement graceful mode
             return defaultValue
@@ -263,6 +277,44 @@ public class EppoClient {
         return self.configurationStore.getConfiguration()
     }
 
+    private func getMatchedEvaluationCodeAndDescription(
+        variation: UFC_Variation,
+        allocation: UFC_Allocation,
+        split: UFC_Split,
+        subjectKey: String,
+        expectedVariationType: UFC_VariationType
+    ) -> (flagEvaluationCode: FlagEvaluationCode, flagEvaluationDescription: String) {
+        // Check for type mismatch
+        if !isValueOfType(expectedType: expectedVariationType, variationValue: variation.value) {
+            return (
+                flagEvaluationCode: .assignmentError,
+                flagEvaluationDescription: "Variation (\(variation.key)) is configured for type \(expectedVariationType), but is set to incompatible value (\(variation.value))"
+            )
+        }
+
+        let hasDefinedRules = !(allocation.rules?.isEmpty ?? true)
+        let isExperiment = allocation.splits.count > 1
+        let isPartialRollout = split.shards.count > 1
+        let isExperimentOrPartialRollout = isExperiment || isPartialRollout
+
+        if hasDefinedRules && isExperimentOrPartialRollout {
+            return (
+                flagEvaluationCode: .match,
+                flagEvaluationDescription: "Supplied attributes match rules defined in allocation \"\(allocation.key)\" and \(subjectKey) belongs to the range of traffic assigned to \"\(split.variationKey)\"."
+            )
+        }
+        if hasDefinedRules && !isExperimentOrPartialRollout {
+            return (
+                flagEvaluationCode: .match,
+                flagEvaluationDescription: "Supplied attributes match rules defined in allocation \"\(allocation.key)\"."
+            )
+        }
+        return (
+            flagEvaluationCode: .match,
+            flagEvaluationDescription: "\(subjectKey) belongs to the range of traffic assigned to \"\(split.variationKey)\" defined in allocation \"\(allocation.key)\"."
+        )
+    }
+
     private func getInternalAssignment(
         flagKey: String,
         subjectKey: String,
@@ -286,11 +338,34 @@ public class EppoClient {
         let flagKeyForLookup = configuration.obfuscated ? getMD5Hex(flagKey) : flagKey
 
         guard let flagConfig = configuration.getFlag(flagKey: flagKeyForLookup) else {
-            throw Errors.flagConfigNotFound
+            return FlagEvaluation.noneResult(
+                flagKey: flagKey,
+                subjectKey: subjectKey,
+                subjectAttributes: subjectAttributes,
+                flagEvaluationCode: .flagUnrecognizedOrDisabled,
+                flagEvaluationDescription: "Unrecognized or disabled flag: \(flagKey)"
+            )
         }
 
         if flagConfig.variationType != expectedVariationType {
-            throw Errors.variationTypeMismatch
+            // Get all allocations from the flag config
+            let allAllocations = flagConfig.allocations.enumerated().map { index, allocation in
+                AllocationEvaluation(
+                    key: allocation.key,
+                    allocationEvaluationCode: .unevaluated,
+                    orderPosition: index + 1
+                )
+            }
+            
+            return FlagEvaluation.noneResult(
+                flagKey: flagKey,
+                subjectKey: subjectKey,
+                subjectAttributes: subjectAttributes,
+                flagEvaluationCode: .typeMismatch,
+                flagEvaluationDescription: "Variation value does not have the correct type. Found \(flagConfig.variationType.rawValue.uppercased()), but expected \(expectedVariationType.rawValue.uppercased()) for flag \(flagKey)",
+                unmatchedAllocations: [],
+                unevaluatedAllocations: allAllocations
+            )
         }
 
         let flagEvaluation = flagEvaluator.evaluateFlag(
@@ -300,12 +375,8 @@ public class EppoClient {
             isConfigObfuscated: configuration.obfuscated
         )
 
-        if let variation = flagEvaluation.variation, !isValueOfType(expectedType: expectedVariationType, variationValue: variation.value) {
-            throw Errors.variationWrongType
-        }
-
         // Optionally log assignment
-        if flagEvaluation.doLog {
+        if flagEvaluation.doLog && flagEvaluation.flagEvaluationCode != .assignmentError {
             if let assignmentLogger = self.assignmentLogger {
                 let allocationKey = flagEvaluation.allocationKey ?? "__eppo_no_allocation"
                 let variationKey = flagEvaluation.variation?.key ?? "__eppo_no_variation"
@@ -348,6 +419,408 @@ public class EppoClient {
         return flagEvaluation
     }
 
+    public struct AssignmentDetails<T> {
+        public let variation: T?
+        public let action: String?
+        public let evaluationDetails: FlagEvaluationDetails
+    }
+
+    public struct FlagEvaluationDetails {
+        public let environmentName: String
+        public let flagEvaluationCode: FlagEvaluationCode
+        public let flagEvaluationDescription: String
+        public let variationKey: String?
+        public let variationValue: EppoValue?
+        public let banditKey: String?
+        public let banditAction: String?
+        public let configFetchedAt: String
+        public let configPublishedAt: String
+        public let matchedRule: UFC_Rule?
+        public let matchedAllocation: AllocationEvaluation?
+        public let unmatchedAllocations: [AllocationEvaluation]
+        public let unevaluatedAllocations: [AllocationEvaluation]
+    }
+
+    public enum FlagEvaluationCode: String {
+        case match = "MATCH"
+        case flagUnrecognizedOrDisabled = "FLAG_UNRECOGNIZED_OR_DISABLED"
+        case typeMismatch = "TYPE_MISMATCH"
+        case assignmentError = "ASSIGNMENT_ERROR"
+        case defaultAllocationNull = "DEFAULT_ALLOCATION_NULL"
+        case noActionsSuppliedForBandit = "NO_ACTIONS_SUPPLIED_FOR_BANDIT"
+        case banditError = "BANDIT_ERROR"
+    }
+
+    public enum AllocationEvaluationCode: String {
+        case unevaluated = "UNEVALUATED"
+        case match = "MATCH"
+        case beforeStartTime = "BEFORE_START_TIME"
+        case trafficExposureMiss = "TRAFFIC_EXPOSURE_MISS"
+        case afterEndTime = "AFTER_END_TIME"
+        case failingRule = "FAILING_RULE"
+    }
+
+    public typealias AllocationEvaluation = EppoFlagging.AllocationEvaluation
+
+    public func getStringAssignmentDetails(
+        flagKey: String,
+        subjectKey: String,
+        subjectAttributes: SubjectAttributes = SubjectAttributes(),
+        defaultValue: String) throws -> AssignmentDetails<String> {
+        do {
+            let flagEvaluation = try getInternalAssignment(
+                flagKey: flagKey,
+                subjectKey: subjectKey,
+                subjectAttributes: subjectAttributes,
+                expectedVariationType: UFC_VariationType.string
+            )
+            
+            let variation = try flagEvaluation?.variation?.value.getStringValue() ?? defaultValue
+            
+            let evaluationDetails = FlagEvaluationDetails(
+                environmentName: configurationStore.getConfiguration()?.getFlagConfigDetails().configEnvironment.name ?? "",
+                flagEvaluationCode: flagEvaluation?.flagEvaluationCode ?? .flagUnrecognizedOrDisabled,
+                flagEvaluationDescription: flagEvaluation?.flagEvaluationDescription ?? "No assignment found",
+                variationKey: flagEvaluation?.variation?.key,
+                variationValue: flagEvaluation?.variation?.value,
+                banditKey: nil,
+                banditAction: nil,
+                configFetchedAt: configurationStore.getConfiguration()?.getFlagConfigDetails().configFetchedAt ?? "",
+                configPublishedAt: configurationStore.getConfiguration()?.getFlagConfigDetails().configPublishedAt ?? "",
+                matchedRule: flagEvaluation?.matchedRule,
+                matchedAllocation: flagEvaluation?.matchedAllocation,
+                unmatchedAllocations: flagEvaluation?.unmatchedAllocations ?? [],
+                unevaluatedAllocations: flagEvaluation?.unevaluatedAllocations ?? []
+            )
+            
+            return AssignmentDetails(
+                variation: variation,
+                action: nil,
+                evaluationDetails: evaluationDetails
+            )
+        } catch {
+            // todo: implement graceful mode
+            return AssignmentDetails(
+                variation: defaultValue,
+                action: nil,
+                evaluationDetails: FlagEvaluationDetails(
+                    environmentName: configurationStore.getConfiguration()?.getFlagConfigDetails().configEnvironment.name ?? "",
+                    flagEvaluationCode: .flagUnrecognizedOrDisabled,
+                    flagEvaluationDescription: "Unrecognized or disabled flag: \(flagKey)",
+                    variationKey: nil,
+                    variationValue: nil,
+                    banditKey: nil,
+                    banditAction: nil,
+                    configFetchedAt: configurationStore.getConfiguration()?.getFlagConfigDetails().configFetchedAt ?? "",
+                    configPublishedAt: configurationStore.getConfiguration()?.getFlagConfigDetails().configPublishedAt ?? "",
+                    matchedRule: nil,
+                    matchedAllocation: nil,
+                    unmatchedAllocations: [],
+                    unevaluatedAllocations: []
+                )
+            )
+        }
+    }
+
+    public func getJSONStringAssignmentDetails(
+        flagKey: String,
+        subjectKey: String,
+        subjectAttributes: SubjectAttributes = SubjectAttributes(),
+        defaultValue: String) throws -> AssignmentDetails<String> {
+        do {
+            let flagEvaluation = try getInternalAssignment(
+                flagKey: flagKey,
+                subjectKey: subjectKey,
+                subjectAttributes: subjectAttributes,
+                expectedVariationType: UFC_VariationType.json
+            )
+            
+            // Only use defaultValue if we have a variation but failed to get its string value
+            let variation: String?
+            if let flagVariation = flagEvaluation?.variation {
+                variation = try flagVariation.value.getStringValue()
+            } else {
+                variation = nil
+            }
+            
+            let evaluationDetails = FlagEvaluationDetails(
+                environmentName: configurationStore.getConfiguration()?.getFlagConfigDetails().configEnvironment.name ?? "",
+                flagEvaluationCode: flagEvaluation?.flagEvaluationCode ?? .flagUnrecognizedOrDisabled,
+                flagEvaluationDescription: flagEvaluation?.flagEvaluationDescription ?? "No assignment found",
+                variationKey: flagEvaluation?.variation?.key,
+                variationValue: flagEvaluation?.variation?.value,
+                banditKey: nil,
+                banditAction: nil,
+                configFetchedAt: configurationStore.getConfiguration()?.getFlagConfigDetails().configFetchedAt ?? "",
+                configPublishedAt: configurationStore.getConfiguration()?.getFlagConfigDetails().configPublishedAt ?? "",
+                matchedRule: flagEvaluation?.matchedRule,
+                matchedAllocation: flagEvaluation?.matchedAllocation,
+                unmatchedAllocations: flagEvaluation?.unmatchedAllocations ?? [],
+                unevaluatedAllocations: flagEvaluation?.unevaluatedAllocations ?? []
+            )
+            
+            // If we have no variation and the flag evaluation code is FLAG_UNRECOGNIZED_OR_DISABLED,
+            // return nil instead of the default value
+            let finalVariation = (variation == nil && flagEvaluation?.flagEvaluationCode == .flagUnrecognizedOrDisabled) ? nil : (variation ?? defaultValue)
+            
+            return AssignmentDetails(
+                variation: finalVariation,
+                action: nil,
+                evaluationDetails: evaluationDetails
+            )
+        } catch {
+            // todo: implement graceful mode
+            return AssignmentDetails(
+                variation: defaultValue,
+                action: nil,
+                evaluationDetails: FlagEvaluationDetails(
+                    environmentName: configurationStore.getConfiguration()?.getFlagConfigDetails().configEnvironment.name ?? "",
+                    flagEvaluationCode: .flagUnrecognizedOrDisabled,
+                    flagEvaluationDescription: "Unrecognized or disabled flag: \(flagKey)",
+                    variationKey: nil,
+                    variationValue: nil,
+                    banditKey: nil,
+                    banditAction: nil,
+                    configFetchedAt: configurationStore.getConfiguration()?.getFlagConfigDetails().configFetchedAt ?? "",
+                    configPublishedAt: configurationStore.getConfiguration()?.getFlagConfigDetails().configPublishedAt ?? "",
+                    matchedRule: nil,
+                    matchedAllocation: nil,
+                    unmatchedAllocations: [],
+                    unevaluatedAllocations: []
+                )
+            )
+        }
+    }
+
+    public func getBooleanAssignmentDetails(
+        flagKey: String,
+        subjectKey: String,
+        subjectAttributes: SubjectAttributes = SubjectAttributes(),
+        defaultValue: Bool) throws -> AssignmentDetails<Bool> {
+        do {
+            let flagEvaluation = try getInternalAssignment(
+                flagKey: flagKey,
+                subjectKey: subjectKey,
+                subjectAttributes: subjectAttributes,
+                expectedVariationType: UFC_VariationType.boolean
+            )
+            
+            let variation = try flagEvaluation?.variation?.value.getBoolValue()
+            
+            let evaluationDetails = FlagEvaluationDetails(
+                environmentName: configurationStore.getConfiguration()?.getFlagConfigDetails().configEnvironment.name ?? "",
+                flagEvaluationCode: flagEvaluation?.flagEvaluationCode ?? .flagUnrecognizedOrDisabled,
+                flagEvaluationDescription: flagEvaluation?.flagEvaluationDescription ?? "No assignment found",
+                variationKey: flagEvaluation?.variation?.key,
+                variationValue: flagEvaluation?.variation?.value,
+                banditKey: nil,
+                banditAction: nil,
+                configFetchedAt: configurationStore.getConfiguration()?.getFlagConfigDetails().configFetchedAt ?? "",
+                configPublishedAt: configurationStore.getConfiguration()?.getFlagConfigDetails().configPublishedAt ?? "",
+                matchedRule: flagEvaluation?.matchedRule,
+                matchedAllocation: flagEvaluation?.matchedAllocation,
+                unmatchedAllocations: flagEvaluation?.unmatchedAllocations ?? [],
+                unevaluatedAllocations: flagEvaluation?.unevaluatedAllocations ?? []
+            )
+            
+            return AssignmentDetails(
+                variation: variation ?? defaultValue,
+                action: nil,
+                evaluationDetails: evaluationDetails
+            )
+        } catch {
+            // todo: implement graceful mode
+            return AssignmentDetails(
+                variation: defaultValue,
+                action: nil,
+                evaluationDetails: FlagEvaluationDetails(
+                    environmentName: configurationStore.getConfiguration()?.getFlagConfigDetails().configEnvironment.name ?? "",
+                    flagEvaluationCode: .flagUnrecognizedOrDisabled,
+                    flagEvaluationDescription: "Unrecognized or disabled flag: \(flagKey)",
+                    variationKey: nil,
+                    variationValue: nil,
+                    banditKey: nil,
+                    banditAction: nil,
+                    configFetchedAt: configurationStore.getConfiguration()?.getFlagConfigDetails().configFetchedAt ?? "",
+                    configPublishedAt: configurationStore.getConfiguration()?.getFlagConfigDetails().configPublishedAt ?? "",
+                    matchedRule: nil,
+                    matchedAllocation: nil,
+                    unmatchedAllocations: [],
+                    unevaluatedAllocations: []
+                )
+            )
+        }
+    }
+
+    public func getIntegerAssignmentDetails(
+        flagKey: String,
+        subjectKey: String,
+        subjectAttributes: SubjectAttributes = SubjectAttributes(),
+        defaultValue: Int) throws -> AssignmentDetails<Int> {
+        do {
+            let flagEvaluation = try getInternalAssignment(
+                flagKey: flagKey,
+                subjectKey: subjectKey,
+                subjectAttributes: subjectAttributes,
+                expectedVariationType: .integer
+            )
+            
+            // If we have an assignment error, return the error details with the default value
+            if flagEvaluation?.flagEvaluationCode == .assignmentError {
+                let details = AssignmentDetails(
+                    variation: defaultValue,
+                    action: nil,
+                    evaluationDetails: FlagEvaluationDetails(
+                        environmentName: configurationStore.getConfiguration()?.getFlagConfigDetails().configEnvironment.name ?? "",
+                        flagEvaluationCode: .assignmentError,
+                        flagEvaluationDescription: flagEvaluation?.flagEvaluationDescription ?? "No assignment found",
+                        variationKey: flagEvaluation?.variation?.key,
+                        variationValue: flagEvaluation?.variation?.value,
+                        banditKey: nil,
+                        banditAction: nil,
+                        configFetchedAt: configurationStore.getConfiguration()?.getFlagConfigDetails().configFetchedAt ?? "",
+                        configPublishedAt: configurationStore.getConfiguration()?.getFlagConfigDetails().configPublishedAt ?? "",
+                        matchedRule: flagEvaluation?.matchedRule,
+                        matchedAllocation: flagEvaluation?.matchedAllocation,
+                        unmatchedAllocations: flagEvaluation?.unmatchedAllocations ?? [],
+                        unevaluatedAllocations: flagEvaluation?.unevaluatedAllocations ?? []
+                    )
+                )
+                return details
+            }
+            
+            // Check if the value is a valid integer
+            if let doubleValue = try? flagEvaluation?.variation?.value.getDoubleValue(),
+               doubleValue.isInteger {
+                let variation = Int(doubleValue)
+                
+                let evaluationDetails = FlagEvaluationDetails(
+                    environmentName: configurationStore.getConfiguration()?.getFlagConfigDetails().configEnvironment.name ?? "",
+                    flagEvaluationCode: flagEvaluation?.flagEvaluationCode ?? .flagUnrecognizedOrDisabled,
+                    flagEvaluationDescription: flagEvaluation?.flagEvaluationDescription ?? "No assignment found",
+                    variationKey: flagEvaluation?.variation?.key,
+                    variationValue: flagEvaluation?.variation?.value,
+                    banditKey: nil,
+                    banditAction: nil,
+                    configFetchedAt: configurationStore.getConfiguration()?.getFlagConfigDetails().configFetchedAt ?? "",
+                    configPublishedAt: configurationStore.getConfiguration()?.getFlagConfigDetails().configPublishedAt ?? "",
+                    matchedRule: flagEvaluation?.matchedRule,
+                    matchedAllocation: flagEvaluation?.matchedAllocation,
+                    unmatchedAllocations: flagEvaluation?.unmatchedAllocations ?? [],
+                    unevaluatedAllocations: flagEvaluation?.unevaluatedAllocations ?? []
+                )
+                
+                return AssignmentDetails(
+                    variation: variation,
+                    action: nil,
+                    evaluationDetails: evaluationDetails
+                )
+            }
+            
+            // If we get here, either there's no variation or it's not a valid integer
+            return AssignmentDetails(
+                variation: defaultValue,
+                action: nil,
+                evaluationDetails: FlagEvaluationDetails(
+                    environmentName: configurationStore.getConfiguration()?.getFlagConfigDetails().configEnvironment.name ?? "",
+                    flagEvaluationCode: .flagUnrecognizedOrDisabled,
+                    flagEvaluationDescription: "Unrecognized or disabled flag: \(flagKey)",
+                    variationKey: nil,
+                    variationValue: nil,
+                    banditKey: nil,
+                    banditAction: nil,
+                    configFetchedAt: configurationStore.getConfiguration()?.getFlagConfigDetails().configFetchedAt ?? "",
+                    configPublishedAt: configurationStore.getConfiguration()?.getFlagConfigDetails().configPublishedAt ?? "",
+                    matchedRule: nil,
+                    matchedAllocation: nil,
+                    unmatchedAllocations: flagEvaluation?.unmatchedAllocations ?? [],
+                    unevaluatedAllocations: flagEvaluation?.unevaluatedAllocations ?? []
+                )
+            )
+        } catch {
+            // todo: implement graceful mode
+            return AssignmentDetails(
+                variation: defaultValue,
+                action: nil,
+                evaluationDetails: FlagEvaluationDetails(
+                    environmentName: configurationStore.getConfiguration()?.getFlagConfigDetails().configEnvironment.name ?? "",
+                    flagEvaluationCode: .flagUnrecognizedOrDisabled,
+                    flagEvaluationDescription: "Unrecognized or disabled flag: \(flagKey)",
+                    variationKey: nil,
+                    variationValue: nil,
+                    banditKey: nil,
+                    banditAction: nil,
+                    configFetchedAt: configurationStore.getConfiguration()?.getFlagConfigDetails().configFetchedAt ?? "",
+                    configPublishedAt: configurationStore.getConfiguration()?.getFlagConfigDetails().configPublishedAt ?? "",
+                    matchedRule: nil,
+                    matchedAllocation: nil,
+                    unmatchedAllocations: [],
+                    unevaluatedAllocations: []
+                )
+            )
+        }
+    }
+
+    public func getNumericAssignmentDetails(
+        flagKey: String,
+        subjectKey: String,
+        subjectAttributes: SubjectAttributes = SubjectAttributes(),
+        defaultValue: Double) throws -> AssignmentDetails<Double> {
+        do {
+            let flagEvaluation = try getInternalAssignment(
+                flagKey: flagKey,
+                subjectKey: subjectKey,
+                subjectAttributes: subjectAttributes,
+                expectedVariationType: UFC_VariationType.numeric
+            )
+            
+            let variation = try flagEvaluation?.variation?.value.getDoubleValue()
+            
+            let evaluationDetails = FlagEvaluationDetails(
+                environmentName: configurationStore.getConfiguration()?.getFlagConfigDetails().configEnvironment.name ?? "",
+                flagEvaluationCode: flagEvaluation?.flagEvaluationCode ?? .flagUnrecognizedOrDisabled,
+                flagEvaluationDescription: flagEvaluation?.flagEvaluationDescription ?? "No assignment found",
+                variationKey: flagEvaluation?.variation?.key,
+                variationValue: flagEvaluation?.variation?.value,
+                banditKey: nil,
+                banditAction: nil,
+                configFetchedAt: configurationStore.getConfiguration()?.getFlagConfigDetails().configFetchedAt ?? "",
+                configPublishedAt: configurationStore.getConfiguration()?.getFlagConfigDetails().configPublishedAt ?? "",
+                matchedRule: flagEvaluation?.matchedRule,
+                matchedAllocation: flagEvaluation?.matchedAllocation,
+                unmatchedAllocations: flagEvaluation?.unmatchedAllocations ?? [],
+                unevaluatedAllocations: flagEvaluation?.unevaluatedAllocations ?? []
+            )
+            
+            return AssignmentDetails(
+                variation: variation ?? defaultValue,
+                action: nil,
+                evaluationDetails: evaluationDetails
+            )
+        } catch {
+            // todo: implement graceful mode
+            return AssignmentDetails(
+                variation: defaultValue,
+                action: nil,
+                evaluationDetails: FlagEvaluationDetails(
+                    environmentName: configurationStore.getConfiguration()?.getFlagConfigDetails().configEnvironment.name ?? "",
+                    flagEvaluationCode: .flagUnrecognizedOrDisabled,
+                    flagEvaluationDescription: "Unrecognized or disabled flag: \(flagKey)",
+                    variationKey: nil,
+                    variationValue: nil,
+                    banditKey: nil,
+                    banditAction: nil,
+                    configFetchedAt: configurationStore.getConfiguration()?.getFlagConfigDetails().configFetchedAt ?? "",
+                    configPublishedAt: configurationStore.getConfiguration()?.getFlagConfigDetails().configPublishedAt ?? "",
+                    matchedRule: nil,
+                    matchedAllocation: nil,
+                    unmatchedAllocations: [],
+                    unevaluatedAllocations: []
+                )
+            )
+        }
+    }
+
     public func startPolling(
         intervalMs: Int = PollerConstants.DEFAULT_POLL_INTERVAL_MS,
         jitterMs: Int = PollerConstants.DEFAULT_POLL_INTERVAL_MS / PollerConstants.DEFAULT_JITTER_INTERVAL_RATIO
@@ -387,5 +860,11 @@ func isValueOfType(expectedType: UFC_VariationType, variationValue: EppoValue) -
         return variationValue.isNumeric()
     case .boolean:
         return variationValue.isBool()
+    }
+}
+
+extension Double {
+    var isInteger: Bool {
+        return self.truncatingRemainder(dividingBy: 1) == 0
     }
 }
