@@ -1,7 +1,9 @@
 import Foundation
 
 public struct UniversalFlagConfig: Codable {
-    let createdAt: Date?
+    let createdAt: Date
+    let format: String
+    let environment: Environment
     let flags: [String: UFC_Flag]
 
     static func decodeFromJSON(from json: Data) throws -> UniversalFlagConfig {
@@ -36,6 +38,10 @@ public struct UniversalFlagConfig: Codable {
             throw UniversalFlagConfigError.parsingError("Unexpected error: \(error.localizedDescription)")
         }
     }
+}
+
+public struct Environment: Codable {
+    let name: String
 }
 
 // enums
