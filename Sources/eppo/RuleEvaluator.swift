@@ -386,9 +386,8 @@ public class FlagEvaluator {
         
         // If not found in attributes and the attribute is "id", use the subject key
         if attributeValue == nil {
-            if !isConfigObfuscated && attributeKey == "id" {
-                attributeValue = EppoValue.valueOf(subjectKey)
-            } else if isConfigObfuscated && attributeKey == getMD5Hex("id") {
+            let idKey = isConfigObfuscated ? getMD5Hex("id") : "id"
+            if attributeKey == idKey {
                 attributeValue = EppoValue.valueOf(subjectKey)
             }
         }

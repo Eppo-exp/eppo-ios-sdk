@@ -299,23 +299,16 @@ public class EppoClient {
         let isPartialRollout = split.shards.count > 1
         let isExperimentOrPartialRollout = isExperiment || isPartialRollout
 
-        switch (hasDefinedRules, isExperimentOrPartialRollout) {
-            case (true, true):
-                return (
-                    flagEvaluationCode: .match,
-                    flagEvaluationDescription: "Supplied attributes match rules defined in allocation \"\(allocation.key)\" and \(subjectKey) belongs to the range of traffic assigned to \"\(split.variationKey)\"."
-                )
-            case (true, false):
-                return (
-                    flagEvaluationCode: .match,
-                    flagEvaluationDescription: "Supplied attributes match rules defined in allocation \"\(allocation.key)\"."
-                )
-            default:
-                return (
-                    flagEvaluationCode: .match,
-                    flagEvaluationDescription: "\(subjectKey) belongs to the range of traffic assigned to \"\(split.variationKey)\" defined in allocation \"\(allocation.key)\"."
-                )
-        }
+        return (
+            flagEvaluationCode: .match,
+            flagEvaluationDescription: EvaluationDescription.getDescription(
+                hasDefinedRules: hasDefinedRules,
+                isExperimentOrPartialRollout: isExperimentOrPartialRollout,
+                allocationKey: allocation.key,
+                subjectKey: subjectKey,
+                variationKey: split.variationKey
+            )
+        )
     }
 
     private func getInternalAssignment(
