@@ -447,6 +447,7 @@ public class EppoClient {
         case defaultAllocationNull = "DEFAULT_ALLOCATION_NULL"
         case noActionsSuppliedForBandit = "NO_ACTIONS_SUPPLIED_FOR_BANDIT"
         case banditError = "BANDIT_ERROR"
+        case unknown = "UNKNOWN"
     }
 
     public enum AllocationEvaluationCode: String {
@@ -503,8 +504,8 @@ public class EppoClient {
                 action: nil,
                 evaluationDetails: FlagEvaluationDetails(
                     environmentName: configurationStore.getConfiguration()?.getFlagConfigDetails().configEnvironment.name ?? "",
-                    flagEvaluationCode: .flagUnrecognizedOrDisabled,
-                    flagEvaluationDescription: "Unrecognized or disabled flag: \(flagKey)",
+                    flagEvaluationCode: .unknown,
+                    flagEvaluationDescription: "An error occurred: \(error.localizedDescription)",
                     variationKey: nil,
                     variationValue: nil,
                     banditKey: nil,
@@ -573,8 +574,8 @@ public class EppoClient {
                 action: nil,
                 evaluationDetails: FlagEvaluationDetails(
                     environmentName: configurationStore.getConfiguration()?.getFlagConfigDetails().configEnvironment.name ?? "",
-                    flagEvaluationCode: .flagUnrecognizedOrDisabled,
-                    flagEvaluationDescription: "Unrecognized or disabled flag: \(flagKey)",
+                    flagEvaluationCode: .unknown,
+                    flagEvaluationDescription: "An error occurred: \(error.localizedDescription)",
                     variationKey: nil,
                     variationValue: nil,
                     banditKey: nil,
@@ -633,8 +634,8 @@ public class EppoClient {
                 action: nil,
                 evaluationDetails: FlagEvaluationDetails(
                     environmentName: configurationStore.getConfiguration()?.getFlagConfigDetails().configEnvironment.name ?? "",
-                    flagEvaluationCode: .flagUnrecognizedOrDisabled,
-                    flagEvaluationDescription: "Unrecognized or disabled flag: \(flagKey)",
+                    flagEvaluationCode: .unknown,
+                    flagEvaluationDescription: "An error occurred: \(error.localizedDescription)",
                     variationKey: nil,
                     variationValue: nil,
                     banditKey: nil,
@@ -742,8 +743,8 @@ public class EppoClient {
                 action: nil,
                 evaluationDetails: FlagEvaluationDetails(
                     environmentName: configurationStore.getConfiguration()?.getFlagConfigDetails().configEnvironment.name ?? "",
-                    flagEvaluationCode: .flagUnrecognizedOrDisabled,
-                    flagEvaluationDescription: "Unrecognized or disabled flag: \(flagKey)",
+                    flagEvaluationCode: .unknown,
+                    flagEvaluationDescription: "An error occurred: \(error.localizedDescription)",
                     variationKey: nil,
                     variationValue: nil,
                     banditKey: nil,
@@ -802,8 +803,8 @@ public class EppoClient {
                 action: nil,
                 evaluationDetails: FlagEvaluationDetails(
                     environmentName: configurationStore.getConfiguration()?.getFlagConfigDetails().configEnvironment.name ?? "",
-                    flagEvaluationCode: .flagUnrecognizedOrDisabled,
-                    flagEvaluationDescription: "Unrecognized or disabled flag: \(flagKey)",
+                    flagEvaluationCode: .unknown,
+                    flagEvaluationDescription: "An error occurred: \(error.localizedDescription)",
                     variationKey: nil,
                     variationValue: nil,
                     banditKey: nil,
