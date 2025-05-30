@@ -180,7 +180,8 @@ public class EppoClient {
                 expectedVariationType: UFC_VariationType.boolean
             )?.variation?.value.getBoolValue() ?? defaultValue
         } catch {
-            // todo: implement graceful mode
+            // TODO: In next major version, either properly throw errors or remove 'throws' keyword
+            // Currently masking errors for backward compatibility
             return defaultValue
         }
     }
@@ -198,7 +199,8 @@ public class EppoClient {
                 expectedVariationType: UFC_VariationType.json
             )?.variation?.value.getStringValue() ?? defaultValue
         } catch {
-            // todo: implement graceful mode
+            // TODO: In next major version, either properly throw errors or remove 'throws' keyword
+            // Currently masking errors for backward compatibility
             return defaultValue
         }
     }
@@ -229,7 +231,8 @@ public class EppoClient {
             
             return Int(doubleValue)
         } catch {
-            // todo: implement graceful mode
+            // TODO: In next major version, either properly throw errors or remove 'throws' keyword
+            // Currently masking errors for backward compatibility
             return defaultValue
         }
     }
@@ -247,7 +250,8 @@ public class EppoClient {
                 expectedVariationType: UFC_VariationType.numeric
             )?.variation?.value.getDoubleValue() ?? defaultValue
         } catch {
-            // todo: implement graceful mode
+            // TODO: In next major version, either properly throw errors or remove 'throws' keyword
+            // Currently masking errors for backward compatibility
             return defaultValue
         }
     }
@@ -265,7 +269,8 @@ public class EppoClient {
                 expectedVariationType: UFC_VariationType.string
             )?.variation?.value.getStringValue() ?? defaultValue
         } catch {
-            // todo: implement graceful mode
+            // TODO: In next major version, either properly throw errors or remove 'throws' keyword
+            // Currently masking errors for backward compatibility
             return defaultValue
         }
     }
@@ -498,7 +503,6 @@ public class EppoClient {
                 evaluationDetails: evaluationDetails
             )
         } catch {
-            // todo: implement graceful mode
             return AssignmentDetails(
                 variation: defaultValue,
                 action: nil,
@@ -568,7 +572,6 @@ public class EppoClient {
                 evaluationDetails: evaluationDetails
             )
         } catch {
-            // todo: implement graceful mode
             return AssignmentDetails(
                 variation: defaultValue,
                 action: nil,
@@ -628,7 +631,6 @@ public class EppoClient {
                 evaluationDetails: evaluationDetails
             )
         } catch {
-            // todo: implement graceful mode
             return AssignmentDetails(
                 variation: defaultValue,
                 action: nil,
@@ -737,7 +739,6 @@ public class EppoClient {
                 )
             )
         } catch {
-            // todo: implement graceful mode
             return AssignmentDetails(
                 variation: defaultValue,
                 action: nil,
@@ -797,7 +798,6 @@ public class EppoClient {
                 evaluationDetails: evaluationDetails
             )
         } catch {
-            // todo: implement graceful mode
             return AssignmentDetails(
                 variation: defaultValue,
                 action: nil,
