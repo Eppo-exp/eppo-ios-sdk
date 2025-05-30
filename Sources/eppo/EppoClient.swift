@@ -222,14 +222,12 @@ public class EppoClient {
             }
             
             // Get the double value and check if it's an integer
-            if let doubleValue = try? assignment?.variation?.value.getDoubleValue() {
-                if !doubleValue.isInteger {
-                    return defaultValue
-                }
-                return Int(doubleValue)
+            guard let doubleValue = try? assignment?.variation?.value.getDoubleValue(),
+                  doubleValue.isInteger else {
+                return defaultValue
             }
             
-            return defaultValue
+            return Int(doubleValue)
         } catch {
             // todo: implement graceful mode
             return defaultValue
@@ -284,8 +282,7 @@ public class EppoClient {
         subjectKey: String,
         expectedVariationType: UFC_VariationType
     ) -> (flagEvaluationCode: FlagEvaluationCode, flagEvaluationDescription: String) {
-        // Check for type mismatch
-        if !isValueOfType(expectedType: expectedVariationType, variationValue: variation.value) {
+        guard isValueOfType(expectedType: expectedVariationType, variationValue: variation.value) else {
             return (
                 flagEvaluationCode: .assignmentError,
                 flagEvaluationDescription: "Variation (\(variation.key)) is configured for type \(expectedVariationType), but is set to incompatible value (\(variation.value))"
