@@ -124,7 +124,7 @@ public struct FlagEvaluation {
             unmatchedAllocations: unmatchedAllocations,
             unevaluatedAllocations: unevaluatedAllocations,
             flagEvaluationCode: flagEvaluationCode,
-            flagEvaluationDescription: flagEvaluationDescription ?? "Unrecognized or disabled flag: \(flagKey)"
+            flagEvaluationDescription: flagEvaluationDescription ?? "Unknown error evaluating flag: \(flagKey)"
         )
     }
 }
