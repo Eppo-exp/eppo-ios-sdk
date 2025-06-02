@@ -367,6 +367,38 @@ final class EppoClientAssignmentDetailsTests: XCTestCase {
         XCTAssertEqual(result.evaluationDetails.unevaluatedAllocations.count, 0)
     }
 
+    func testAssignmentErrorWithInvalidValue() throws {
+        let subjectAttributes: SubjectAttributes = [
+            "country": EppoValue.valueOf("US")  // This will match the second allocation with the "pi" variation
+        ]
+
+        let result = try eppoClient.getIntegerAssignmentDetails(
+            flagKey: "invalid-value-flag",
+            subjectKey: "test-subject",
+            subjectAttributes: subjectAttributes,
+            defaultValue: 0
+        )
+
+        // Verify the error state
+        XCTAssertEqual(result.variation, 0)  // Should return default value
+        XCTAssertEqual(result.evaluationDetails.environmentName, "Test")
+        XCTAssertEqual(result.evaluationDetails.flagEvaluationCode, .assignmentError)
+        XCTAssertEqual(
+            result.evaluationDetails.flagEvaluationDescription,
+            "Variation (pi) is configured for type INTEGER, but is set to incompatible value (3.1415926)"
+        )
+        
+        // For assignment errors, we expect no matched rule (since this allocation has no rules)
+        XCTAssertNil(result.evaluationDetails.matchedRule)
+        
+        // For assignment errors, we should still have a matched allocation
+        XCTAssertNotNil(result.evaluationDetails.matchedAllocation)
+        if let matchedAllocation = result.evaluationDetails.matchedAllocation {
+            XCTAssertEqual(matchedAllocation.key, "invalid")
+            XCTAssertEqual(matchedAllocation.allocationEvaluationCode, .match)
+        }
+    }
+
     func testConfigPublishedAtTimestamp() throws {
         let result = try eppoClient.getIntegerAssignmentDetails(
             flagKey: "integer-flag",
