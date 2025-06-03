@@ -72,13 +72,13 @@ public struct FlagEvaluation {
             let isPartialRollout = allocation.splits.first?.shards.count ?? 0 > 1
             let isExperimentOrPartialRollout = isExperiment || isPartialRollout
 
-            if hasDefinedRules && isExperimentOrPartialRollout {
-                flagEvaluationDescription = "Supplied attributes match rules defined in allocation \"\(allocation.key)\" and \(subjectKey) belongs to the range of traffic assigned to \"\(decodedVariation?.key ?? "")\"."
-            } else if hasDefinedRules && !isExperimentOrPartialRollout {
-                flagEvaluationDescription = "Supplied attributes match rules defined in allocation \"\(allocation.key)\"."
-            } else {
-                flagEvaluationDescription = "\(subjectKey) belongs to the range of traffic assigned to \"\(decodedVariation?.key ?? "")\" defined in allocation \"\(allocation.key)\"."
-            }
+            flagEvaluationDescription = EvaluationDescription.getDescription(
+                hasDefinedRules: hasDefinedRules,
+                isExperimentOrPartialRollout: isExperimentOrPartialRollout,
+                allocationKey: allocation.key,
+                subjectKey: subjectKey,
+                variationKey: decodedVariation?.key ?? ""
+            )
         } else {
             flagEvaluationDescription = "Flag matched"
         }
@@ -133,4 +133,4 @@ public struct AllocationEvaluation {
     public let key: String
     public let allocationEvaluationCode: EppoClient.AllocationEvaluationCode
     public let orderPosition: Int
-} 
+}

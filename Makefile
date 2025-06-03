@@ -43,5 +43,5 @@ test-data:
 	rm -rf $(testDataDir)
 	mkdir -p $(tempDir)
 	git clone -b ${branchName} --depth 1 --single-branch ${githubRepoLink} ${gitDataDir}
-	cp -r ${gitDataDir} ${testDataDir}
+	cp -r ${gitDataDir}/* ${testDataDir}
 	rm -rf ${tempDir}

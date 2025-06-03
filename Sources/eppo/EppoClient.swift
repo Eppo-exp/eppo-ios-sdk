@@ -180,7 +180,8 @@ public class EppoClient {
                 expectedVariationType: UFC_VariationType.boolean
             )?.variation?.value.getBoolValue() ?? defaultValue
         } catch {
-            // todo: implement graceful mode
+            // TODO: In next major version, either properly throw errors or remove 'throws' keyword
+            // Currently masking errors for backward compatibility
             return defaultValue
         }
     }
@@ -198,7 +199,8 @@ public class EppoClient {
                 expectedVariationType: UFC_VariationType.json
             )?.variation?.value.getStringValue() ?? defaultValue
         } catch {
-            // todo: implement graceful mode
+            // TODO: In next major version, either properly throw errors or remove 'throws' keyword
+            // Currently masking errors for backward compatibility
             return defaultValue
         }
     }
@@ -222,16 +224,15 @@ public class EppoClient {
             }
             
             // Get the double value and check if it's an integer
-            if let doubleValue = try? assignment?.variation?.value.getDoubleValue() {
-                if !doubleValue.isInteger {
-                    return defaultValue
-                }
-                return Int(doubleValue)
+            guard let doubleValue = try? assignment?.variation?.value.getDoubleValue(),
+                  doubleValue.isInteger else {
+                return defaultValue
             }
             
-            return defaultValue
+            return Int(doubleValue)
         } catch {
-            // todo: implement graceful mode
+            // TODO: In next major version, either properly throw errors or remove 'throws' keyword
+            // Currently masking errors for backward compatibility
             return defaultValue
         }
     }
@@ -249,7 +250,8 @@ public class EppoClient {
                 expectedVariationType: UFC_VariationType.numeric
             )?.variation?.value.getDoubleValue() ?? defaultValue
         } catch {
-            // todo: implement graceful mode
+            // TODO: In next major version, either properly throw errors or remove 'throws' keyword
+            // Currently masking errors for backward compatibility
             return defaultValue
         }
     }
@@ -267,7 +269,8 @@ public class EppoClient {
                 expectedVariationType: UFC_VariationType.string
             )?.variation?.value.getStringValue() ?? defaultValue
         } catch {
-            // todo: implement graceful mode
+            // TODO: In next major version, either properly throw errors or remove 'throws' keyword
+            // Currently masking errors for backward compatibility
             return defaultValue
         }
     }
@@ -284,8 +287,7 @@ public class EppoClient {
         subjectKey: String,
         expectedVariationType: UFC_VariationType
     ) -> (flagEvaluationCode: FlagEvaluationCode, flagEvaluationDescription: String) {
-        // Check for type mismatch
-        if !isValueOfType(expectedType: expectedVariationType, variationValue: variation.value) {
+        guard isValueOfType(expectedType: expectedVariationType, variationValue: variation.value) else {
             return (
                 flagEvaluationCode: .assignmentError,
                 flagEvaluationDescription: "Variation (\(variation.key)) is configured for type \(expectedVariationType), but is set to incompatible value (\(variation.value))"
@@ -297,21 +299,15 @@ public class EppoClient {
         let isPartialRollout = split.shards.count > 1
         let isExperimentOrPartialRollout = isExperiment || isPartialRollout
 
-        if hasDefinedRules && isExperimentOrPartialRollout {
-            return (
-                flagEvaluationCode: .match,
-                flagEvaluationDescription: "Supplied attributes match rules defined in allocation \"\(allocation.key)\" and \(subjectKey) belongs to the range of traffic assigned to \"\(split.variationKey)\"."
-            )
-        }
-        if hasDefinedRules && !isExperimentOrPartialRollout {
-            return (
-                flagEvaluationCode: .match,
-                flagEvaluationDescription: "Supplied attributes match rules defined in allocation \"\(allocation.key)\"."
-            )
-        }
         return (
             flagEvaluationCode: .match,
-            flagEvaluationDescription: "\(subjectKey) belongs to the range of traffic assigned to \"\(split.variationKey)\" defined in allocation \"\(allocation.key)\"."
+            flagEvaluationDescription: EvaluationDescription.getDescription(
+                hasDefinedRules: hasDefinedRules,
+                isExperimentOrPartialRollout: isExperimentOrPartialRollout,
+                allocationKey: allocation.key,
+                subjectKey: subjectKey,
+                variationKey: split.variationKey
+            )
         )
     }
 
@@ -449,6 +445,7 @@ public class EppoClient {
         case defaultAllocationNull = "DEFAULT_ALLOCATION_NULL"
         case noActionsSuppliedForBandit = "NO_ACTIONS_SUPPLIED_FOR_BANDIT"
         case banditError = "BANDIT_ERROR"
+        case unknown = "UNKNOWN"
     }
 
     public enum AllocationEvaluationCode: String {
@@ -499,14 +496,13 @@ public class EppoClient {
                 evaluationDetails: evaluationDetails
             )
         } catch {
-            // todo: implement graceful mode
             return AssignmentDetails(
                 variation: defaultValue,
                 action: nil,
                 evaluationDetails: FlagEvaluationDetails(
                     environmentName: configurationStore.getConfiguration()?.getFlagConfigDetails().configEnvironment.name ?? "",
-                    flagEvaluationCode: .flagUnrecognizedOrDisabled,
-                    flagEvaluationDescription: "Unrecognized or disabled flag: \(flagKey)",
+                    flagEvaluationCode: .unknown,
+                    flagEvaluationDescription: "An error occurred: \(error.localizedDescription)",
                     variationKey: nil,
                     variationValue: nil,
                     banditKey: nil,
@@ -569,14 +565,13 @@ public class EppoClient {
                 evaluationDetails: evaluationDetails
             )
         } catch {
-            // todo: implement graceful mode
             return AssignmentDetails(
                 variation: defaultValue,
                 action: nil,
                 evaluationDetails: FlagEvaluationDetails(
                     environmentName: configurationStore.getConfiguration()?.getFlagConfigDetails().configEnvironment.name ?? "",
-                    flagEvaluationCode: .flagUnrecognizedOrDisabled,
-                    flagEvaluationDescription: "Unrecognized or disabled flag: \(flagKey)",
+                    flagEvaluationCode: .unknown,
+                    flagEvaluationDescription: "An error occurred: \(error.localizedDescription)",
                     variationKey: nil,
                     variationValue: nil,
                     banditKey: nil,
@@ -629,14 +624,13 @@ public class EppoClient {
                 evaluationDetails: evaluationDetails
             )
         } catch {
-            // todo: implement graceful mode
             return AssignmentDetails(
                 variation: defaultValue,
                 action: nil,
                 evaluationDetails: FlagEvaluationDetails(
                     environmentName: configurationStore.getConfiguration()?.getFlagConfigDetails().configEnvironment.name ?? "",
-                    flagEvaluationCode: .flagUnrecognizedOrDisabled,
-                    flagEvaluationDescription: "Unrecognized or disabled flag: \(flagKey)",
+                    flagEvaluationCode: .unknown,
+                    flagEvaluationDescription: "An error occurred: \(error.localizedDescription)",
                     variationKey: nil,
                     variationValue: nil,
                     banditKey: nil,
@@ -738,14 +732,13 @@ public class EppoClient {
                 )
             )
         } catch {
-            // todo: implement graceful mode
             return AssignmentDetails(
                 variation: defaultValue,
                 action: nil,
                 evaluationDetails: FlagEvaluationDetails(
                     environmentName: configurationStore.getConfiguration()?.getFlagConfigDetails().configEnvironment.name ?? "",
-                    flagEvaluationCode: .flagUnrecognizedOrDisabled,
-                    flagEvaluationDescription: "Unrecognized or disabled flag: \(flagKey)",
+                    flagEvaluationCode: .unknown,
+                    flagEvaluationDescription: "An error occurred: \(error.localizedDescription)",
                     variationKey: nil,
                     variationValue: nil,
                     banditKey: nil,
@@ -798,14 +791,13 @@ public class EppoClient {
                 evaluationDetails: evaluationDetails
             )
         } catch {
-            // todo: implement graceful mode
             return AssignmentDetails(
                 variation: defaultValue,
                 action: nil,
                 evaluationDetails: FlagEvaluationDetails(
                     environmentName: configurationStore.getConfiguration()?.getFlagConfigDetails().configEnvironment.name ?? "",
-                    flagEvaluationCode: .flagUnrecognizedOrDisabled,
-                    flagEvaluationDescription: "Unrecognized or disabled flag: \(flagKey)",
+                    flagEvaluationCode: .unknown,
+                    flagEvaluationDescription: "An error occurred: \(error.localizedDescription)",
                     variationKey: nil,
                     variationValue: nil,
                     banditKey: nil,
