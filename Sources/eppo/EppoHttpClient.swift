@@ -34,8 +34,8 @@ public class NetworkEppoHttpClient: EppoHttpClient {
 
         // Set up the query items
         let queryItems = [
-            URLQueryItem(name: "sdkName", value: "ios"),
-            URLQueryItem(name: "sdkVersion", value: sdkVersion),
+            URLQueryItem(name: "sdkName", value: self.sdkName),
+            URLQueryItem(name: "sdkVersion", value: self.sdkVersion),
             // Server expects the existing response to continue to be `apiKey`.
             URLQueryItem(name: "apiKey", value: self.sdkKey)
         ]
