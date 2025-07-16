@@ -60,7 +60,7 @@ public class EppoClient {
         let endpoints = ApiEndpoints(baseURL: host, sdkKey: self.sdkKey)
         self.host = endpoints.baseURL
 
-        let httpClient = NetworkEppoHttpClient(baseURL: self.host, sdkKey: self.sdkKey.token, sdkName: "sdkName", sdkVersion: sdkVersion)
+        let httpClient = NetworkEppoHttpClient(baseURL: self.host, sdkKey: self.sdkKey.token, sdkName: sdkName, sdkVersion: sdkVersion)
         self.configurationRequester = ConfigurationRequester(httpClient: httpClient)
 
         self.configurationStore = ConfigurationStore(withPersistentCache: withPersistentCache)
