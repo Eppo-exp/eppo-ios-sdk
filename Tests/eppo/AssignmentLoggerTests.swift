@@ -204,7 +204,6 @@ final class AssignmentLoggerTests: XCTestCase {
        }
        """
 
-       // Initialize EppoClient with test configuration
        eppoClient = EppoClient.initializeOffline(
            sdkKey: "mock-api-key",
            assignmentLogger: loggerSpy.logger,
@@ -215,7 +214,6 @@ final class AssignmentLoggerTests: XCTestCase {
            )
        )
 
-       // Perform an assignment
        let assignment = try eppoClient.getBooleanAssignment(
            flagKey: "boolean-flag",
            subjectKey: "test-subject-9",
@@ -371,7 +369,6 @@ final class AssignmentLoggerTests: XCTestCase {
        }
        """
 
-       // Initialize EppoClient with test configuration
        eppoClient = EppoClient.initializeOffline(
            sdkKey: "mock-api-key",
            assignmentLogger: loggerSpy.logger,
@@ -382,7 +379,6 @@ final class AssignmentLoggerTests: XCTestCase {
            )
        )
 
-       // Perform an assignment
        let assignment = try eppoClient.getBooleanAssignment(
            flagKey: "boolean-flag",
            subjectKey: "test-subject-9",
@@ -402,5 +398,81 @@ final class AssignmentLoggerTests: XCTestCase {
        } else {
            XCTFail("No last assignment was logged.")
        }
+   }
+
+   func testHoldoutLoggingWithDoLogFalse() async throws {
+       // Create a test configuration with doLog: false
+       let testJsonString = """
+       {
+           "format": "SERVER",
+           "createdAt": "2024-04-17T19:40:53.716Z",
+           "environment": {
+               "name": "Test"
+           },
+           "flags": {
+               "boolean-flag": {
+                   "key": "boolean-flag",
+                   "enabled": true,
+                   "variationType": "BOOLEAN",
+                   "variations": {
+                       "true": {
+                           "key": "true",
+                           "value": true
+                       },
+                       "false": {
+                           "key": "false",
+                           "value": false
+                       }
+                   },
+                   "totalShards": 10000,
+                   "allocations": [
+                       {
+                           "key": "allocation-no-logging",
+                           "startAt": "2025-07-18T20:09:55.084Z",
+                           "endAt": "9999-12-31T00:00:00.000Z",
+                           "splits": [
+                               {
+                                   "variationKey": "true",
+                                   "shards": [
+                                       {
+                                           "salt": "boolean-flag-no-logging-split",
+                                           "ranges": [
+                                               {
+                                                   "start": 0,
+                                                   "end": 10000
+                                               }
+                                           ]
+                                       }
+                                   ]
+                               }
+                           ],
+                           "doLog": false
+                       }
+                   ]
+               }
+           }
+       }
+       """
+
+       eppoClient = EppoClient.initializeOffline(
+           sdkKey: "mock-api-key",
+           assignmentLogger: loggerSpy.logger,
+           assignmentCache: nil,
+           initialConfiguration: try Configuration(
+               flagsConfigurationJson: Data(testJsonString.utf8),
+               obfuscated: false
+           )
+       )
+
+       let assignment = try eppoClient.getBooleanAssignment(
+           flagKey: "boolean-flag",
+           subjectKey: "test-subject-no-logging",
+           subjectAttributes: SubjectAttributes(),
+           defaultValue: false
+       )
+
+       // Verify the assignment was NOT logged because doLog: false
+       XCTAssertFalse(loggerSpy.wasCalled)
+       XCTAssertNil(loggerSpy.lastAssignment)
    }
 }
