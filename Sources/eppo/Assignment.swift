@@ -8,6 +8,7 @@ public class Assignment: CustomStringConvertible {
     public var subjectAttributes: SubjectAttributes
     public var metaData: [String: String]
     public var extraLogging: [String: String]
+    public var entityId: Int?
 
     public var description: String {
         return "Subject " + subject + " assigned to variation " + variation + " in experiment " + experiment
@@ -21,7 +22,8 @@ public class Assignment: CustomStringConvertible {
         timestamp: String,
         subjectAttributes: SubjectAttributes,
         metaData: [String: String] = [:],
-        extraLogging: [String: String] = [:]
+        extraLogging: [String: String] = [:],
+        entityId: Int? = nil,
     ) {
         self.allocation = allocationKey
         self.experiment = flagKey + "-" + allocationKey
@@ -32,5 +34,6 @@ public class Assignment: CustomStringConvertible {
         self.subjectAttributes = subjectAttributes
         self.metaData = metaData
         self.extraLogging = extraLogging
+        self.entityId = entityId
     }
 }
