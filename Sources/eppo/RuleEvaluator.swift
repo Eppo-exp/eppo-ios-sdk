@@ -35,7 +35,8 @@ public class FlagEvaluator {
             return FlagEvaluation.noneResult(
                 flagKey: flag.key,
                 subjectKey: subjectKey,
-                subjectAttributes: subjectAttributes
+                subjectAttributes: subjectAttributes,
+                entityId: flag.entityId
             )
         }
 
@@ -44,7 +45,8 @@ public class FlagEvaluator {
             return FlagEvaluation.noneResult(
                 flagKey: flag.key,
                 subjectKey: subjectKey,
-                subjectAttributes: subjectAttributes
+                subjectAttributes: subjectAttributes,
+                entityId: flag.entityId
             )
         }
 
@@ -55,7 +57,8 @@ public class FlagEvaluator {
                 subjectKey: subjectKey,
                 subjectAttributes: subjectAttributes,
                 flagEvaluationCode: .flagUnrecognizedOrDisabled,
-                flagEvaluationDescription: "Unrecognized or disabled flag: \(flag.key)"
+                flagEvaluationDescription: "Unrecognized or disabled flag: \(flag.key)",
+                entityId: flag.entityId
             )
             return result
         }
@@ -171,7 +174,8 @@ public class FlagEvaluator {
                                         unmatchedAllocations: unmatchedAllocations,
                                         unevaluatedAllocations: unevaluatedAllocations,
                                         flagEvaluationCode: .assignmentError,
-                                        flagEvaluationDescription: "Variation (\(variation.key)) is configured for type INTEGER, but is set to incompatible value (\(doubleValue))"
+                                        flagEvaluationDescription: "Variation (\(variation.key)) is configured for type INTEGER, but is set to incompatible value (\(doubleValue))",
+                                        entityId: flag.entityId
                                     )
                                     return evaluation
                                 }
@@ -194,7 +198,8 @@ public class FlagEvaluator {
                                     matchedAllocation: matchedAllocation,
                                     allocation: allocation,
                                     unmatchedAllocations: unmatchedAllocations,
-                                    unevaluatedAllocations: unevaluatedAllocations
+                                    unevaluatedAllocations: unevaluatedAllocations,
+                                    entityId: flag.entityId
                                 )
                             }
                             
@@ -225,7 +230,8 @@ public class FlagEvaluator {
                                             unmatchedAllocations: unmatchedAllocations,
                                             unevaluatedAllocations: unevaluatedAllocations,
                                             flagEvaluationCode: .assignmentError,
-                                            flagEvaluationDescription: "Variation (\(variation.key)) is configured for type INTEGER, but is set to incompatible value (\(doubleValue))"
+                                            flagEvaluationDescription: "Variation (\(variation.key)) is configured for type INTEGER, but is set to incompatible value (\(doubleValue))",
+                                            entityId: flag.entityId
                                         )
                                     }
                                     // Create a new variation with the decoded value
@@ -247,7 +253,8 @@ public class FlagEvaluator {
                                         matchedAllocation: matchedAllocation,
                                         allocation: allocation,
                                         unmatchedAllocations: unmatchedAllocations,
-                                        unevaluatedAllocations: unevaluatedAllocations
+                                        unevaluatedAllocations: unevaluatedAllocations,
+                                        entityId: flag.entityId
                                     )
                                 }
                             }
@@ -265,7 +272,8 @@ public class FlagEvaluator {
                                 unmatchedAllocations: unmatchedAllocations,
                                 unevaluatedAllocations: unevaluatedAllocations,
                                 flagEvaluationCode: .assignmentError,
-                                flagEvaluationDescription: "Variation (\(variation.key)) is configured for type INTEGER, but is set to incompatible value"
+                                flagEvaluationDescription: "Variation (\(variation.key)) is configured for type INTEGER, but is set to incompatible value",
+                                entityId: flag.entityId
                             )
                         } else {
                             return FlagEvaluation.noneResult(
@@ -292,7 +300,8 @@ public class FlagEvaluator {
                         matchedAllocation: matchedAllocation,
                         allocation: allocation,
                         unmatchedAllocations: unmatchedAllocations,
-                        unevaluatedAllocations: unevaluatedAllocations
+                        unevaluatedAllocations: unevaluatedAllocations,
+                        entityId: flag.entityId
                     )
                 }
             }
@@ -311,7 +320,8 @@ public class FlagEvaluator {
             subjectKey: subjectKey,
             subjectAttributes: subjectAttributes,
             unmatchedAllocations: unmatchedAllocations,
-            unevaluatedAllocations: unevaluatedAllocations
+            unevaluatedAllocations: unevaluatedAllocations,
+            entityId: flag.entityId
         )
     }
 

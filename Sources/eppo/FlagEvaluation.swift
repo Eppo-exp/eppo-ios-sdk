@@ -15,6 +15,7 @@ public struct FlagEvaluation {
     let unevaluatedAllocations: [AllocationEvaluation]
     let flagEvaluationCode: EppoClient.FlagEvaluationCode
     let flagEvaluationDescription: String
+    let entityId: Int?
 
     static func matchedResult(
         flagKey: String,
@@ -30,7 +31,8 @@ public struct FlagEvaluation {
         matchedAllocation: AllocationEvaluation? = nil,
         allocation: UFC_Allocation? = nil,
         unmatchedAllocations: [AllocationEvaluation] = [],
-        unevaluatedAllocations: [AllocationEvaluation] = []
+        unevaluatedAllocations: [AllocationEvaluation] = [],
+        entityId: Int? = nil
     ) -> FlagEvaluation {
         // If the config is obfuscated, we need to unobfuscate the allocation key.
         var decodedAllocationKey: String = allocationKey ?? ""
@@ -97,7 +99,8 @@ public struct FlagEvaluation {
             unmatchedAllocations: unmatchedAllocations,
             unevaluatedAllocations: unevaluatedAllocations,
             flagEvaluationCode: .match,
-            flagEvaluationDescription: flagEvaluationDescription
+            flagEvaluationDescription: flagEvaluationDescription,
+            entityId: entityId
         )
     }
 
@@ -108,7 +111,8 @@ public struct FlagEvaluation {
         flagEvaluationCode: EppoClient.FlagEvaluationCode = .flagUnrecognizedOrDisabled,
         flagEvaluationDescription: String? = nil,
         unmatchedAllocations: [AllocationEvaluation] = [],
-        unevaluatedAllocations: [AllocationEvaluation] = []
+        unevaluatedAllocations: [AllocationEvaluation] = [],
+        entityId: Int? = nil
     ) -> FlagEvaluation {
         return FlagEvaluation(
             flagKey: flagKey,
@@ -124,7 +128,8 @@ public struct FlagEvaluation {
             unmatchedAllocations: unmatchedAllocations,
             unevaluatedAllocations: unevaluatedAllocations,
             flagEvaluationCode: flagEvaluationCode,
-            flagEvaluationDescription: flagEvaluationDescription ?? "Unrecognized or disabled flag: \(flagKey)"
+            flagEvaluationDescription: flagEvaluationDescription ?? "Unrecognized or disabled flag: \(flagKey)",
+            entityId: entityId
         )
     }
 }

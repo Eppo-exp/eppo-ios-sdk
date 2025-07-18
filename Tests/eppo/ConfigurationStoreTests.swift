@@ -12,7 +12,8 @@ final class ConfigurationStoreTests: XCTestCase {
         variationType: UFC_VariationType.string,
         variations: [:],
         allocations: [],
-        totalShards: 0
+        totalShards: 0,
+        entityId: nil
     )
 
     override func setUpWithError() throws {

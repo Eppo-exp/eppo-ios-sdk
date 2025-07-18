@@ -28,7 +28,8 @@ final class flagEvaluatorTests: XCTestCase {
         variationType: UFC_VariationType.string,
         variations: [:],
         allocations: [],
-        totalShards: 100
+        totalShards: 100,
+        entityId: nil
     )
 
     override func setUpWithError() throws {
@@ -315,7 +316,8 @@ final class flagEvaluatorTests: XCTestCase {
                     doLog: true
                 )
             ],
-            totalShards: flag.totalShards
+            totalShards: flag.totalShards,
+            entityId: flag.entityId
         )
     }
 
