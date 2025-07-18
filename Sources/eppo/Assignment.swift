@@ -23,7 +23,7 @@ public class Assignment: CustomStringConvertible {
         subjectAttributes: SubjectAttributes,
         metaData: [String: String] = [:],
         extraLogging: [String: String] = [:],
-        entityId: Int? = nil,
+        entityId: Int? = nil
     ) {
         self.allocation = allocationKey
         self.experiment = flagKey + "-" + allocationKey
