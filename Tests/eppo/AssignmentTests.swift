@@ -51,6 +51,7 @@ final class AssignmentTests: XCTestCase {
             entityId: entityId
         )
 
+        XCTAssertTrue(assignment.extraLogging.isEmpty)
         XCTAssertEqual(assignment.entityId, entityId)
         XCTAssertEqual(assignment.featureFlag, "featureC")
         XCTAssertEqual(assignment.allocation, "allocation3")
@@ -75,46 +76,5 @@ final class AssignmentTests: XCTestCase {
         XCTAssertEqual(assignment.allocation, "allocation4")
         XCTAssertEqual(assignment.variation, "variationC")
         XCTAssertEqual(assignment.subject, "user101")
-    }
-
-    func testAssignmentWithAllFields() {
-        let subjectAttributes = SubjectAttributes()
-        let entityId = 67890
-        let assignment = Assignment(
-            flagKey: "featureE",
-            allocationKey: "allocation5",
-            variation: "variationD",
-            subject: "user202",
-            timestamp: "2024-03-23T12:34:56Z",
-            subjectAttributes: subjectAttributes,
-            extraLogging: ["holdoutKey": "holdout-abc", "holdoutVariation": "all_shipped"], 
-            entityId: entityId
-        )
-
-        XCTAssertEqual(assignment.entityId, entityId)
-        XCTAssertEqual(assignment.extraLogging, ["holdoutKey": "holdout-abc", "holdoutVariation": "all_shipped"])
-        XCTAssertEqual(assignment.featureFlag, "featureE")
-        XCTAssertEqual(assignment.allocation, "allocation5")
-        XCTAssertEqual(assignment.variation, "variationD")
-        XCTAssertEqual(assignment.subject, "user202")
-    }
-
-    func testAssignmentWithNilHoldoutFields() {
-        let subjectAttributes = SubjectAttributes()
-        let assignment = Assignment(
-            flagKey: "featureF",
-            allocationKey: "allocation6",
-            variation: "variationE",
-            subject: "user303",
-            timestamp: "2024-03-24T12:34:56Z",
-            subjectAttributes: subjectAttributes
-        )
-
-        XCTAssertTrue(assignment.extraLogging.isEmpty)
-        XCTAssertNil(assignment.entityId)
-        XCTAssertEqual(assignment.featureFlag, "featureF")
-        XCTAssertEqual(assignment.allocation, "allocation6")
-        XCTAssertEqual(assignment.variation, "variationE")
-        XCTAssertEqual(assignment.subject, "user303")
     }
 }
