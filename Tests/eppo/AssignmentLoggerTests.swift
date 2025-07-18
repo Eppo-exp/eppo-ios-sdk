@@ -67,18 +67,18 @@ final class AssignmentLoggerTests: XCTestCase {
                "name": "Test"
            },
            "flags": {
-               "flag-mid-holdout": {
-                   "key": "flag-mid-holdout",
+               "boolean-flag": {
+                   "key": "boolean-flag",
                    "enabled": true,
-                   "variationType": "STRING",
+                   "variationType": "BOOLEAN",
                    "variations": {
-                       "control": {
-                           "key": "control",
-                           "value": "control"
+                       "true": {
+                           "key": "true",
+                           "value": true
                        },
-                       "treatment": {
-                           "key": "treatment",
-                           "value": "treatment"
+                       "false": {
+                           "key": "false",
+                           "value": false
                        }
                    },
                    "totalShards": 10000,
@@ -86,14 +86,14 @@ final class AssignmentLoggerTests: XCTestCase {
                    "allocations": [
                        {
                            "key": "allocation-84-short-term-holdout",
-                           "startAt": "2024-01-01T00:00:00.000Z",
+                           "startAt": "2025-07-18T20:09:55.084Z",
                            "endAt": "9999-12-31T00:00:00.000Z",
                            "splits": [
                                {
-                                   "variationKey": "control",
+                                   "variationKey": "false",
                                    "shards": [
                                        {
-                                           "salt": "flag-mid-holdout-84-split",
+                                           "salt": "boolean-flag-84-split",
                                            "ranges": [
                                                {
                                                    "start": 0,
@@ -126,10 +126,10 @@ final class AssignmentLoggerTests: XCTestCase {
                                    }
                                },
                                {
-                                   "variationKey": "treatment",
+                                   "variationKey": "true",
                                    "shards": [
                                        {
-                                           "salt": "flag-mid-holdout-84-split",
+                                           "salt": "boolean-flag-84-split",
                                            "ranges": [
                                                {
                                                    "start": 0,
@@ -166,14 +166,14 @@ final class AssignmentLoggerTests: XCTestCase {
                        },
                        {
                            "key": "allocation-84",
-                           "startAt": "2024-01-01T00:00:00.000Z",
+                           "startAt": "2025-07-18T20:09:55.084Z",
                            "endAt": "9999-12-31T00:00:00.000Z",
                            "splits": [
                                {
-                                   "variationKey": "treatment",
+                                   "variationKey": "true",
                                    "shards": [
                                        {
-                                           "salt": "flag-mid-holdout-84-split",
+                                           "salt": "boolean-flag-84-split",
                                            "ranges": [
                                                {
                                                    "start": 0,
@@ -188,11 +188,11 @@ final class AssignmentLoggerTests: XCTestCase {
                        },
                        {
                            "key": "allocation-81",
-                           "startAt": "2024-01-01T00:00:00.000Z",
+                           "startAt": "2025-07-18T20:04:55.586Z",
                            "endAt": "9999-12-31T00:00:00.000Z",
                            "splits": [
                                {
-                                   "variationKey": "treatment",
+                                   "variationKey": "false",
                                    "shards": []
                                }
                            ],
@@ -216,11 +216,11 @@ final class AssignmentLoggerTests: XCTestCase {
        )
 
        // Perform an assignment
-       let assignment = try eppoClient.getStringAssignment(
-           flagKey: "flag-mid-holdout",
+       let assignment = try eppoClient.getBooleanAssignment(
+           flagKey: "boolean-flag",
            subjectKey: "test-subject-9",
            subjectAttributes: SubjectAttributes(),
-           defaultValue: "default"
+           defaultValue: false
        )
 
        // Verify the assignment was logged with holdout information
@@ -228,9 +228,9 @@ final class AssignmentLoggerTests: XCTestCase {
        if let lastAssignment = loggerSpy.lastAssignment {
            XCTAssertEqual(lastAssignment.entityId, 1)
            XCTAssertEqual(lastAssignment.extraLogging, ["holdoutKey": "short-term-holdout", "holdoutVariation": "status_quo"])
-           XCTAssertEqual(lastAssignment.featureFlag, "flag-mid-holdout")
+           XCTAssertEqual(lastAssignment.featureFlag, "boolean-flag")
            XCTAssertEqual(lastAssignment.allocation, "allocation-84-short-term-holdout")
-           XCTAssertEqual(lastAssignment.variation, "control")
+           XCTAssertEqual(lastAssignment.variation, "false")
            XCTAssertEqual(lastAssignment.subject, "test-subject-9")
        } else {
            XCTFail("No last assignment was logged.")
@@ -247,32 +247,32 @@ final class AssignmentLoggerTests: XCTestCase {
                "name": "Test"
            },
            "flags": {
-               "flag-mid-holdout": {
-                   "key": "flag-mid-holdout",
+               "boolean-flag": {
+                   "key": "boolean-flag",
                    "enabled": true,
-                   "variationType": "STRING",
+                   "variationType": "BOOLEAN",
                    "variations": {
-                       "control": {
-                           "key": "control",
-                           "value": "control"
+                       "true": {
+                           "key": "true",
+                           "value": true
                        },
-                       "treatment": {
-                           "key": "treatment",
-                           "value": "treatment"
+                       "false": {
+                           "key": "false",
+                           "value": false
                        }
                    },
                    "totalShards": 10000,
                    "allocations": [
                        {
                            "key": "allocation-83-holdout-short-term-holdout",
-                           "startAt": "2024-01-01T00:00:00.000Z",
+                           "startAt": "2025-07-18T20:05:12.927Z",
                            "endAt": "9999-12-31T00:00:00.000Z",
                            "splits": [
                                {
-                                   "variationKey": "control",
+                                   "variationKey": "false",
                                    "shards": [
                                        {
-                                           "salt": "flag-mid-holdout-83-split",
+                                           "salt": "boolean-flag-83-split",
                                            "ranges": [
                                                {
                                                    "start": 0,
@@ -292,10 +292,10 @@ final class AssignmentLoggerTests: XCTestCase {
                                    ]
                                },
                                {
-                                   "variationKey": "control",
+                                   "variationKey": "false",
                                    "shards": [
                                        {
-                                           "salt": "flag-mid-holdout-83-split",
+                                           "salt": "boolean-flag-83-split",
                                            "ranges": [
                                                {
                                                    "start": 5000,
@@ -319,14 +319,14 @@ final class AssignmentLoggerTests: XCTestCase {
                        },
                        {
                            "key": "allocation-83",
-                           "startAt": "2024-01-01T00:00:00.000Z",
+                           "startAt": "2025-07-18T20:05:12.927Z",
                            "endAt": "9999-12-31T00:00:00.000Z",
                            "splits": [
                                {
-                                   "variationKey": "control",
+                                   "variationKey": "true",
                                    "shards": [
                                        {
-                                           "salt": "flag-mid-holdout-83-split",
+                                           "salt": "boolean-flag-83-split",
                                            "ranges": [
                                                {
                                                    "start": 0,
@@ -337,10 +337,10 @@ final class AssignmentLoggerTests: XCTestCase {
                                    ]
                                },
                                {
-                                   "variationKey": "treatment",
+                                   "variationKey": "false",
                                    "shards": [
                                        {
-                                           "salt": "flag-mid-holdout-83-split",
+                                           "salt": "boolean-flag-83-split",
                                            "ranges": [
                                                {
                                                    "start": 5000,
@@ -355,11 +355,11 @@ final class AssignmentLoggerTests: XCTestCase {
                        },
                        {
                            "key": "allocation-81",
-                           "startAt": "2024-01-01T00:00:00.000Z",
+                           "startAt": "2025-07-18T20:04:55.586Z",
                            "endAt": "9999-12-31T00:00:00.000Z",
                            "splits": [
                                {
-                                   "variationKey": "treatment",
+                                   "variationKey": "false",
                                    "shards": []
                                }
                            ],
@@ -383,11 +383,11 @@ final class AssignmentLoggerTests: XCTestCase {
        )
 
        // Perform an assignment
-       let assignment = try eppoClient.getStringAssignment(
-           flagKey: "flag-mid-holdout",
+       let assignment = try eppoClient.getBooleanAssignment(
+           flagKey: "boolean-flag",
            subjectKey: "test-subject-9",
            subjectAttributes: SubjectAttributes(),
-           defaultValue: "default"
+           defaultValue: false
        )
 
        // Verify the assignment was from a holdout, logged with entityId, but has no holdout information because
@@ -395,9 +395,9 @@ final class AssignmentLoggerTests: XCTestCase {
        if let lastAssignment = loggerSpy.lastAssignment {
            XCTAssertTrue(lastAssignment.extraLogging.isEmpty)
            XCTAssertNil(lastAssignment.entityId)
-           XCTAssertEqual(lastAssignment.featureFlag, "flag-mid-holdout")
+           XCTAssertEqual(lastAssignment.featureFlag, "boolean-flag")
            XCTAssertEqual(lastAssignment.allocation, "allocation-83-holdout-short-term-holdout")
-           XCTAssertEqual(lastAssignment.variation, "control")
+           XCTAssertEqual(lastAssignment.variation, "false")
            XCTAssertEqual(lastAssignment.subject, "test-subject-9")
        } else {
            XCTFail("No last assignment was logged.")
