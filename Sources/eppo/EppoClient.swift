@@ -339,7 +339,8 @@ public class EppoClient {
                 subjectKey: subjectKey,
                 subjectAttributes: subjectAttributes,
                 flagEvaluationCode: .flagUnrecognizedOrDisabled,
-                flagEvaluationDescription: "Unrecognized or disabled flag: \(flagKey)"
+                flagEvaluationDescription: "Unrecognized or disabled flag: \(flagKey)",
+                entityId: nil
             )
         }
 
@@ -360,7 +361,8 @@ public class EppoClient {
                 flagEvaluationCode: .typeMismatch,
                 flagEvaluationDescription: "Variation value does not have the correct type. Found \(flagConfig.variationType.rawValue.uppercased()), but expected \(expectedVariationType.rawValue.uppercased()) for flag \(flagKey)",
                 unmatchedAllocations: [],
-                unevaluatedAllocations: allAllocations
+                unevaluatedAllocations: allAllocations,
+                entityId: flagConfig.entityId
             )
         }
 
@@ -391,6 +393,7 @@ public class EppoClient {
                 } else {
                     // Either the cache is not defined, or the assignment hasn't been logged yet
                     // Perform assignment.
+                    let entityId = flagEvaluation.entityId
                     let assignment = Assignment(
                         flagKey: flagKey,
                         allocationKey: allocationKey,
@@ -403,7 +406,8 @@ public class EppoClient {
                             "sdkName": sdkName,
                             "sdkVersion": sdkVersion
                         ],
-                        extraLogging: flagEvaluation.extraLogging
+                        extraLogging: flagEvaluation.extraLogging,
+                        entityId: entityId
                     )
 
                     assignmentLogger(assignment)

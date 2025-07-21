@@ -116,6 +116,7 @@ public struct UFC_Flag: Codable {
     let variations: [String: UFC_Variation]
     let allocations: [UFC_Allocation]
     let totalShards: Int
+    let entityId: Int?
 }
 
 public struct UFC_Variation: Codable {
