@@ -171,7 +171,7 @@ public class EppoClient {
         flagKey: String,
         subjectKey: String,
         subjectAttributes: SubjectAttributes = SubjectAttributes(),
-        defaultValue: Bool) throws -> Bool {
+        defaultValue: Bool) -> Bool {
         do {
             return try getInternalAssignment(
                 flagKey: flagKey,
@@ -180,8 +180,6 @@ public class EppoClient {
                 expectedVariationType: UFC_VariationType.boolean
             )?.variation?.value.getBoolValue() ?? defaultValue
         } catch {
-            // TODO: In next major version, either properly throw errors or remove 'throws' keyword
-            // Currently masking errors for backward compatibility
             return defaultValue
         }
     }
@@ -190,7 +188,7 @@ public class EppoClient {
         flagKey: String,
         subjectKey: String,
         subjectAttributes: SubjectAttributes,
-        defaultValue: String) throws -> String {
+        defaultValue: String) -> String {
         do {
             return try getInternalAssignment(
                 flagKey: flagKey,
@@ -199,8 +197,6 @@ public class EppoClient {
                 expectedVariationType: UFC_VariationType.json
             )?.variation?.value.getStringValue() ?? defaultValue
         } catch {
-            // TODO: In next major version, either properly throw errors or remove 'throws' keyword
-            // Currently masking errors for backward compatibility
             return defaultValue
         }
     }
@@ -209,7 +205,7 @@ public class EppoClient {
         flagKey: String,
         subjectKey: String,
         subjectAttributes: SubjectAttributes = SubjectAttributes(),
-        defaultValue: Int) throws -> Int {
+        defaultValue: Int) -> Int {
         do {
             let assignment = try getInternalAssignment(
                 flagKey: flagKey,
@@ -231,8 +227,6 @@ public class EppoClient {
             
             return Int(doubleValue)
         } catch {
-            // TODO: In next major version, either properly throw errors or remove 'throws' keyword
-            // Currently masking errors for backward compatibility
             return defaultValue
         }
     }
@@ -241,7 +235,7 @@ public class EppoClient {
         flagKey: String,
         subjectKey: String,
         subjectAttributes: SubjectAttributes = SubjectAttributes(),
-        defaultValue: Double) throws -> Double {
+        defaultValue: Double) -> Double {
         do {
             return try getInternalAssignment(
                 flagKey: flagKey,
@@ -250,8 +244,6 @@ public class EppoClient {
                 expectedVariationType: UFC_VariationType.numeric
             )?.variation?.value.getDoubleValue() ?? defaultValue
         } catch {
-            // TODO: In next major version, either properly throw errors or remove 'throws' keyword
-            // Currently masking errors for backward compatibility
             return defaultValue
         }
     }
@@ -260,7 +252,7 @@ public class EppoClient {
         flagKey: String,
         subjectKey: String,
         subjectAttributes: SubjectAttributes = SubjectAttributes(),
-        defaultValue: String) throws -> String {
+        defaultValue: String) -> String {
         do {
             return try getInternalAssignment(
                 flagKey: flagKey,
@@ -269,8 +261,6 @@ public class EppoClient {
                 expectedVariationType: UFC_VariationType.string
             )?.variation?.value.getStringValue() ?? defaultValue
         } catch {
-            // TODO: In next major version, either properly throw errors or remove 'throws' keyword
-            // Currently masking errors for backward compatibility
             return defaultValue
         }
     }
@@ -467,7 +457,7 @@ public class EppoClient {
         flagKey: String,
         subjectKey: String,
         subjectAttributes: SubjectAttributes = SubjectAttributes(),
-        defaultValue: String) throws -> AssignmentDetails<String> {
+        defaultValue: String) -> AssignmentDetails<String> {
         do {
             let flagEvaluation = try getInternalAssignment(
                 flagKey: flagKey,
@@ -526,7 +516,7 @@ public class EppoClient {
         flagKey: String,
         subjectKey: String,
         subjectAttributes: SubjectAttributes = SubjectAttributes(),
-        defaultValue: String) throws -> AssignmentDetails<String> {
+        defaultValue: String) -> AssignmentDetails<String> {
         do {
             let flagEvaluation = try getInternalAssignment(
                 flagKey: flagKey,
@@ -595,7 +585,7 @@ public class EppoClient {
         flagKey: String,
         subjectKey: String,
         subjectAttributes: SubjectAttributes = SubjectAttributes(),
-        defaultValue: Bool) throws -> AssignmentDetails<Bool> {
+        defaultValue: Bool) -> AssignmentDetails<Bool> {
         do {
             let flagEvaluation = try getInternalAssignment(
                 flagKey: flagKey,
@@ -654,7 +644,7 @@ public class EppoClient {
         flagKey: String,
         subjectKey: String,
         subjectAttributes: SubjectAttributes = SubjectAttributes(),
-        defaultValue: Int) throws -> AssignmentDetails<Int> {
+        defaultValue: Int) -> AssignmentDetails<Int> {
         do {
             let flagEvaluation = try getInternalAssignment(
                 flagKey: flagKey,
@@ -762,7 +752,7 @@ public class EppoClient {
         flagKey: String,
         subjectKey: String,
         subjectAttributes: SubjectAttributes = SubjectAttributes(),
-        defaultValue: Double) throws -> AssignmentDetails<Double> {
+        defaultValue: Double) -> AssignmentDetails<Double> {
         do {
             let flagEvaluation = try getInternalAssignment(
                 flagKey: flagKey,
