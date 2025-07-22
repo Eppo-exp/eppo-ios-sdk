@@ -87,7 +87,7 @@ final class ConfigurationTests: XCTestCase {
             initialConfiguration: configurationObject
         )
 
-        try XCTAssertEqual(newClient.getNumericAssignment(
+        XCTAssertEqual(newClient.getNumericAssignment(
             flagKey: "numeric_flag",
             subjectKey: "test-subject",
             subjectAttributes: [:],
@@ -124,7 +124,7 @@ final class ConfigurationTests: XCTestCase {
             )
         )
         
-        try XCTAssertEqual(newClient.getNumericAssignment(
+        XCTAssertEqual(newClient.getNumericAssignment(
             flagKey: "numeric_flag",
             subjectKey: "test-subject",
             subjectAttributes: [:],

@@ -48,7 +48,7 @@ final class EppoClientAssignmentDetailsTests: XCTestCase {
             "country": EppoValue.valueOf("US")
         ]
 
-        let result = try eppoClient.getIntegerAssignmentDetails(
+        let result = eppoClient.getIntegerAssignmentDetails(
             flagKey: "integer-flag",
             subjectKey: "alice",
             subjectAttributes: subjectAttributes,
@@ -114,7 +114,7 @@ final class EppoClientAssignmentDetailsTests: XCTestCase {
             "country": EppoValue.valueOf("Brazil")
         ]
 
-        let result = try eppoClient.getIntegerAssignmentDetails(
+        let result = eppoClient.getIntegerAssignmentDetails(
             flagKey: "integer-flag",
             subjectKey: "alice",
             subjectAttributes: subjectAttributes,
@@ -161,7 +161,7 @@ final class EppoClientAssignmentDetailsTests: XCTestCase {
             "country": EppoValue.valueOf("Brazil")
         ]
 
-        let result = try eppoClient.getStringAssignmentDetails(
+        let result = eppoClient.getStringAssignmentDetails(
             flagKey: "new-user-onboarding",
             subjectKey: "alice",
             subjectAttributes: subjectAttributes,
@@ -220,7 +220,7 @@ final class EppoClientAssignmentDetailsTests: XCTestCase {
     }
 
     func testUnrecognizedFlag() throws {
-        let result = try eppoClient.getIntegerAssignmentDetails(
+        let result = eppoClient.getIntegerAssignmentDetails(
             flagKey: "asdf",
             subjectKey: "alice",
             subjectAttributes: [:],
@@ -245,7 +245,7 @@ final class EppoClientAssignmentDetailsTests: XCTestCase {
     }
 
     func testTypeMismatch() throws {
-        let result = try eppoClient.getBooleanAssignmentDetails(
+        let result = eppoClient.getBooleanAssignmentDetails(
             flagKey: "integer-flag",
             subjectKey: "alice",
             subjectAttributes: [:],
@@ -275,7 +275,7 @@ final class EppoClientAssignmentDetailsTests: XCTestCase {
             "country": EppoValue.valueOf("US")
         ]
 
-        let result = try eppoClient.getNumericAssignmentDetails(
+        let result = eppoClient.getNumericAssignmentDetails(
             flagKey: "numeric_flag",
             subjectKey: "alice",
             subjectAttributes: subjectAttributes,
@@ -297,7 +297,7 @@ final class EppoClientAssignmentDetailsTests: XCTestCase {
             "country": EppoValue.valueOf("US")
         ]
 
-        let result = try eppoClient.getBooleanAssignmentDetails(
+        let result = eppoClient.getBooleanAssignmentDetails(
             flagKey: "kill-switch",
             subjectKey: "alice",
             subjectAttributes: subjectAttributes,
@@ -319,7 +319,7 @@ final class EppoClientAssignmentDetailsTests: XCTestCase {
             "country": EppoValue.valueOf("US")
         ]
 
-        let result = try eppoClient.getJSONStringAssignmentDetails(
+        let result = eppoClient.getJSONStringAssignmentDetails(
             flagKey: "json-config-flag",
             subjectKey: "alice",
             subjectAttributes: subjectAttributes,
@@ -372,7 +372,7 @@ final class EppoClientAssignmentDetailsTests: XCTestCase {
             "country": EppoValue.valueOf("US")  // This will match the second allocation with the "pi" variation
         ]
 
-        let result = try eppoClient.getIntegerAssignmentDetails(
+        let result = eppoClient.getIntegerAssignmentDetails(
             flagKey: "invalid-value-flag",
             subjectKey: "test-subject",
             subjectAttributes: subjectAttributes,
@@ -400,7 +400,7 @@ final class EppoClientAssignmentDetailsTests: XCTestCase {
     }
 
     func testConfigPublishedAtTimestamp() throws {
-        let result = try eppoClient.getIntegerAssignmentDetails(
+        let result = eppoClient.getIntegerAssignmentDetails(
             flagKey: "integer-flag",
             subjectKey: "alice",
             subjectAttributes: [:],
