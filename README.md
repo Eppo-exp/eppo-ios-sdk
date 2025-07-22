@@ -102,7 +102,7 @@ It is recommended to use the `load()` method to fetch the latest flag configurat
 Assignment is a synchronous operation.
 
 ```swift
-let assignment = try eppoClient.getStringAssignment(
+let assignment = eppoClient.getStringAssignment(
     flagKey: "new-user-onboarding",
     subjectKey: user.id,
     subjectAttributes: user.attributes,
