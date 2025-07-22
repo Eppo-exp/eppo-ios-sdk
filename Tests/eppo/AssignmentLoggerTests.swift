@@ -212,7 +212,7 @@ final class AssignmentLoggerTests: XCTestCase {
            )
        )
 
-       let assignment = eppoClient.getBooleanAssignment(
+       let _ = eppoClient.getBooleanAssignment(
            flagKey: "boolean-flag",
            subjectKey: "test-subject-9",
            subjectAttributes: SubjectAttributes(),
@@ -377,7 +377,7 @@ final class AssignmentLoggerTests: XCTestCase {
            )
        )
 
-       let assignment = eppoClient.getBooleanAssignment(
+       let _ = eppoClient.getBooleanAssignment(
            flagKey: "boolean-flag",
            subjectKey: "test-subject-9",
            subjectAttributes: SubjectAttributes(),
@@ -462,7 +462,7 @@ final class AssignmentLoggerTests: XCTestCase {
            )
        )
 
-       let assignment = eppoClient.getBooleanAssignment(
+       let _ = eppoClient.getBooleanAssignment(
            flagKey: "boolean-flag",
            subjectKey: "test-subject-no-logging",
            subjectAttributes: SubjectAttributes(),
