@@ -43,7 +43,7 @@ public struct Configuration: Codable {
             configFetchedAt: self.fetchedAt,
             configPublishedAt: self.publishedAt,
             configEnvironment: self.flagsConfiguration.environment,
-            configFormat: self.flagsConfiguration.format ?? "",
+            configFormat: self.flagsConfiguration.format,
             salt: nil
         )
     }
