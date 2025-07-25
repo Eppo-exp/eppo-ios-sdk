@@ -59,7 +59,7 @@ final class OfflineClientTests: XCTestCase {
         )
 
         // Perform an assignment with the initial client
-        let initialAssignment = try eppoClient.getNumericAssignment(
+        let initialAssignment = eppoClient.getNumericAssignment(
             flagKey: "numeric_flag",
             subjectKey: "alice",
             defaultValue: 100
@@ -118,7 +118,7 @@ final class OfflineClientTests: XCTestCase {
         try await eppoClient.load()
 
         // Perform a different assignment with the updated client
-        let updatedAssignment = try eppoClient.getNumericAssignment(
+        let updatedAssignment = eppoClient.getNumericAssignment(
             flagKey: "numeric_flag",
             subjectKey: "alice",
             defaultValue: 100

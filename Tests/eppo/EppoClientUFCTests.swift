@@ -177,89 +177,57 @@ final class EppoClientUFCTests: XCTestCase {
                 // Get assignment details based on variation type
                 switch testCase.variationType {
                 case "BOOLEAN":
-                    do {
-                        let result = try eppoClient.getBooleanAssignmentDetails(
-                            flagKey: testCase.flag,
-                            subjectKey: subject.subjectKey,
-                            subjectAttributes: subjectAttributes,
-                            defaultValue: (testCase.defaultValue.value as? Bool) ?? false
-                        )
-                        XCTAssertEqual(result.variation, subject.assignment.value as? AnyHashable)
-                        verifyEvaluationDetails(result.evaluationDetails, subject.evaluationDetails)
-                    } catch {
-                        throw error
-                    }
+                    let result = eppoClient.getBooleanAssignmentDetails(
+                        flagKey: testCase.flag,
+                        subjectKey: subject.subjectKey,
+                        subjectAttributes: subjectAttributes,
+                        defaultValue: (testCase.defaultValue.value as? Bool) ?? false
+                    )
+                    XCTAssertEqual(result.variation, subject.assignment.value as? AnyHashable)
+                    verifyEvaluationDetails(result.evaluationDetails, subject.evaluationDetails)
                 case "NUMERIC":
-                    do {
-                        let result = try eppoClient.getNumericAssignmentDetails(
-                            flagKey: testCase.flag,
-                            subjectKey: subject.subjectKey,
-                            subjectAttributes: subjectAttributes,
-                            defaultValue: (testCase.defaultValue.value as? Double) ?? 0.0
-                        )
-                        XCTAssertEqual(result.variation, subject.assignment.value as? AnyHashable)
-                        verifyEvaluationDetails(result.evaluationDetails, subject.evaluationDetails)
-                    } catch {
-                        throw error
-                    }
+                    let result = eppoClient.getNumericAssignmentDetails(
+                        flagKey: testCase.flag,
+                        subjectKey: subject.subjectKey,
+                        subjectAttributes: subjectAttributes,
+                        defaultValue: (testCase.defaultValue.value as? Double) ?? 0.0
+                    )
+                    XCTAssertEqual(result.variation, subject.assignment.value as? AnyHashable)
+                    verifyEvaluationDetails(result.evaluationDetails, subject.evaluationDetails)
                 case "INTEGER":
-                    do {
-                        let result = try eppoClient.getIntegerAssignmentDetails(
-                            flagKey: testCase.flag,
-                            subjectKey: subject.subjectKey,
-                            subjectAttributes: subjectAttributes,
-                            defaultValue: (testCase.defaultValue.value as? Int) ?? 0
-                        )
-                        XCTAssertEqual(result.variation, subject.assignment.value as? AnyHashable)
-                        verifyEvaluationDetails(result.evaluationDetails, subject.evaluationDetails)
-                    } catch {
-                        throw error
-                    }
+                    let result = eppoClient.getIntegerAssignmentDetails(
+                        flagKey: testCase.flag,
+                        subjectKey: subject.subjectKey,
+                        subjectAttributes: subjectAttributes,
+                        defaultValue: (testCase.defaultValue.value as? Int) ?? 0
+                    )
+                    XCTAssertEqual(result.variation, subject.assignment.value as? AnyHashable)
+                    verifyEvaluationDetails(result.evaluationDetails, subject.evaluationDetails)
                 case "STRING":
-                    do {
-                        let result = try eppoClient.getStringAssignmentDetails(
-                            flagKey: testCase.flag,
-                            subjectKey: subject.subjectKey,
-                            subjectAttributes: subjectAttributes,
-                            defaultValue: (testCase.defaultValue.value as? String) ?? ""
-                        )
-                        XCTAssertEqual(result.variation, subject.assignment.value as? AnyHashable)
-                        verifyEvaluationDetails(result.evaluationDetails, subject.evaluationDetails)
-                    } catch {
-                        throw error
-                    }
+                    let result = eppoClient.getStringAssignmentDetails(
+                        flagKey: testCase.flag,
+                        subjectKey: subject.subjectKey,
+                        subjectAttributes: subjectAttributes,
+                        defaultValue: (testCase.defaultValue.value as? String) ?? ""
+                    )
+                    XCTAssertEqual(result.variation, subject.assignment.value as? AnyHashable)
+                    verifyEvaluationDetails(result.evaluationDetails, subject.evaluationDetails)
                 case "JSON":
-                    do {
-                        // If we expect a nil variation, pass nil as the default value
-                        let defaultValue: String? = (subject.assignment.value is NSNull || subject.evaluationDetails.flagEvaluationCode == "DEFAULT_ALLOCATION_NULL") ? nil : ""
-                        let result = try eppoClient.getJSONStringAssignmentDetails(
-                            flagKey: testCase.flag,
-                            subjectKey: subject.subjectKey,
-                            subjectAttributes: subjectAttributes,
-                            defaultValue: defaultValue ?? ""
-                        )
-                        // For JSON values, we need to handle nil variations
-                        if subject.assignment.value is NSNull || subject.evaluationDetails.flagEvaluationCode == "DEFAULT_ALLOCATION_NULL" {
-                            XCTAssertNil(result.variation)
-                        } else if let expectedDict = subject.assignment.value as? [String: Any] {
-                            // Convert dictionary to JSON string for comparison
-                            if let expectedData = try? JSONSerialization.data(withJSONObject: expectedDict, options: [.sortedKeys]),
-                               let expectedJSON = String(data: expectedData, encoding: .utf8) {
-                                // Normalize JSON strings for comparison
-                                func normalizeJSON(_ jsonString: String) -> String {
-                                    guard let data = jsonString.data(using: .utf8),
-                                          let json = try? JSONSerialization.jsonObject(with: data),
-                                          let normalizedData = try? JSONSerialization.data(withJSONObject: json, options: [.sortedKeys]) else {
-                                        return jsonString
-                                    }
-                                    return String(data: normalizedData, encoding: .utf8) ?? jsonString
-                                }
-                                XCTAssertNotNil(result.variation)
-                                XCTAssertEqual(normalizeJSON(result.variation!), normalizeJSON(expectedJSON))
-                            } else {
-                                XCTFail("Failed to convert expected dictionary to JSON")
-                            }
-                        } else if let expectedJSON = subject.assignment.value as? String {
+                    // If we expect a nil variation, pass nil as the default value
+                    let defaultValue: String? = (subject.assignment.value is NSNull || subject.evaluationDetails.flagEvaluationCode == "DEFAULT_ALLOCATION_NULL") ? nil : ""
+                    let result = eppoClient.getJSONStringAssignmentDetails(
+                        flagKey: testCase.flag,
+                        subjectKey: subject.subjectKey,
+                        subjectAttributes: subjectAttributes,
+                        defaultValue: defaultValue ?? ""
+                    )
+                    // For JSON values, we need to handle nil variations
+                    if subject.assignment.value is NSNull || subject.evaluationDetails.flagEvaluationCode == "DEFAULT_ALLOCATION_NULL" {
+                        XCTAssertNil(result.variation)
+                    } else if let expectedDict = subject.assignment.value as? [String: Any] {
+                        // Convert dictionary to JSON string for comparison
+                        if let expectedData = try? JSONSerialization.data(withJSONObject: expectedDict, options: [.sortedKeys]),
+                           let expectedJSON = String(data: expectedData, encoding: .utf8) {
                             // Normalize JSON strings for comparison
                             func normalizeJSON(_ jsonString: String) -> String {
                                 guard let data = jsonString.data(using: .utf8),
@@ -272,13 +240,25 @@ final class EppoClientUFCTests: XCTestCase {
                             XCTAssertNotNil(result.variation)
                             XCTAssertEqual(normalizeJSON(result.variation!), normalizeJSON(expectedJSON))
                         } else {
-                            XCTAssertNotNil(result.variation)
-                            XCTAssertEqual(result.variation!, subject.assignment.value as? AnyHashable)
+                            XCTFail("Failed to convert expected dictionary to JSON")
                         }
-                        verifyEvaluationDetails(result.evaluationDetails, subject.evaluationDetails)
-                    } catch {
-                        throw error
+                    } else if let expectedJSON = subject.assignment.value as? String {
+                        // Normalize JSON strings for comparison
+                        func normalizeJSON(_ jsonString: String) -> String {
+                            guard let data = jsonString.data(using: .utf8),
+                                  let json = try? JSONSerialization.jsonObject(with: data),
+                                  let normalizedData = try? JSONSerialization.data(withJSONObject: json, options: [.sortedKeys]) else {
+                                return jsonString
+                            }
+                            return String(data: normalizedData, encoding: .utf8) ?? jsonString
+                        }
+                        XCTAssertNotNil(result.variation)
+                        XCTAssertEqual(normalizeJSON(result.variation!), normalizeJSON(expectedJSON))
+                    } else {
+                        XCTAssertNotNil(result.variation)
+                        XCTAssertEqual(result.variation!, subject.assignment.value as? AnyHashable)
                     }
+                    verifyEvaluationDetails(result.evaluationDetails, subject.evaluationDetails)
                 default:
                     XCTFail("Unknown variation type: \(testCase.variationType)")
                     continue

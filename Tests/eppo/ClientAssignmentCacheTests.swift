@@ -37,13 +37,13 @@ final class EppoClientAssignmentCachingTests: XCTestCase {
             assignmentCache: nil
         )
 
-        _ = try eppoClient.getNumericAssignment(
+        _ = eppoClient.getNumericAssignment(
             flagKey: "numeric_flag",
             subjectKey: "6255e1a72a84e984aed55668",
             defaultValue: 0
         )
 
-        _ = try eppoClient.getNumericAssignment(
+        _ = eppoClient.getNumericAssignment(
             flagKey: "numeric_flag",
             subjectKey: "6255e1a72a84e984aed55668",
             defaultValue: 0
@@ -64,12 +64,12 @@ final class EppoClientAssignmentCachingTests: XCTestCase {
             assignmentLogger: loggerSpy.logger
         )
 
-        _ = try eppoClient.getNumericAssignment(
+        _ = eppoClient.getNumericAssignment(
             flagKey: "numeric_flag",
             subjectKey: "6255e1a72a84e984aed55668",
             defaultValue: 0
         )
-        _ = try eppoClient.getNumericAssignment(
+        _ = eppoClient.getNumericAssignment(
             flagKey: "numeric_flag",
             subjectKey: "6255e1a72a84e984aed55668",
             defaultValue: 0
@@ -90,12 +90,12 @@ final class EppoClientAssignmentCachingTests: XCTestCase {
             assignmentLogger: loggerSpy.logger
         )
 
-        _ =  try eppoClient.getStringAssignment(
+        _ = eppoClient.getStringAssignment(
             flagKey: "start-and-end-date-test",
             subjectKey: "6255e1a72a84e984aed55668",
             subjectAttributes: SubjectAttributes(),
             defaultValue: "")
-        _ = try eppoClient.getNumericAssignment(
+        _ = eppoClient.getNumericAssignment(
             flagKey: "numeric_flag",
             subjectKey: "6255e1a72a84e984aed55668",
             defaultValue: 0

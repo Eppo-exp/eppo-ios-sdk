@@ -36,9 +36,7 @@ final class AssignmentLoggerTests: XCTestCase {
    func testLogger() async throws {
        eppoClient = try await EppoClient.initialize(sdkKey: "mock-api-key", assignmentLogger: loggerSpy.logger, assignmentCache: nil)
 
-
-
-       let assignment = try eppoClient.getNumericAssignment(
+       let assignment = eppoClient.getNumericAssignment(
            flagKey: "numeric_flag",
            subjectKey: "6255e1a72a84e984aed55668",
            subjectAttributes: SubjectAttributes(),
@@ -214,7 +212,7 @@ final class AssignmentLoggerTests: XCTestCase {
            )
        )
 
-       let assignment = try eppoClient.getBooleanAssignment(
+       let _ = eppoClient.getBooleanAssignment(
            flagKey: "boolean-flag",
            subjectKey: "test-subject-9",
            subjectAttributes: SubjectAttributes(),
@@ -379,7 +377,7 @@ final class AssignmentLoggerTests: XCTestCase {
            )
        )
 
-       let assignment = try eppoClient.getBooleanAssignment(
+       let _ = eppoClient.getBooleanAssignment(
            flagKey: "boolean-flag",
            subjectKey: "test-subject-9",
            subjectAttributes: SubjectAttributes(),
@@ -464,7 +462,7 @@ final class AssignmentLoggerTests: XCTestCase {
            )
        )
 
-       let assignment = try eppoClient.getBooleanAssignment(
+       let _ = eppoClient.getBooleanAssignment(
            flagKey: "boolean-flag",
            subjectKey: "test-subject-no-logging",
            subjectAttributes: SubjectAttributes(),
