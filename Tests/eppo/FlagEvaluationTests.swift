@@ -70,10 +70,9 @@ final class FlagEvaluationTests: XCTestCase {
             isConfigObfuscated: true
         )
         
+        // Only valid base64 entries should remain (non-obfuscated entries are skipped)
         XCTAssertEqual(flagEvaluation.extraLogging, [
-            "holdoutKey": "short-term-holdout",
-            "normalKey": "normalValue",
-            "obfuscatedKey": "normalValue"
+            "holdoutKey": "short-term-holdout"
         ])
     }
     
@@ -97,7 +96,7 @@ final class FlagEvaluationTests: XCTestCase {
     }
     
     func testExtraLoggingInvalidBase64() {
-        // Test that invalid base64 strings are handled gracefully
+        // Test that invalid base64 strings are handled gracefully by being skipped
         let invalidExtraLogging = [
             "invalid-base64-key": "invalid-base64-value",
             "aG9sZG91dEtleQ==": "invalid-base64-value",  // valid key, invalid value
@@ -116,10 +115,34 @@ final class FlagEvaluationTests: XCTestCase {
             isConfigObfuscated: true
         )
         
+        // Invalid entries should be skipped, only valid ones should remain
+        XCTAssertEqual(flagEvaluation.extraLogging, [:])
+    }
+    
+    func testExtraLoggingPartialFailures() {
+        // Test that some entries can be decoded while others fail
+        let mixedExtraLogging = [
+            "aG9sZG91dEtleQ==": "c2hvcnQtdGVybS1ob2xkb3V0",  // valid key and value
+            "invalid-key": "invalid-value",                   // invalid key and value
+            "aG9sZG91dFZhcmlhdGlvbg==": "c3RhdHVzX3F1bw=="  // valid key and value
+        ]
+        
+        let flagEvaluation = FlagEvaluation.matchedResult(
+            flagKey: "test-flag",
+            subjectKey: "test-subject",
+            subjectAttributes: SubjectAttributes(),
+            allocationKey: "test-allocation",
+            variation: nil,
+            variationType: nil,
+            extraLogging: mixedExtraLogging,
+            doLog: true,
+            isConfigObfuscated: true
+        )
+        
+        // Only valid entries should remain
         XCTAssertEqual(flagEvaluation.extraLogging, [
-            "invalid-base64-key": "invalid-base64-value",
-            "holdoutKey": "invalid-base64-value",
-            "another-invalid-key": "short-term-holdout"
+            "holdoutKey": "short-term-holdout",
+            "holdoutVariation": "status_quo"
         ])
     }
 } 

@@ -36,6 +36,30 @@ func base64Decode(_ value: String) -> String? {
     }
 }
 
+func base64DecodeOrThrow(_ value: String) throws -> String {
+    guard let decodedData = Data(base64Encoded: value) else {
+        throw Base64DecodeError.invalidBase64(value)
+    }
+    guard let decodedString = String(data: decodedData, encoding: .utf8) else {
+        throw Base64DecodeError.invalidUTF8(value)
+    }
+    return decodedString
+}
+
+enum Base64DecodeError: Error, LocalizedError {
+    case invalidBase64(String)
+    case invalidUTF8(String)
+    
+    var errorDescription: String? {
+        switch self {
+        case .invalidBase64(let value):
+            return "Invalid base64 string: \(value)"
+        case .invalidUTF8(let value):
+            return "Invalid UTF-8 encoding in base64 string: \(value)"
+        }
+    }
+}
+
 // Define the date formatter at a scope accessible by your function
 let UTC_ISO_DATE_FORMAT: DateFormatter = {
     let formatter = DateFormatter()

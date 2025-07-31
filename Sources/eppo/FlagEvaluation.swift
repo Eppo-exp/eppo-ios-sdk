@@ -71,10 +71,16 @@ public struct FlagEvaluation {
         if isConfigObfuscated {
             decodedExtraLogging = [:]
             for (key, value) in extraLogging {
-                // Decode both key and value if they are base64 encoded
-                let decodedKey = base64Decode(key) ?? key
-                let decodedValue = base64Decode(value) ?? value
-                decodedExtraLogging[decodedKey] = decodedValue
+                do {
+                    // Decode both key and value if they are base64 encoded
+                    let decodedKey = try base64DecodeOrThrow(key)
+                    let decodedValue = try base64DecodeOrThrow(value)
+                    decodedExtraLogging[decodedKey] = decodedValue
+                } catch {
+                    // Log the error and skip this key-value pair (consistent with JavaScript SDK behavior)
+                    print("Warning: Failed to decode extraLogging entry - key: \(key), value: \(value), error: \(error.localizedDescription)")
+                    // Skip this entry - don't add it to decodedExtraLogging
+                }
             }
         }
 
