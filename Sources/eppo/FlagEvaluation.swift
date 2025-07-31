@@ -77,7 +77,6 @@ public struct FlagEvaluation {
                     let decodedValue = try base64DecodeOrThrow(value)
                     decodedExtraLogging[decodedKey] = decodedValue
                 } catch {
-                    // Log the error and skip this key-value pair (consistent with JavaScript SDK behavior)
                     print("Warning: Failed to decode extraLogging entry - key: \(key), value: \(value), error: \(error.localizedDescription)")
                     // Skip this entry - don't add it to decodedExtraLogging
                 }
