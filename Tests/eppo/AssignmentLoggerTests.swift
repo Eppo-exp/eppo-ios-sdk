@@ -473,4 +473,192 @@ final class AssignmentLoggerTests: XCTestCase {
        XCTAssertFalse(loggerSpy.wasCalled)
        XCTAssertNil(loggerSpy.lastAssignment)
    }
+
+    func testHoldoutLoggingWithObfuscatedExtraLogging() async throws {
+        // Create a test configuration with fully obfuscated data
+        // Flag key "boolean-flag" -> MD5 hash
+        // Variation keys "true"/"false" -> base64 encoded
+        // Allocation key "allocation-84-short-term-holdout" -> base64 encoded
+        // Salt "boolean-flag-84-split" -> base64 encoded
+        // extraLogging keys and values -> base64 encoded
+        let testJsonString = """
+        {
+            "format": "CLIENT",
+            "createdAt": "2024-04-17T19:40:53.716Z",
+            "environment": {
+                "name": "Test"
+            },
+            "flags": {
+                "da342f2d2df9aa65fd422191c581d4dc": {
+                    "key": "da342f2d2df9aa65fd422191c581d4dc",
+                    "enabled": true,
+                    "variationType": "BOOLEAN",
+                    "variations": {
+                        "dHJ1ZQ==": {
+                            "key": "dHJ1ZQ==",
+                            "value": "dHJ1ZQ=="
+                        },
+                        "ZmFsc2U=": {
+                            "key": "ZmFsc2U=",
+                            "value": "ZmFsc2U="
+                        }
+                    },
+                    "totalShards": 10000,
+                    "entityId": 1,
+                    "allocations": [
+                        {
+                            "key": "YWxsb2NhdGlvbi04NC1zaG9ydC10ZXJtLWhvbGRvdXQ=",
+                            "startAt": "MjAyNS0wNy0xOFQyMDowOTo1NS4wODRa",
+                            "endAt": "OTk5OS0xMi0zMVQwMDowMDowMC4wMDBa",
+                            "splits": [
+                                {
+                                    "variationKey": "ZmFsc2U=",
+                                    "shards": [
+                                        {
+                                            "salt": "Ym9vbGVhbi1mbGFnLTg0LXNwbGl0",
+                                            "ranges": [
+                                                {
+                                                    "start": 0,
+                                                    "end": 10000
+                                                }
+                                            ]
+                                        }
+                                    ],
+                                    "extraLogging": {
+                                        "aG9sZG91dEtleQ==": "c2hvcnQtdGVybS1ob2xkb3V0",
+                                        "aG9sZG91dFZhcmlhdGlvbg==": "c3RhdHVzX3F1bw=="
+                                    }
+                                }
+                            ],
+                            "doLog": true
+                        }
+                    ]
+                }
+            }
+        }
+        """
+
+        eppoClient = EppoClient.initializeOffline(
+            sdkKey: "mock-api-key",
+            assignmentLogger: loggerSpy.logger,
+            assignmentCache: nil,
+            initialConfiguration: try Configuration(
+                flagsConfigurationJson: Data(testJsonString.utf8),
+                obfuscated: true
+            )
+        )
+
+        let _ = eppoClient.getBooleanAssignment(
+            flagKey: "boolean-flag",
+            subjectKey: "test-subject-9",
+            subjectAttributes: SubjectAttributes(),
+            defaultValue: false
+        )
+
+        // Verify the assignment was logged with unobfuscated holdout information
+        XCTAssertTrue(loggerSpy.wasCalled)
+        if let lastAssignment = loggerSpy.lastAssignment {
+            XCTAssertEqual(lastAssignment.entityId, 1)
+            XCTAssertEqual(lastAssignment.extraLogging, ["holdoutKey": "short-term-holdout", "holdoutVariation": "status_quo"])
+            XCTAssertEqual(lastAssignment.featureFlag, "boolean-flag")
+            XCTAssertEqual(lastAssignment.allocation, "allocation-84-short-term-holdout")
+            XCTAssertEqual(lastAssignment.variation, "false")
+            XCTAssertEqual(lastAssignment.subject, "test-subject-9")
+        } else {
+            XCTFail("No last assignment was logged.")
+        }
+    }
+
+    func testHoldoutLoggingWithMixedObfuscatedExtraLogging() async throws {
+        // Create a test configuration with mixed obfuscation scenarios
+        let testJsonString = """
+        {
+            "format": "CLIENT",
+            "createdAt": "2024-04-17T19:40:53.716Z",
+            "environment": {
+                "name": "Test"
+            },
+            "flags": {
+                "da342f2d2df9aa65fd422191c581d4dc": {
+                    "key": "da342f2d2df9aa65fd422191c581d4dc",
+                    "enabled": true,
+                    "variationType": "BOOLEAN",
+                    "variations": {
+                        "dHJ1ZQ==": {
+                            "key": "dHJ1ZQ==",
+                            "value": "dHJ1ZQ=="
+                        },
+                        "ZmFsc2U=": {
+                            "key": "ZmFsc2U=",
+                            "value": "ZmFsc2U="
+                        }
+                    },
+                    "totalShards": 10000,
+                    "allocations": [
+                        {
+                            "key": "YWxsb2NhdGlvbi04NS1taXhlZC1ob2xkb3V0",
+                            "startAt": "MjAyNS0wNy0xOFQyMDowOTo1NS4wODRa",
+                            "endAt": "OTk5OS0xMi0zMVQwMDowMDowMC4wMDBa",
+                            "splits": [
+                                {
+                                    "variationKey": "ZmFsc2U=",
+                                    "shards": [
+                                        {
+                                            "salt": "Ym9vbGVhbi1mbGFnLTg1LXNwbGl0",
+                                            "ranges": [
+                                                {
+                                                    "start": 0,
+                                                    "end": 10000
+                                                }
+                                            ]
+                                        }
+                                    ],
+                                    "extraLogging": {
+                                        "aG9sZG91dEtleQ==": "c2hvcnQtdGVybS1ob2xkb3V0",
+                                        "bm9ybWFsS2V5": "bm9ybWFsVmFsdWU=",
+                                        "aG9sZG91dFZhcmlhdGlvbg==": "c3RhdHVzX3F1bw=="
+                                    }
+                                }
+                            ],
+                            "doLog": true
+                        }
+                    ]
+                }
+            }
+        }
+        """
+
+        eppoClient = EppoClient.initializeOffline(
+            sdkKey: "mock-api-key",
+            assignmentLogger: loggerSpy.logger,
+            assignmentCache: nil,
+            initialConfiguration: try Configuration(
+                flagsConfigurationJson: Data(testJsonString.utf8),
+                obfuscated: true
+            )
+        )
+
+        let _ = eppoClient.getBooleanAssignment(
+            flagKey: "boolean-flag",
+            subjectKey: "test-subject-10",
+            subjectAttributes: SubjectAttributes(),
+            defaultValue: false
+        )
+
+        // Verify the assignment was logged with properly decoded extraLogging
+        XCTAssertTrue(loggerSpy.wasCalled)
+        if let lastAssignment = loggerSpy.lastAssignment {
+            XCTAssertEqual(lastAssignment.extraLogging, [
+                "holdoutKey": "short-term-holdout",
+                "normalKey": "normalValue",
+                "holdoutVariation": "status_quo"
+            ])
+            XCTAssertEqual(lastAssignment.featureFlag, "boolean-flag")
+            XCTAssertEqual(lastAssignment.allocation, "allocation-85-mixed-holdout")
+            XCTAssertEqual(lastAssignment.variation, "false")
+            XCTAssertEqual(lastAssignment.subject, "test-subject-10")
+        } else {
+            XCTFail("No last assignment was logged.")
+        }
+    }
 }

@@ -66,6 +66,23 @@ public struct FlagEvaluation {
             decodedVariation = UFC_Variation(key: decodedVariationKey, value: decodedValue)
         }
 
+        // If the config is obfuscated, we need to unobfuscate the extraLogging values
+        var decodedExtraLogging: [String: String] = extraLogging
+        if isConfigObfuscated {
+            decodedExtraLogging = [:]
+            for (key, value) in extraLogging {
+                do {
+                    // Decode both key and value if they are base64 encoded
+                    let decodedKey = try base64DecodeOrThrow(key)
+                    let decodedValue = try base64DecodeOrThrow(value)
+                    decodedExtraLogging[decodedKey] = decodedValue
+                } catch {
+                    print("Warning: Failed to decode extraLogging entry - key: \(key), value: \(value), error: \(error.localizedDescription)")
+                    // Skip this entry - don't add it to decodedExtraLogging
+                }
+            }
+        }
+
         // Generate the detailed match description
         let flagEvaluationDescription: String
         if let allocation = allocation {
@@ -92,7 +109,7 @@ public struct FlagEvaluation {
             allocationKey: decodedAllocationKey,
             variation: decodedVariation,
             variationType: variationType,
-            extraLogging: extraLogging,
+            extraLogging: decodedExtraLogging,
             doLog: doLog,
             matchedRule: matchedRule,
             matchedAllocation: matchedAllocation,
