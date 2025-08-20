@@ -123,12 +123,9 @@ public class EppoClient {
             host: host,
             assignmentLogger: assignmentLogger,
             assignmentCache: assignmentCache,
-            initialConfiguration: initialConfiguration
+            initialConfiguration: initialConfiguration,
+            configurationChangeCallback: configurationChangeCallback
         )
-        
-        if let callback = configurationChangeCallback {
-            instance.onConfigurationChange(callback)
-        }
 
         return try await withCheckedThrowingContinuation { continuation in
             initializerQueue.async {
