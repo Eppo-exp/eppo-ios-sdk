@@ -14,6 +14,7 @@ public enum Errors: Error {
 }
 
 public typealias SubjectAttributes = [String: EppoValue]
+public typealias ConfigurationChangeCallback = (Configuration) -> Void
 actor EppoClientState {
     private(set) var isLoaded: Bool = false
 
@@ -42,6 +43,7 @@ public class EppoClient {
     private(set) var configurationStore: ConfigurationStore
     private var configurationRequester: ConfigurationRequester
     private var poller: Poller?
+    private var configurationChangeCallback: ConfigurationChangeCallback?
 
     private let state = EppoClientState()
 
@@ -66,6 +68,7 @@ public class EppoClient {
         self.configurationStore = ConfigurationStore(withPersistentCache: withPersistentCache)
         if let configuration = initialConfiguration {
             self.configurationStore.setConfiguration(configuration: configuration)
+            // Note: Callbacks will be registered after init, so initial config callback will be triggered during loadIfNeeded
         }
     }
 
@@ -78,7 +81,8 @@ public class EppoClient {
         assignmentLogger: AssignmentLogger? = nil,
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
         initialConfiguration: Configuration?,
-        withPersistentCache: Bool = true
+        withPersistentCache: Bool = true,
+        configurationChangeCallback: ConfigurationChangeCallback? = nil
     ) -> EppoClient {
         return sharedLock.withLock {
             if let instance = sharedInstance {
@@ -92,6 +96,11 @@ public class EppoClient {
                   initialConfiguration: initialConfiguration,
                   withPersistentCache: withPersistentCache
                 )
+                
+                if let callback = configurationChangeCallback {
+                    instance.onConfigurationChange(callback)
+                }
+                
                 sharedInstance = instance
                 return instance
             }
@@ -106,14 +115,16 @@ public class EppoClient {
         initialConfiguration: Configuration? = nil,
         pollingEnabled: Bool = false,
         pollingIntervalMs: Int = PollerConstants.DEFAULT_POLL_INTERVAL_MS,
-        pollingJitterMs: Int = PollerConstants.DEFAULT_POLL_INTERVAL_MS / PollerConstants.DEFAULT_JITTER_INTERVAL_RATIO
+        pollingJitterMs: Int = PollerConstants.DEFAULT_POLL_INTERVAL_MS / PollerConstants.DEFAULT_JITTER_INTERVAL_RATIO,
+        configurationChangeCallback: ConfigurationChangeCallback? = nil
     ) async throws -> EppoClient {
         let instance = Self.initializeOffline(
             sdkKey: sdkKey,
             host: host,
             assignmentLogger: assignmentLogger,
             assignmentCache: assignmentCache,
-            initialConfiguration: initialConfiguration
+            initialConfiguration: initialConfiguration,
+            configurationChangeCallback: configurationChangeCallback
         )
 
         return try await withCheckedThrowingContinuation { continuation in
@@ -152,6 +163,7 @@ public class EppoClient {
     public func load() async throws {
         let config = try await self.configurationRequester.fetchConfigurations()
         self.configurationStore.setConfiguration(configuration: config)
+        notifyConfigurationChange(config)
     }
 
     public static func resetSharedInstance() {
@@ -162,7 +174,13 @@ public class EppoClient {
 
     private func loadIfNeeded() async throws {
         let alreadyLoaded = await state.checkAndSetLoaded()
-        guard !alreadyLoaded else { return }
+        guard !alreadyLoaded else { 
+            // If already loaded but we have an existing configuration, notify callbacks
+            if let existingConfig = configurationStore.getConfiguration() {
+                notifyConfigurationChange(existingConfig)
+            }
+            return 
+        }
 
         try await self.load()
     }
@@ -832,6 +850,16 @@ public class EppoClient {
     public func stopPolling() {
         poller?.stop()
         poller = nil
+    }
+    
+    /// Registers a callback for when a new configuration is applied to the EppoClient instance.
+    public func onConfigurationChange(_ callback: @escaping ConfigurationChangeCallback) {
+        configurationChangeCallback = callback
+    }
+    
+    /// Notifies the registered callback when configuration changes.
+    private func notifyConfigurationChange(_ configuration: Configuration) {
+        configurationChangeCallback?(configuration)
     }
 }
 
