@@ -108,9 +108,21 @@ final class DebugCallbackTests: XCTestCase {
     }
     
     func testDebugCallbackWithPersistentStorage() async throws {
-        // Arrange - debug callback that prints to console showing persistent storage behavior
-        let debugCallback: (String, Double, Double) -> Void = { message, elapsedMs, stepMs in
-            print("[\(String(format: "%.1f", elapsedMs))ms] \(message) (step: \(String(format: "%.1f", stepMs))ms)")
+        // Arrange - capture messages instead of printing
+        var firstInitMessages: [(String, Double, Double)] = []
+        var secondInitMessages: [(String, Double, Double)] = []
+        var thirdInitMessages: [(String, Double, Double)] = []
+        
+        let firstInitCallback: (String, Double, Double) -> Void = { message, elapsedMs, stepMs in
+            firstInitMessages.append((message, elapsedMs, stepMs))
+        }
+        
+        let secondInitCallback: (String, Double, Double) -> Void = { message, elapsedMs, stepMs in
+            secondInitMessages.append((message, elapsedMs, stepMs))
+        }
+        
+        let thirdInitCallback: (String, Double, Double) -> Void = { message, elapsedMs, stepMs in
+            thirdInitMessages.append((message, elapsedMs, stepMs))
         }
         
         // Mock the HTTP response
@@ -130,26 +142,20 @@ final class DebugCallbackTests: XCTestCase {
         EppoClient.resetSharedInstance()
         ConfigurationStore.clearPersistentCache()
         
-        print("\n🧪 === First Initialization (New Client, Config not yet in Persistent Storage) ===")
-        
         // Act - First initialization (should fetch from network)
         let _ = try await EppoClient.initialize(
             sdkKey: "test-sdk-key-storage-test",
-            debugCallback: debugCallback
+            debugCallback: firstInitCallback
         )
         
         // Wait briefly for async write to complete
         try await Task.sleep(nanoseconds: 50_000_000) // 50ms
         
-        print("🧪 === Second Initialization (Reuse Same Client, Should Use In-Memory Cache) ===")
-        
         // Second call to initialize should return existing instance without network fetch
         let _ = try await EppoClient.initialize(
             sdkKey: "test-sdk-key-storage-test",
-            debugCallback: debugCallback
+            debugCallback: secondInitCallback
         )
-        
-        print("🧪 === Third Initialization (New Client, Should Read from Persistent Storage) ===")
         
         // Reset to create new instance that should read from persistent storage
         EppoClient.resetSharedInstance()
@@ -157,12 +163,42 @@ final class DebugCallbackTests: XCTestCase {
         // Third initialization should read cached config from persistent storage
         let _ = try await EppoClient.initialize(
             sdkKey: "test-sdk-key-storage-test",
-            debugCallback: debugCallback
+            debugCallback: thirdInitCallback
         )
         
-        print("🧪 === End Persistent Storage Test ===\n")
+        // Assert first initialization behavior
+        XCTAssertGreaterThan(firstInitMessages.count, 0, "First initialization should generate debug messages")
         
-        // Assert - just verify initialization completed
-        XCTAssertTrue(true, "Initialization completed successfully with persistent storage usage")
+        let firstInitMessageTexts = firstInitMessages.map { $0.0 }
+        let hasReadAttempt = firstInitMessageTexts.contains { $0.contains("persistent storage read") }
+        let hasReadFailure = firstInitMessageTexts.contains { $0.contains("failed") || $0.contains("not found") }
+        let hasNetworkFetch = firstInitMessageTexts.contains { $0.contains("fetch") || $0.contains("network") }
+        let hasStorageWrite = firstInitMessageTexts.contains { $0.contains("persistent storage write") }
+        
+        XCTAssertTrue(hasReadAttempt || hasReadFailure, "First initialization should attempt to read from persistent storage and fail")
+        XCTAssertTrue(hasNetworkFetch, "First initialization should fetch from network")
+        XCTAssertTrue(hasStorageWrite, "First initialization should write to persistent storage")
+        
+        // Assert second initialization behavior (should be instantaneous with existing instance)
+        let secondInitMessageTexts = secondInitMessages.map { $0.0 }
+        let hasNoStorageOperations = !secondInitMessageTexts.contains { $0.contains("persistent storage") }
+        XCTAssertTrue(hasNoStorageOperations || secondInitMessages.isEmpty, "Second initialization should not perform storage operations")
+        
+        // Verify second initialization is much faster (if any messages at all)
+        if !secondInitMessages.isEmpty {
+            let secondInitTotalTime = secondInitMessages.last?.1 ?? 0
+            let firstInitTotalTime = firstInitMessages.last?.1 ?? 0
+            XCTAssertLessThan(secondInitTotalTime, firstInitTotalTime * 0.5, "Second initialization should be faster (reusing existing instance)")
+        }
+        
+        // Assert third initialization behavior
+        XCTAssertGreaterThan(thirdInitMessages.count, 0, "Third initialization should generate debug messages")
+        
+        let thirdInitMessageTexts = thirdInitMessages.map { $0.0 }
+        let hasSuccessfulRead = thirdInitMessageTexts.contains { $0.contains("persistent storage read") && !$0.contains("failed") && !$0.contains("not found") }
+        
+        XCTAssertTrue(hasSuccessfulRead, "Third initialization should successfully read from persistent storage")
+        
+        // Note: Third initialization will still do network fetch to get latest config, but starts with cached config
     }
 }
