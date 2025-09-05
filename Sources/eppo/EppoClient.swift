@@ -149,17 +149,13 @@ public class EppoClient {
             initializerQueue.async {
                 Task {
                     do {
-                        let initStartTime = Date()
                         instance.debugLog("Starting Eppo SDK initialization")
                         
                         try await instance.loadIfNeeded()
                         
-                        let loadCompleteTime = Date()
-                        let loadDuration = loadCompleteTime.timeIntervalSince(initStartTime)
-                        instance.debugLog("Configuration loading completed in \(String(format: "%.3f", loadDuration)) seconds")
+                        instance.debugLog("Configuration loading completed")
                         
                         if pollingEnabled {
-                            let pollingStartTime = Date()
                             instance.debugLog("Starting polling setup")
                             
                             try await instance.startPolling(
@@ -167,12 +163,10 @@ public class EppoClient {
                                 jitterMs: pollingJitterMs
                             )
                             
-                            let pollingSetupTime = Date().timeIntervalSince(pollingStartTime)
-                            instance.debugLog("Polling setup completed in \(String(format: "%.3f", pollingSetupTime)) seconds")
+                            instance.debugLog("Polling setup completed")
                         }
                         
-                        let totalInitTime = Date().timeIntervalSince(initStartTime)
-                        instance.debugLog("Total SDK initialization completed in \(String(format: "%.3f", totalInitTime)) seconds")
+                        instance.debugLog("Total SDK initialization completed")
                         
                         continuation.resume(returning: instance)
                     } catch {
@@ -198,27 +192,18 @@ public class EppoClient {
     // This function can be called from multiple threads; synchronization is provided to safely update
     // the configuration cache but each invocation will execute a new network request with billing impact.
     public func load() async throws {
-        let fetchStartTime = Date()
         debugLog("Starting configuration fetch from remote")
         
         let config = try await self.configurationRequester.fetchConfigurations()
         
-        let fetchCompleteTime = Date()
-        let fetchDuration = fetchCompleteTime.timeIntervalSince(fetchStartTime)
-        debugLog("Configuration fetch and parsing completed in \(String(format: "%.3f", fetchDuration)) seconds")
+        debugLog("Network fetch and parsing completed")
         
-        let storeStartTime = Date()
         debugLog("Starting configuration storage")
         
         self.configurationStore.setConfiguration(configuration: config)
-        
-        let storeDuration = Date().timeIntervalSince(storeStartTime)
-        debugLog("Configuration storage completed in \(String(format: "%.3f", storeDuration)) seconds")
-        
         notifyConfigurationChange(config)
         
-        let totalLoadTime = Date().timeIntervalSince(fetchStartTime)
-        debugLog("Total configuration load completed in \(String(format: "%.3f", totalLoadTime)) seconds")
+        debugLog("Configuration storage and load completed")
     }
 
     public static func resetSharedInstance() {

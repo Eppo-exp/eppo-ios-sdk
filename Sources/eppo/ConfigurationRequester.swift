@@ -25,22 +25,18 @@ class ConfigurationRequester {
         let networkDuration = networkCompleteTime.timeIntervalSince(networkStartTime)
         
         // Log response details
+        let networkDurationMs = networkDuration * 1000
         if let httpResponse = response as? HTTPURLResponse {
-            debugLogger?("Network request completed in \(String(format: "%.3f", networkDuration)) seconds (Status: \(httpResponse.statusCode), Data size: \(data.count) bytes)")
+            debugLogger?("Network request completed (\(String(format: "%.1f", networkDurationMs))ms, Status: \(httpResponse.statusCode), Data: \(data.count) bytes)")
         } else {
-            debugLogger?("Network request completed in \(String(format: "%.3f", networkDuration)) seconds (Data size: \(data.count) bytes)")
+            debugLogger?("Network request completed (\(String(format: "%.1f", networkDurationMs))ms, Data: \(data.count) bytes)")
         }
         
-        let parseStartTime = Date()
         debugLogger?("Starting JSON parsing and configuration creation")
         
         let configuration = try Configuration(flagsConfigurationJson: data, obfuscated: true)
         
-        let parseDuration = Date().timeIntervalSince(parseStartTime)
-        debugLogger?("JSON parsing and configuration creation completed in \(String(format: "%.3f", parseDuration)) seconds")
-        
-        let totalFetchTime = Date().timeIntervalSince(networkStartTime)
-        debugLogger?("Total fetchConfigurations completed in \(String(format: "%.3f", totalFetchTime)) seconds")
+        debugLogger?("JSON parsing completed")
         
         return configuration
     }
