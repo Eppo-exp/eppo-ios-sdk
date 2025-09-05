@@ -107,8 +107,8 @@ final class DebugCallbackTests: XCTestCase {
         XCTAssertTrue(true, "Initialization should complete successfully without debug callback")
     }
     
-    func testDebugCallbackWithSameClientReuse() async throws {
-        // Arrange - debug callback that prints to console showing client reuse behavior
+    func testDebugCallbackWithPersistentStorage() async throws {
+        // Arrange - debug callback that prints to console showing persistent storage behavior
         let debugCallback: (String, Double, Double) -> Void = { message, elapsedMs, stepMs in
             print("[\(String(format: "%.1f", elapsedMs))ms] \(message) (step: \(String(format: "%.1f", stepMs))ms)")
         }
@@ -130,7 +130,7 @@ final class DebugCallbackTests: XCTestCase {
         EppoClient.resetSharedInstance()
         ConfigurationStore.clearPersistentCache()
         
-        print("\n🧪 === Same Client Reuse Test ===")
+        print("\n🧪 === First Initialization (New Client, Config not yet in Persistent Storage) ===")
         
         // Act - First initialization (should fetch from network)
         let _ = try await EppoClient.initialize(
@@ -141,7 +141,7 @@ final class DebugCallbackTests: XCTestCase {
         // Wait briefly for async write to complete
         try await Task.sleep(nanoseconds: 50_000_000) // 50ms
         
-        print("🧪 === Reusing Same Client (Should Use In-Memory Cache) ===")
+        print("🧪 === Second Initialization (Reuse Same Client, Should Use In-Memory Cache) ===")
         
         // Second call to initialize should return existing instance without network fetch
         let _ = try await EppoClient.initialize(
@@ -149,9 +149,20 @@ final class DebugCallbackTests: XCTestCase {
             debugCallback: debugCallback
         )
         
-        print("🧪 === End Same Client Reuse Test ===\n")
+        print("🧪 === Third Initialization (New Client, Should Read from Persistent Storage) ===")
+        
+        // Reset to create new instance that should read from persistent storage
+        EppoClient.resetSharedInstance()
+        
+        // Third initialization should read cached config from persistent storage
+        let _ = try await EppoClient.initialize(
+            sdkKey: "test-sdk-key-storage-test",
+            debugCallback: debugCallback
+        )
+        
+        print("🧪 === End Persistent Storage Test ===\n")
         
         // Assert - just verify initialization completed
-        XCTAssertTrue(true, "Initialization completed successfully with same client reuse")
+        XCTAssertTrue(true, "Initialization completed successfully with persistent storage usage")
     }
 }
