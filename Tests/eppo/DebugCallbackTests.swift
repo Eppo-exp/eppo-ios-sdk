@@ -61,10 +61,25 @@ final class DebugCallbackTests: XCTestCase {
             XCTAssertGreaterThan(secondMessage.2, 0.0, "Step duration should be positive for subsequent messages")
         }
         
-        // Verify last message indicates completion
+        // Verify last message indicates completion (could be SDK init, storage write start/end due to async timing)
         let lastMessage = capturedMessages.last!
-        XCTAssertTrue(lastMessage.0.contains("Total SDK initialization completed"))
+        let isValidLastMessage = lastMessage.0.contains("Total SDK initialization completed") || 
+                                lastMessage.0.contains("Starting persistent storage write") ||
+                                lastMessage.0.contains("Persistent storage write completed")
+        XCTAssertTrue(isValidLastMessage, "Last message should be SDK completion or storage write operation, but was: '\(lastMessage.0)'")
         XCTAssertGreaterThan(lastMessage.1, 0.0, "Final message should have positive elapsed time")
+        
+        // Verify elapsed times are monotonically increasing (or equal)
+        let elapsedTimes = capturedMessages.map { $0.1 }
+        XCTAssertGreaterThan(elapsedTimes.count, 1, "Should have multiple timing measurements")
+        
+        for i in 1..<elapsedTimes.count {
+            XCTAssertGreaterThanOrEqual(elapsedTimes[i], elapsedTimes[i-1], 
+                "Elapsed time should be monotonically increasing: \(elapsedTimes[i]) >= \(elapsedTimes[i-1])")
+        }
+        
+        // First elapsed time should be 0
+        XCTAssertEqual(elapsedTimes.first!, 0.0, "First elapsed time should be 0ms")
     }
     
     func testDebugCallbackNotCalledWhenNil() async throws {
@@ -92,11 +107,10 @@ final class DebugCallbackTests: XCTestCase {
         XCTAssertTrue(true, "Initialization should complete successfully without debug callback")
     }
     
-    func testDebugCallbackTimingIsMonotonicallyIncreasing() async throws {
-        // Arrange
-        var elapsedTimes: [Double] = []
-        let debugCallback: (String, Double, Double) -> Void = { _, elapsedMs, _ in
-            elapsedTimes.append(elapsedMs)
+    func testDebugCallbackWithSameClientReuse() async throws {
+        // Arrange - debug callback that prints to console showing client reuse behavior
+        let debugCallback: (String, Double, Double) -> Void = { message, elapsedMs, stepMs in
+            print("[\(String(format: "%.1f", elapsedMs))ms] \(message) (step: \(String(format: "%.1f", stepMs))ms)")
         }
         
         // Mock the HTTP response
@@ -112,22 +126,32 @@ final class DebugCallbackTests: XCTestCase {
             return HTTPStubsResponse(data: testConfig.data(using: .utf8)!, statusCode: 200, headers: ["Content-Type": "application/json"])
         }
         
-        // Act
+        // Clear any existing cached configuration to ensure clean test
+        EppoClient.resetSharedInstance()
+        ConfigurationStore.clearPersistentCache()
+        
+        print("\n🧪 === Same Client Reuse Test ===")
+        
+        // Act - First initialization (should fetch from network)
         let _ = try await EppoClient.initialize(
-            sdkKey: "test-sdk-key",
+            sdkKey: "test-sdk-key-storage-test",
             debugCallback: debugCallback
         )
         
-        // Assert
-        XCTAssertGreaterThan(elapsedTimes.count, 1, "Should have multiple timing measurements")
+        // Wait briefly for async write to complete
+        try await Task.sleep(nanoseconds: 50_000_000) // 50ms
         
-        // Verify elapsed times are monotonically increasing (or equal)
-        for i in 1..<elapsedTimes.count {
-            XCTAssertGreaterThanOrEqual(elapsedTimes[i], elapsedTimes[i-1], 
-                "Elapsed time should be monotonically increasing: \(elapsedTimes[i]) >= \(elapsedTimes[i-1])")
-        }
+        print("🧪 === Reusing Same Client (Should Use In-Memory Cache) ===")
         
-        // First elapsed time should be 0
-        XCTAssertEqual(elapsedTimes.first!, 0.0, "First elapsed time should be 0ms")
+        // Second call to initialize should return existing instance without network fetch
+        let _ = try await EppoClient.initialize(
+            sdkKey: "test-sdk-key-storage-test",
+            debugCallback: debugCallback
+        )
+        
+        print("🧪 === End Same Client Reuse Test ===\n")
+        
+        // Assert - just verify initialization completed
+        XCTAssertTrue(true, "Initialization completed successfully with same client reuse")
     }
 }

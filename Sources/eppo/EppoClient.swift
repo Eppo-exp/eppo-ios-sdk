@@ -78,9 +78,12 @@ public class EppoClient {
             // Note: Callbacks will be registered after init, so initial config callback will be triggered during loadIfNeeded
         }
         
-        // Set up debug logging for ConfigurationRequester after all properties are initialized
+        // Set up debug logging for ConfigurationRequester and ConfigurationStore after all properties are initialized
         if debugCallback != nil {
             self.configurationRequester.setDebugLogger { [weak self] message in
+                self?.debugLog(message)
+            }
+            self.configurationStore.setDebugLogger { [weak self] message in
                 self?.debugLog(message)
             }
         }
@@ -149,7 +152,11 @@ public class EppoClient {
             initializerQueue.async {
                 Task {
                     do {
+                        instance.resetDebugTiming()
                         instance.debugLog("Starting Eppo SDK initialization")
+                        
+                        // Ensure persistent storage is loaded with debug timing
+                        instance.configurationStore.loadInitialConfiguration()
                         
                         try await instance.loadIfNeeded()
                         
@@ -213,9 +220,10 @@ public class EppoClient {
     }
 
     private func loadIfNeeded() async throws {
+        debugLog("Checking if SDK already loaded")
         let alreadyLoaded = await state.checkAndSetLoaded()
         guard !alreadyLoaded else { 
-            debugLog("SDK already loaded, using cached configuration")
+            debugLog("SDK already loaded, using existing configuration")
             // If already loaded but we have an existing configuration, notify callbacks
             if let existingConfig = configurationStore.getConfiguration() {
                 notifyConfigurationChange(existingConfig)
@@ -905,6 +913,11 @@ public class EppoClient {
     }
     
     /// Internal debug logging with timing context
+    private func resetDebugTiming() {
+        debugInitStartTime = nil
+        debugLastStepTime = nil
+    }
+    
     private func debugLog(_ message: String) {
         guard let callback = debugCallback else { return }
         
