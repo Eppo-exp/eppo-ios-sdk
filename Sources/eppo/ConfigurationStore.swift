@@ -10,6 +10,7 @@ class ConfigurationStore {
     private var configuration: Configuration?
     private let syncQueue = DispatchQueue(
         label: "cloud.eppo.configurationStoreQueue", attributes: .concurrent)
+    private var debugLogger: ((String) -> Void)?
 
     private let cacheFileURL: URL?
     // This is a serial (non-concurrent) queue, so writers don't fight
@@ -28,8 +29,19 @@ class ConfigurationStore {
             nil
         }
 
-        // Load any existing configuration from disk when initializing
-        self.configuration = self.loadFromDisk()
+        // Configuration will be loaded after debug logger is set up
+        self.configuration = nil
+    }
+    
+    // Load initial configuration from disk (called after debug logger is set up)
+    public func loadInitialConfiguration() {
+        if self.configuration == nil {
+            self.configuration = self.loadFromDisk()
+        }
+    }
+    
+    public func setDebugLogger(_ logger: @escaping (String) -> Void) {
+        self.debugLogger = logger
     }
 
     private static func findCacheFileURL() -> URL? {
@@ -97,12 +109,15 @@ class ConfigurationStore {
             return
         }
 
-        Self.persistenceQueue.async {
+        Self.persistenceQueue.async { [weak self] in
+            self?.debugLogger?("Starting persistent storage write")
             do {
                 let data = try JSONEncoder().encode(configuration)
                 try data.write(to: cacheFileURL, options: .atomic)
+                self?.debugLogger?("Persistent storage write completed")
             } catch {
                 print("Error saving configuration to disk: \(error)")
+                self?.debugLogger?("Persistent storage write failed")
             }
         }
     }
@@ -113,11 +128,15 @@ class ConfigurationStore {
             return nil
         }
 
+        debugLogger?("Starting persistent storage read")
         do {
             let data = try Data(contentsOf: cacheFileURL)
-            return try JSONDecoder().decode(Configuration.self, from: data)
+            let config = try JSONDecoder().decode(Configuration.self, from: data)
+            debugLogger?("Persistent storage read completed")
+            return config
         } catch {
             print("No configuration found on disk or error decoding: \(error)")
+            debugLogger?("Persistent storage read failed - no cached config")
             return nil
         }
     }
