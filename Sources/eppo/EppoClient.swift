@@ -135,6 +135,7 @@ public class EppoClient {
         pollingEnabled: Bool = false,
         pollingIntervalMs: Int = PollerConstants.DEFAULT_POLL_INTERVAL_MS,
         pollingJitterMs: Int = PollerConstants.DEFAULT_POLL_INTERVAL_MS / PollerConstants.DEFAULT_JITTER_INTERVAL_RATIO,
+        withPersistentCache: Bool = true,
         configurationChangeCallback: ConfigurationChangeCallback? = nil,
         debugCallback: ((String, Double, Double) -> Void)? = nil
     ) async throws -> EppoClient {
@@ -144,6 +145,7 @@ public class EppoClient {
             assignmentLogger: assignmentLogger,
             assignmentCache: assignmentCache,
             initialConfiguration: initialConfiguration,
+            withPersistentCache: withPersistentCache,
             configurationChangeCallback: configurationChangeCallback,
             debugCallback: debugCallback
         )
