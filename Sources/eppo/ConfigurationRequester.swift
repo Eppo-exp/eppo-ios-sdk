@@ -32,7 +32,7 @@ class ConfigurationRequester {
             debugLogger?("Network request completed (\(String(format: "%.1f", networkDurationMs))ms, Data: \(data.count) bytes)")
         }
         
-        debugLogger?("Starting JSON parsing and configuration creation")
+        debugLogger?("Starting JSON parsing and configuration creation (parsing \(data.count) bytes)")
         
         let configuration = try Configuration(flagsConfigurationJson: data, obfuscated: true)
         
