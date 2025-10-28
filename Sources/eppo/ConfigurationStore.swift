@@ -112,7 +112,7 @@ class ConfigurationStore {
         Self.persistenceQueue.async { [weak self] in
             self?.debugLogger?("Starting persistent storage write")
             do {
-                let data = try JSONEncoder().encode(configuration)
+                let data = try JSONParsingFactory.currentProvider.encodeConfiguration(configuration)
                 self?.debugLogger?("Encoded configuration data: \(data.count) bytes")
                 try data.write(to: cacheFileURL, options: .atomic)
                 self?.debugLogger?("Persistent storage write completed")
@@ -133,7 +133,7 @@ class ConfigurationStore {
         do {
             let data = try Data(contentsOf: cacheFileURL)
             debugLogger?("Loaded configuration data from disk: \(data.count) bytes")
-            let config = try JSONDecoder().decode(Configuration.self, from: data)
+            let config = try JSONParsingFactory.currentProvider.decodeEncodedConfiguration(from: data)
             debugLogger?("Persistent storage read completed")
             return config
         } catch {

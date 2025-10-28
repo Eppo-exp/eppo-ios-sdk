@@ -7,36 +7,7 @@ public struct UniversalFlagConfig: Codable {
     let flags: [String: UFC_Flag]
 
     static func decodeFromJSON(from json: Data) throws -> UniversalFlagConfig {
-        let decoder = JSONDecoder()
-
-        // Dates could be in base64 encoded format or not
-        decoder.dateDecodingStrategy = .custom { decoder -> Date in
-            let container = try decoder.singleValueContainer()
-            let dateStr = try container.decode(String.self)
-            guard let date = parseUtcISODateElement(dateStr) else {
-                throw DecodingError.dataCorruptedError(in: container, debugDescription: "Invalid date format for: <\(dateStr)>")
-            }
-            return date
-        }
-
-        do {
-            return try decoder.decode(UniversalFlagConfig.self, from: json)
-        } catch let error as DecodingError {
-            switch error {
-            case .typeMismatch(_, let context):
-                throw UniversalFlagConfigError.parsingError("Type mismatch: \(context.debugDescription)")
-            case .valueNotFound(_, let context):
-                throw UniversalFlagConfigError.parsingError("Value not found: \(context.debugDescription)")
-            case .keyNotFound(let key, let context):
-                throw UniversalFlagConfigError.parsingError("Key not found: \(key.stringValue) - \(context.debugDescription)")
-            case .dataCorrupted(let context):
-                throw UniversalFlagConfigError.parsingError("Data corrupted: \(context.debugDescription)")
-            default:
-                throw UniversalFlagConfigError.parsingError("JSON parsing error: \(error.localizedDescription)")
-            }
-        } catch {
-            throw UniversalFlagConfigError.parsingError("Unexpected error: \(error.localizedDescription)")
-        }
+        return try JSONParsingFactory.currentProvider.decodeUniversalFlagConfig(from: json)
     }
 }
 

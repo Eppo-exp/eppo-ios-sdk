@@ -22,15 +22,12 @@ public struct Configuration: Codable {
     }
 
     public init(flagsConfigurationJson: Data, obfuscated: Bool) throws {
-        let flagsConfiguration = try UniversalFlagConfig.decodeFromJSON(from: flagsConfigurationJson)
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        let now = formatter.string(from: Date())
+        let configuration = try JSONParsingFactory.currentProvider.decodeConfiguration(from: flagsConfigurationJson, obfuscated: obfuscated)
         self.init(
-            flagsConfiguration: flagsConfiguration,
-            obfuscated: obfuscated,
-            fetchedAt: now,
-            publishedAt: formatter.string(from: flagsConfiguration.createdAt)
+            flagsConfiguration: configuration.flagsConfiguration,
+            obfuscated: configuration.obfuscated,
+            fetchedAt: configuration.fetchedAt,
+            publishedAt: configuration.publishedAt
         )
     }
 
@@ -49,21 +46,6 @@ public struct Configuration: Codable {
     }
     
     public func toJsonString() throws -> String {
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .custom { date, encoder in
-            let formatter = ISO8601DateFormatter()
-            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-            let string = formatter.string(from: date)
-            var container = encoder.singleValueContainer()
-            try container.encode(string)
-        }
-        let jsonData = try encoder.encode(self.flagsConfiguration)
-        guard let string = String(data: jsonData, encoding: .utf8) else {
-            throw EncodingError.invalidValue(self, EncodingError.Context(
-                codingPath: [],
-                debugDescription: "Failed to convert JSON data to string"
-            ))
-        }
-        return string
+        return try JSONParsingFactory.currentProvider.encodeUniversalFlagConfigToString(self.flagsConfiguration)
     }
 }

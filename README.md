@@ -209,6 +209,65 @@ func getBooleanAssignment(
 ) -> Bool 
   ```
 
+## Custom JSON Parsing (Advanced)
+
+For performance-critical applications, the Eppo SDK allows you to plug in your own JSON parser. This can be useful when you need faster JSON parsing than the standard Swift implementation provides.
+
+### Using a Custom JSON Parser
+
+The SDK uses a `JSONParsingProvider` protocol that you can implement with any JSON parsing library:
+
+```swift
+import EppoFlagging
+
+// Configure a custom JSON parser before initializing the client
+let customProvider = MyHighPerformanceJSONProvider()
+JSONParsingFactory.configure(provider: customProvider)
+
+// Now initialize the client as usual
+try await EppoClient.initialize(sdkKey: "SDK-KEY-FROM-DASHBOARD")
+```
+
+### Example Implementations
+
+The SDK includes several example implementations:
+
+```swift
+// Performance monitoring wrapper
+let monitoredProvider = PerformanceMonitoringProvider(
+    wrapping: StandardJSONParsingProvider(),
+    label: "MyApp"
+)
+JSONParsingFactory.configure(provider: monitoredProvider)
+
+// Caching provider for repeated parsing
+let cachedProvider = CachingJSONParsingProvider(
+    wrapping: StandardJSONParsingProvider()
+)
+JSONParsingFactory.configure(provider: cachedProvider)
+
+// Reset to default parser
+JSONParsingFactory.useDefault()
+```
+
+### Implementing Your Own Provider
+
+To create a custom provider, implement the `JSONParsingProvider` protocol:
+
+```swift
+class MyCustomJSONProvider: JSONParsingProvider {
+    func decodeUniversalFlagConfig(from data: Data) throws -> UniversalFlagConfig {
+        // Use your preferred JSON library here
+        let decoder = MyFastJSONDecoder()
+        return try decoder.decode(UniversalFlagConfig.self, from: data)
+    }
+
+    // Implement other required methods...
+}
+```
+
+For complete examples and integration with popular JSON libraries like IkigaJSON, see the `Examples/CustomJSONParsing.swift` file in the repository.
+
 ## Assignment logger 
 
 To use the Eppo SDK for experiments that require analysis, pass in a callback logging function to the `init` function on SDK initialization. The SDK invokes the callback to capture assignment data whenever a variation is assigned. The assignment data is needed in the warehouse to perform analysis.
