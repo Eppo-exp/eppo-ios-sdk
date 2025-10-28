@@ -64,29 +64,68 @@ class TestTimer: TimerType {
     private(set) var executeCount: Int = 0
     private var isRunning = true
     private var startTime: TimeInterval
-    
+
     init() {
         self.startTime = Date().timeIntervalSince1970
     }
-    
+
     func schedule(deadline: TimeInterval, callback: @escaping () async -> Void) {
         executeCount += 1
-        
+
         if isRunning {
             Task {
                 // Convert deadline to nanoseconds and wait
                 let delayNanos = UInt64(deadline * 1_000_000_000) // Convert seconds to nanoseconds
                 try? await Task.sleep(nanoseconds: delayNanos)
-                
+
                 if self.isRunning {
                     await callback()
                 }
             }
         }
     }
-    
+
     func cancel() {
         isRunning = false
+    }
+}
+
+// Fast test timer that executes callbacks immediately without real delays
+@MainActor
+class FastTestTimer: TimerType {
+    private(set) var executeCount: Int = 0
+    private var isRunning = true
+    private(set) var scheduledCallbacks: [() async -> Void] = []
+
+    init() {}
+
+    func schedule(deadline: TimeInterval, callback: @escaping () async -> Void) {
+        executeCount += 1
+
+        if isRunning {
+            // Just store the callback for controlled execution
+            scheduledCallbacks.append(callback)
+        }
+    }
+
+    func cancel() {
+        isRunning = false
+        scheduledCallbacks.removeAll()
+    }
+
+    // Test helper to execute the next pending callback immediately
+    func executeNextCallback() async {
+        if !scheduledCallbacks.isEmpty && isRunning {
+            let callback = scheduledCallbacks.removeFirst()
+            await callback()
+        }
+    }
+
+    // Test helper to execute all pending callbacks immediately
+    func executeAllPendingCallbacks() async {
+        while !scheduledCallbacks.isEmpty && isRunning {
+            await executeNextCallback()
+        }
     }
 }
 
