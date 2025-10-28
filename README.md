@@ -236,6 +236,90 @@ func segmentAssignmentLogger(assignment: Assignment) {
 eppoClient = try await EppoClient.initialize(sdkKey: "mock-sdk-key", assignmentLogger: segmentAssignmentLogger)
 ```
 
+## Contributing
+
+We welcome contributions to the Eppo iOS SDK! Whether you're fixing bugs, adding features, or improving performance, your contributions help make the SDK better for everyone.
+
+### Performance Improvements
+
+Performance is a key focus for the Eppo iOS SDK. We continuously monitor and optimize:
+
+- **Memory allocation** during configuration parsing and flag evaluation
+- **JSON parsing efficiency** for configuration updates
+- **Assignment lookup speed** for real-time evaluations
+- **Network request optimization** for configuration fetching
+
+When contributing performance improvements:
+
+1. **Benchmark your changes** using our comprehensive benchmark suite
+2. **Include before/after metrics** in your pull request description
+3. **Document the impact** - memory usage, execution time, or other relevant metrics
+4. **Consider edge cases** - how does your optimization perform with large configurations?
+
+### Benchmarking
+
+The SDK includes automated performance benchmarks that run on every PR and merge to main. These benchmarks help us:
+
+- **Track performance regressions** across releases
+- **Monitor memory usage patterns** during JSON parsing
+- **Ensure scalability** with large flag configurations
+- **Validate optimization effectiveness**
+
+#### Running Benchmarks Locally
+
+To run performance benchmarks during development:
+
+```bash
+# Run all benchmark tests
+swift test --filter "BenchmarkTests"
+
+# Run specific benchmark class
+swift test --filter "JSONParsingMemoryBenchmarkTests"
+```
+
+#### Adding New Benchmarks
+
+When adding performance-sensitive code, consider adding benchmarks:
+
+1. **Create test files** ending with `BenchmarkTests.swift` in the `Tests/eppo/` directory
+2. **Use XCTest performance APIs** with `measure(metrics: [XCTMemoryMetric()])`
+3. **Test realistic scenarios** - use representative data sizes and patterns
+4. **Include stress tests** - test with large configurations and repeated operations
+
+Example benchmark structure:
+
+```swift
+import XCTest
+@testable import EppoFlagging
+
+final class YourFeatureBenchmarkTests: XCTestCase {
+    func testYourFeaturePerformance() {
+        let testData = generateRealisticTestData()
+
+        measure(metrics: [XCTMemoryMetric()]) {
+            autoreleasepool {
+                // Your performance-critical code here
+                let _ = performYourFeature(with: testData)
+            }
+        }
+    }
+}
+```
+
+#### Continuous Monitoring
+
+Our CI pipeline automatically:
+
+- **Runs all `*BenchmarkTests.swift` files** on every PR and merge
+- **Reports metrics to Datadog** for long-term performance tracking
+- **Provides performance feedback** in GitHub Actions logs
+- **Tracks trends over time** to identify gradual performance degradation
+
+Performance metrics are tagged with:
+- `test_class` and `test_method` for granular tracking
+- `branch` and `commit` for historical analysis
+- `metric_type` (memory, time) for organized dashboards
+
 ## Publishing releases
 
 Swift Package Manager relies on semantic versioning without a prefix, such as `v`.

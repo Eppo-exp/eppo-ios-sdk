@@ -47,3 +47,159 @@ jobs:
 
       - name: Run tests
         run: make test
+
+      - name: Run benchmarks
+        run: |
+          echo "Running all benchmark tests..."
+          # Run tests and filter benchmark results
+          swift test > all_test_results.txt 2>&1 || true
+
+          # Extract only benchmark test results
+          grep -E "(BenchmarkTests|measured \[)" all_test_results.txt > benchmark_results.txt || touch benchmark_results.txt
+
+          # If no benchmark results found, try running specific benchmark tests
+          if [ ! -s benchmark_results.txt ]; then
+            echo "No benchmark results found in full test run, trying specific test classes..."
+            # Find all test files ending with BenchmarkTests.swift
+            find Tests -name "*BenchmarkTests.swift" | while read test_file; do
+              test_class=$(basename "$test_file" .swift)
+              echo "Running $test_class..."
+              swift test --filter "$test_class" >> benchmark_results.txt 2>&1 || true
+            done
+          fi
+
+          echo "=== Benchmark Results ==="
+          cat benchmark_results.txt
+
+      - name: Parse and send benchmark metrics to Datadog
+        if: always()
+        env:
+          DATADOG_API_KEY: ${{ secrets.DATADOG_API_KEY }}
+          DATADOG_SITE: ${{ vars.DATADOG_SITE || 'datadoghq.com' }}
+        run: |
+          if [ -z "$DATADOG_API_KEY" ]; then
+            echo "DATADOG_API_KEY not set, skipping metric reporting"
+            exit 0
+          fi
+
+          # Parse benchmark results and extract memory metrics
+          python3 - <<'EOF'
+          import re
+          import json
+          import os
+          import urllib.request
+          import urllib.parse
+          import time
+
+          # Read benchmark results
+          try:
+              with open('benchmark_results.txt', 'r') as f:
+                  content = f.read()
+          except FileNotFoundError:
+              print("No benchmark results file found")
+              exit(0)
+
+          # Extract memory metrics from XCTest output
+          # Pattern for XCTest performance metrics: "Test Case '-[ClassName testMethodName]' measured [Metric] average: X.XX, relative standard deviation: Y.YY%"
+          memory_pattern = r"Test Case '-\[(\w*BenchmarkTests) (\w+)\]' measured \[Memory Physical\] average: ([\d.]+), relative standard deviation: ([\d.]+)%"
+          time_pattern = r"Test Case '-\[(\w*BenchmarkTests) (\w+)\]' measured \[Time, seconds\] average: ([\d.]+), relative standard deviation: ([\d.]+)%"
+
+          api_key = os.environ.get('DATADOG_API_KEY')
+          site = os.environ.get('DATADOG_SITE', 'datadoghq.com')
+
+          if not api_key:
+              print("No Datadog API key provided")
+              exit(0)
+
+          # Current timestamp
+          timestamp = int(time.time())
+
+          # Extract git information
+          branch = os.environ.get('GITHUB_REF_NAME', 'unknown')
+          commit = os.environ.get('GITHUB_SHA', 'unknown')
+
+          metrics = []
+
+          # Parse memory metrics
+          for match in re.finditer(memory_pattern, content):
+              test_class, test_method, avg_memory, std_dev = match.groups()
+              metrics.append({
+                  "metric": "ios_sdk.benchmark.memory",
+                  "points": [[timestamp, float(avg_memory)]],
+                  "tags": [
+                      f"test_class:{test_class}",
+                      f"test_method:{test_method}",
+                      f"branch:{branch}",
+                      f"commit:{commit[:8]}",
+                      "metric_type:memory",
+                      "unit:bytes"
+                  ]
+              })
+
+              # Also send standard deviation as a separate metric
+              metrics.append({
+                  "metric": "ios_sdk.benchmark.memory.std_dev",
+                  "points": [[timestamp, float(std_dev)]],
+                  "tags": [
+                      f"test_class:{test_class}",
+                      f"test_method:{test_method}",
+                      f"branch:{branch}",
+                      f"commit:{commit[:8]}",
+                      "metric_type:memory_std_dev",
+                      "unit:percent"
+                  ]
+              })
+
+          # Parse time metrics if available
+          for match in re.finditer(time_pattern, content):
+              test_class, test_method, avg_time, std_dev = match.groups()
+              metrics.append({
+                  "metric": "ios_sdk.benchmark.time",
+                  "points": [[timestamp, float(avg_time)]],
+                  "tags": [
+                      f"test_class:{test_class}",
+                      f"test_method:{test_method}",
+                      f"branch:{branch}",
+                      f"commit:{commit[:8]}",
+                      "metric_type:time",
+                      "unit:seconds"
+                  ]
+              })
+
+              metrics.append({
+                  "metric": "ios_sdk.benchmark.time.std_dev",
+                  "points": [[timestamp, float(std_dev)]],
+                  "tags": [
+                      f"test_class:{test_class}",
+                      f"test_method:{test_method}",
+                      f"branch:{branch}",
+                      f"commit:{commit[:8]}",
+                      "metric_type:time_std_dev",
+                      "unit:percent"
+                  ]
+              })
+
+          if not metrics:
+              print("No benchmark metrics found to send")
+              exit(0)
+
+          # Send metrics to Datadog
+          data = {"series": metrics}
+          json_data = json.dumps(data).encode('utf-8')
+
+          url = f"https://api.{site}/api/v1/series?api_key={api_key}"
+
+          req = urllib.request.Request(
+              url,
+              data=json_data,
+              headers={'Content-Type': 'application/json'}
+          )
+
+          try:
+              with urllib.request.urlopen(req) as response:
+                  result = response.read().decode('utf-8')
+                  print(f"Successfully sent {len(metrics)} metrics to Datadog")
+                  print(f"Response: {result}")
+          except Exception as e:
+              print(f"Failed to send metrics to Datadog: {e}")
+          EOF
