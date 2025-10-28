@@ -57,6 +57,7 @@ public class EppoClient {
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
         initialConfiguration: Configuration?,
         withPersistentCache: Bool = true,
+        maxConfigurationFetchRetries: Int = 1,
         debugCallback: ((String, Double, Double) -> Void)? = nil
     ) {
         self.sdkKey = SDKKey(sdkKey)
@@ -70,7 +71,7 @@ public class EppoClient {
         self.host = endpoints.baseURL
 
         let httpClient = NetworkEppoHttpClient(baseURL: self.host, sdkKey: self.sdkKey.token, sdkName: sdkName, sdkVersion: sdkVersion)
-        self.configurationRequester = ConfigurationRequester(httpClient: httpClient)
+        self.configurationRequester = ConfigurationRequester(httpClient: httpClient, maxConfigurationFetchRetries: maxConfigurationFetchRetries)
 
         self.configurationStore = ConfigurationStore(withPersistentCache: withPersistentCache)
         if let configuration = initialConfiguration {
@@ -99,6 +100,7 @@ public class EppoClient {
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
         initialConfiguration: Configuration?,
         withPersistentCache: Bool = true,
+        maxConfigurationFetchRetries: Int = 1,
         configurationChangeCallback: ConfigurationChangeCallback? = nil,
         debugCallback: ((String, Double, Double) -> Void)? = nil
     ) -> EppoClient {
@@ -113,6 +115,7 @@ public class EppoClient {
                   assignmentCache: assignmentCache,
                   initialConfiguration: initialConfiguration,
                   withPersistentCache: withPersistentCache,
+                  maxConfigurationFetchRetries: maxConfigurationFetchRetries,
                   debugCallback: debugCallback
                 )
                 
@@ -136,6 +139,7 @@ public class EppoClient {
         pollingIntervalMs: Int = PollerConstants.DEFAULT_POLL_INTERVAL_MS,
         pollingJitterMs: Int = PollerConstants.DEFAULT_POLL_INTERVAL_MS / PollerConstants.DEFAULT_JITTER_INTERVAL_RATIO,
         withPersistentCache: Bool = true,
+        maxConfigurationFetchRetries: Int = 1,
         configurationChangeCallback: ConfigurationChangeCallback? = nil,
         debugCallback: ((String, Double, Double) -> Void)? = nil
     ) async throws -> EppoClient {
@@ -146,6 +150,7 @@ public class EppoClient {
             assignmentCache: assignmentCache,
             initialConfiguration: initialConfiguration,
             withPersistentCache: withPersistentCache,
+            maxConfigurationFetchRetries: maxConfigurationFetchRetries,
             configurationChangeCallback: configurationChangeCallback,
             debugCallback: debugCallback
         )

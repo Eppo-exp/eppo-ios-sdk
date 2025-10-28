@@ -16,6 +16,65 @@ class ConfigurationRequesterTests: XCTestCase {
         configurationRequester = nil
         super.tearDown()
     }
+
+    func testRetryFunctionality() async throws {
+        // Create a requester with 2 max retries
+        let httpClientMock = EppoHttpClientMockWithCallTracking()
+        let configurationRequester = ConfigurationRequester(httpClient: httpClientMock, maxConfigurationFetchRetries: 2)
+
+        // Configure mock to fail on first call, succeed on second call
+        let validConfigData = """
+        {
+            "flags": {},
+            "bandits": {},
+            "obfuscated": true,
+            "format": "SERVER",
+            "createdAt": "2023-01-01T00:00:00.000Z",
+            "environment": {
+                "name": "test"
+            }
+        }
+        """.data(using: .utf8)!
+
+        httpClientMock.responses = [
+            .failure(NSError(domain: "TestError", code: -1, userInfo: [NSLocalizedDescriptionKey: "First attempt fails"])),
+            .success((validConfigData, URLResponse()))
+        ]
+
+        // Execute the fetch - should succeed on second attempt
+        let configuration = try await configurationRequester.fetchConfigurations()
+
+        // Verify that exactly 2 calls were made
+        XCTAssertEqual(httpClientMock.callCount, 2, "Expected exactly 2 HTTP calls (1 failure + 1 success)")
+
+        // Verify that a valid configuration was returned
+        XCTAssertNotNil(configuration, "Configuration should not be nil after successful retry")
+    }
+
+    func testRetryExhaustion() async throws {
+        // Create a requester with 2 max retries
+        let httpClientMock = EppoHttpClientMockWithCallTracking()
+        let configurationRequester = ConfigurationRequester(httpClient: httpClientMock, maxConfigurationFetchRetries: 2)
+
+        // Configure mock to always fail
+        let testError = NSError(domain: "TestError", code: -1, userInfo: [NSLocalizedDescriptionKey: "Always fails"])
+        httpClientMock.responses = [
+            .failure(testError),
+            .failure(testError)
+        ]
+
+        // Execute the fetch - should fail after all retries
+        do {
+            _ = try await configurationRequester.fetchConfigurations()
+            XCTFail("Expected fetchConfigurations to throw an error after all retries exhausted")
+        } catch {
+            // Verify that exactly 2 calls were made
+            XCTAssertEqual(httpClientMock.callCount, 2, "Expected exactly 2 HTTP calls (all failures)")
+
+            // Verify the error is the one we expected
+            XCTAssertEqual((error as NSError).localizedDescription, testError.localizedDescription)
+        }
+    }
 }
 
 class EppoHttpClientMock: EppoHttpClient {
@@ -26,5 +85,27 @@ class EppoHttpClientMock: EppoHttpClient {
             throw error
         }
         return (getCompletionResult?.0 ?? Data(), URLResponse())
+    }
+}
+
+class EppoHttpClientMockWithCallTracking: EppoHttpClient {
+    var callCount = 0
+    var responses: [Result<(Data, URLResponse), Error>] = []
+
+    func get(_ url: String) async throws -> (Data, URLResponse) {
+        defer { callCount += 1 }
+
+        guard callCount < responses.count else {
+            throw NSError(domain: "MockError", code: -1, userInfo: [NSLocalizedDescriptionKey: "No more responses configured"])
+        }
+
+        let result = responses[callCount]
+
+        switch result {
+        case .success(let response):
+            return response
+        case .failure(let error):
+            throw error
+        }
     }
 }
