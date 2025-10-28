@@ -29,7 +29,8 @@ class ConfigurationRequester {
         debugLogger?("Starting network request to fetch configuration")
 
         var lastError: Error?
-        for attempt in 1...maxRetries {
+        let maxAttempts = max(1, maxRetries)
+        for attempt in 1...maxAttempts {
             do {
                 let (data, response) = try await httpClient.get(UFC_CONFIG_URL)
 
@@ -56,16 +57,16 @@ class ConfigurationRequester {
                 debugLogger?("Configuration fetch attempt \(attempt) failed: \(error.localizedDescription)")
 
                 // If this is not the last attempt, wait before retrying
-                if attempt < maxRetries {
+                if attempt < maxAttempts {
                     let delayMs = Int(pow(2.0, Double(attempt - 1))) * 100 // Exponential backoff: 100ms, 200ms, 400ms, etc.
-                    debugLogger?("Retrying configuration fetch in \(delayMs)ms (attempt \(attempt + 1) of \(maxRetries))")
+                    debugLogger?("Retrying configuration fetch in \(delayMs)ms (attempt \(attempt + 1) of \(maxAttempts))")
                     try await Task.sleep(nanoseconds: UInt64(delayMs * 1_000_000))
                 }
             }
         }
 
         // If we get here, all retries failed
-        debugLogger?("All configuration fetch attempts failed after \(maxRetries) attempts")
+        debugLogger?("All configuration fetch attempts failed after \(maxAttempts) attempts")
         throw lastError ?? NSError(domain: "ConfigurationRequester", code: -1, userInfo: [NSLocalizedDescriptionKey: "Unknown error during configuration fetch"])
     }
 }

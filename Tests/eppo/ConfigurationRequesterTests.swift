@@ -75,6 +75,38 @@ class ConfigurationRequesterTests: XCTestCase {
             XCTAssertEqual((error as NSError).localizedDescription, testError.localizedDescription)
         }
     }
+
+    func testZeroRetriesMakesOneAttempt() async throws {
+        // Create a requester
+        let httpClientMock = EppoHttpClientMockWithCallTracking()
+        let configurationRequester = ConfigurationRequester(httpClient: httpClientMock)
+
+        let validConfigData = """
+        {
+            "flags": {},
+            "bandits": {},
+            "obfuscated": true,
+            "format": "SERVER",
+            "createdAt": "2023-01-01T00:00:00.000Z",
+            "environment": {
+                "name": "test"
+            }
+        }
+        """.data(using: .utf8)!
+
+        httpClientMock.responses = [
+            .success((validConfigData, URLResponse()))
+        ]
+
+        // Execute the fetch with 0 retries - should still make 1 attempt
+        let configuration = try await configurationRequester.fetchConfigurations(maxRetries: 0)
+
+        // Verify that exactly 1 call was made
+        XCTAssertEqual(httpClientMock.callCount, 1, "Expected exactly 1 HTTP call when maxRetries = 0")
+
+        // Verify that a valid configuration was returned
+        XCTAssertNotNil(configuration, "Configuration should not be nil")
+    }
 }
 
 class EppoHttpClientMock: EppoHttpClient {
