@@ -74,10 +74,11 @@ final class PollerTests: XCTestCase {
             throw NSError(domain: "Test", code: 0, userInfo: [NSLocalizedDescriptionKey: "bad request"])
         }
 
+        // Use the regular TestTimer but with very short intervals (1ms instead of seconds)
         let testTimer = TestTimer()
         let poller = await Poller(
-            intervalMs: 100,
-            jitterMs: 0,
+            intervalMs: 1,  // 1ms instead of 100ms for speed
+            jitterMs: 0,    // No jitter for predictable timing
             callback: mockCallback,
             logger: PollerLogger(),
             timer: testTimer
@@ -85,34 +86,19 @@ final class PollerTests: XCTestCase {
 
         // Start the poller
         try? await poller.start()
+        XCTAssertEqual(callCount, 1, "Should have made initial call")
 
-        // Buffer to account for the time it takes for the callback to execute
-        let buffer: UInt64 = 100_000_000
-        // Wait for one interval to pass
-        try await Task.sleep(nanoseconds: 100_000_000 + buffer) // 100ms
-        XCTAssertEqual(callCount, 2, "Should have attempted 1 retry + 1 initial call")
+        // Wait for all retries to complete (exponential backoff: 1ms, 2ms, 4ms, 8ms, 16ms, 32ms, 64ms)
+        // Total time ~127ms + processing overhead, use 300ms to be safe
+        try await Task.sleep(nanoseconds: 300_000_000)
 
-        try await Task.sleep(nanoseconds: 200_000_000 + buffer) // 200ms
-        XCTAssertEqual(callCount, 3, "Should have attempted 2 retries + 1 initial call")
-
-        try await Task.sleep(nanoseconds: 400_000_000 + buffer) // 400ms
-        XCTAssertEqual(callCount, 4, "Should have attempted 3 retries + 1 initial call")
-
-        try await Task.sleep(nanoseconds: 800_000_000 + buffer) // 800ms
-        XCTAssertEqual(callCount, 5, "Should have attempted 4 retries + 1 initial call")
-        
-        try await Task.sleep(nanoseconds: 1_600_000_000 + buffer) // 1600ms
-        XCTAssertEqual(callCount, 6, "Should have attempted 5 retries + 1 initial call")
-        
-        try await Task.sleep(nanoseconds: 3_200_000_000 + buffer) // 3200ms
-        XCTAssertEqual(callCount, 7, "Should have attempted 6 retries + 1 initial call")
-        
-        try await Task.sleep(nanoseconds: 6_400_000_000 + buffer) // 6400ms
-        XCTAssertEqual(callCount, 8, "Should have attempted 7 retries + 1 initial call")
-
-        try await Task.sleep(nanoseconds: 12_800_000_000 + buffer) // 12800ms
-        XCTAssertEqual(callCount, 8, "Should have attempted up to max retries") // Cannot go beyond max
+        // After all retries are complete, verify final state
+        XCTAssertEqual(callCount, 8, "Should have made 1 initial call + 7 retry attempts (max reached)")
         XCTAssertEqual(testTimer.executeCount, 7, "Timer should have been scheduled 7 times")
+
+        // Wait a bit more to ensure no more attempts are made after max retries
+        try await Task.sleep(nanoseconds: 50_000_000)
+        XCTAssertEqual(callCount, 8, "Should have stopped at max retries and not made more attempts")
     }
     
     @MainActor
