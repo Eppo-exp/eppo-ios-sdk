@@ -18,9 +18,9 @@ class ConfigurationRequesterTests: XCTestCase {
     }
 
     func testRetryFunctionality() async throws {
-        // Create a requester with 2 max retries
+        // Create a requester
         let httpClientMock = EppoHttpClientMockWithCallTracking()
-        let configurationRequester = ConfigurationRequester(httpClient: httpClientMock, maxConfigurationFetchRetries: 2)
+        let configurationRequester = ConfigurationRequester(httpClient: httpClientMock)
 
         // Configure mock to fail on first call, succeed on second call
         let validConfigData = """
@@ -41,8 +41,8 @@ class ConfigurationRequesterTests: XCTestCase {
             .success((validConfigData, URLResponse()))
         ]
 
-        // Execute the fetch - should succeed on second attempt
-        let configuration = try await configurationRequester.fetchConfigurations()
+        // Execute the fetch with 2 max retries - should succeed on second attempt
+        let configuration = try await configurationRequester.fetchConfigurations(maxRetries: 2)
 
         // Verify that exactly 2 calls were made
         XCTAssertEqual(httpClientMock.callCount, 2, "Expected exactly 2 HTTP calls (1 failure + 1 success)")
@@ -52,9 +52,9 @@ class ConfigurationRequesterTests: XCTestCase {
     }
 
     func testRetryExhaustion() async throws {
-        // Create a requester with 2 max retries
+        // Create a requester
         let httpClientMock = EppoHttpClientMockWithCallTracking()
-        let configurationRequester = ConfigurationRequester(httpClient: httpClientMock, maxConfigurationFetchRetries: 2)
+        let configurationRequester = ConfigurationRequester(httpClient: httpClientMock)
 
         // Configure mock to always fail
         let testError = NSError(domain: "TestError", code: -1, userInfo: [NSLocalizedDescriptionKey: "Always fails"])
@@ -63,9 +63,9 @@ class ConfigurationRequesterTests: XCTestCase {
             .failure(testError)
         ]
 
-        // Execute the fetch - should fail after all retries
+        // Execute the fetch with 2 max retries - should fail after all retries
         do {
-            _ = try await configurationRequester.fetchConfigurations()
+            _ = try await configurationRequester.fetchConfigurations(maxRetries: 2)
             XCTFail("Expected fetchConfigurations to throw an error after all retries exhausted")
         } catch {
             // Verify that exactly 2 calls were made

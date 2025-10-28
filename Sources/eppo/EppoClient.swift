@@ -44,6 +44,7 @@ public class EppoClient {
     private var configurationRequester: ConfigurationRequester
     private var poller: Poller?
     private var configurationChangeCallback: ConfigurationChangeCallback?
+    private let maxConfigurationFetchRetries: Int
 
     private let state = EppoClientState()
     private let debugCallback: ((String, Double, Double) -> Void)?
@@ -63,6 +64,7 @@ public class EppoClient {
         self.sdkKey = SDKKey(sdkKey)
         self.assignmentLogger = assignmentLogger
         self.assignmentCache = assignmentCache
+        self.maxConfigurationFetchRetries = maxConfigurationFetchRetries
         self.debugCallback = debugCallback
         self.debugInitStartTime = nil
         self.debugLastStepTime = nil
@@ -71,7 +73,7 @@ public class EppoClient {
         self.host = endpoints.baseURL
 
         let httpClient = NetworkEppoHttpClient(baseURL: self.host, sdkKey: self.sdkKey.token, sdkName: sdkName, sdkVersion: sdkVersion)
-        self.configurationRequester = ConfigurationRequester(httpClient: httpClient, maxConfigurationFetchRetries: maxConfigurationFetchRetries)
+        self.configurationRequester = ConfigurationRequester(httpClient: httpClient)
 
         self.configurationStore = ConfigurationStore(withPersistentCache: withPersistentCache)
         if let configuration = initialConfiguration {
@@ -205,11 +207,15 @@ public class EppoClient {
     //
     // This function can be called from multiple threads; synchronization is provided to safely update
     // the configuration cache but each invocation will execute a new network request with billing impact.
+    //
+    // NOTE: This method uses the user-configured retry count for fast startup/manual refresh scenarios.
+    // For polling, use loadForPolling() instead which uses exactly 1 retry to avoid conflicts with
+    // the Poller's own retry mechanism.
     public func load() async throws {
         debugLog("Starting configuration fetch from remote")
-        
-        let config = try await self.configurationRequester.fetchConfigurations()
-        
+
+        let config = try await self.configurationRequester.fetchConfigurations(maxRetries: maxConfigurationFetchRetries)
+
         debugLog("Network fetch and parsing completed")
         
         debugLog("Starting configuration storage")
@@ -218,6 +224,29 @@ public class EppoClient {
         notifyConfigurationChange(config)
         
         debugLog("Configuration storage and load completed")
+    }
+
+    // Private method for polling that uses exactly 1 retry to avoid double-retry with poller's own retry logic
+    //
+    // IMPORTANT: This method MUST use maxRetries: 1 (hard-coded) because:
+    // - The Poller class has its own exponential backoff retry mechanism (up to 7 attempts)
+    // - If we used the user-configured retry count here, we'd get compound retries:
+    //   Example: 3 user retries × 7 poller retries = 21 total HTTP requests!
+    // - By using maxRetries: 1, we let the poller handle retry logic while ConfigurationRequester
+    //   handles only the immediate HTTP request with minimal local retry
+    private func loadForPolling() async throws {
+        debugLog("Starting configuration fetch from remote (polling)")
+
+        let config = try await self.configurationRequester.fetchConfigurations(maxRetries: 1)
+
+        debugLog("Network fetch and parsing completed (polling)")
+
+        debugLog("Starting configuration storage (polling)")
+
+        self.configurationStore.setConfiguration(configuration: config)
+        notifyConfigurationChange(config)
+
+        debugLog("Configuration storage and load completed (polling)")
     }
 
     public static func resetSharedInstance() {
@@ -889,13 +918,20 @@ public class EppoClient {
         // Stop any existing poller
         await poller?.stop()
         
-        // Create a new poller with the load callback
+        // Create a new poller with the loadForPolling callback
+        //
+        // NOTE: We use loadForPolling() instead of load() here because:
+        // - loadForPolling() uses exactly 1 retry for ConfigurationRequester
+        // - load() uses the user-configured retry count (could be 2, 3, or more)
+        // - The Poller itself implements exponential backoff retry logic (up to 7 attempts)
+        // - Using load() would create compound retries, potentially causing excessive HTTP requests
+        // - This separation ensures: initial fetch gets fast retries, polling gets robust poller-managed retries
         poller = await Poller(
             intervalMs: intervalMs,
             jitterMs: jitterMs,
             callback: { [weak self] in
                 guard let self = self else { return }
-                try await self.load()
+                try await self.loadForPolling()
             }
         )
         
