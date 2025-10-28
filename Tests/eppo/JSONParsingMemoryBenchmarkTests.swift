@@ -14,7 +14,7 @@ final class JSONParsingMemoryBenchmarkTests: XCTestCase {
 
     // MARK: - Test Data Generation
 
-    /// Small configuration JSON for basic benchmarks (~1KB)
+    /// Small configuration JSON for basic benchmarks (~1KB) - Non-obfuscated
     private let smallConfigurationJSON = """
     {
       "createdAt": "2024-04-17T19:40:53.716Z",
@@ -39,7 +39,32 @@ final class JSONParsingMemoryBenchmarkTests: XCTestCase {
     }
     """
 
-    /// Medium configuration JSON for moderate load testing (~10KB)
+    /// Small configuration JSON for basic benchmarks (~1KB) - Obfuscated
+    private let smallConfigurationJSONObfuscated = """
+    {
+      "createdAt": "2024-04-17T19:40:53.716Z",
+      "environment": { "name": "Test" },
+      "flags": {
+        "1b4f0e9851971998e732078544c96b36": {
+          "key": "1b4f0e9851971998e732078544c96b36",
+          "enabled": true,
+          "variationType": "BOOLEAN",
+          "variations": {
+            "b24=": { "key": "b24=", "value": "dHJ1ZQ==" },
+            "b2Zm": { "key": "b2Zm", "value": "ZmFsc2U=" }
+          },
+          "allocations": [{
+            "key": "cm9sbG91dA==",
+            "doLog": true,
+            "splits": [{ "variationKey": "b24=", "shards": [] }]
+          }],
+          "totalShards": 10000
+        }
+      }
+    }
+    """
+
+    /// Medium configuration JSON for moderate load testing (~10KB) - Non-obfuscated
     private func generateMediumConfigurationJSON() -> String {
         var flags: [String] = []
 
@@ -78,7 +103,48 @@ final class JSONParsingMemoryBenchmarkTests: XCTestCase {
         """
     }
 
-    /// Large configuration JSON for stress testing (~100KB)
+    /// Medium configuration JSON for moderate load testing (~10KB) - Obfuscated
+    private func generateMediumConfigurationJSONObfuscated() -> String {
+        var flags: [String] = []
+
+        for i in 1...50 {
+            // Use MD5 hash for flag key (simulating obfuscated flag_i)
+            let flagKey = String(format: "%02x", (i * 137 + 42) % 256) + "abcd1234"
+            let flagJSON = """
+            "\(flagKey)": {
+              "key": "\(flagKey)",
+              "enabled": true,
+              "variationType": "\(["BOOLEAN", "STRING", "NUMERIC", "INTEGER"].randomElement()!)",
+              "variations": {
+                "dmFyMQ==": { "key": "dmFyMQ==", "value": "\(String(i).data(using: .utf8)?.base64EncodedString() ?? "")" },
+                "dmFyMg==": { "key": "dmFyMg==", "value": "\(String(i * 2).data(using: .utf8)?.base64EncodedString() ?? "")" }
+              },
+              "allocations": [{
+                "key": "\("allocation_\\(i)".data(using: .utf8)?.base64EncodedString() ?? "")",
+                "doLog": true,
+                "startAt": "MjAyNC0wMS0wMVQwMDowMDowMC4wMDBa",
+                "endAt": "MjAyNC0xMi0zMVQyMzo1OTo1OS45OTla",
+                "splits": [
+                  { "variationKey": "dmFyMQ==", "shards": [{ "salt": "\("salt_\\(i)".data(using: .utf8)?.base64EncodedString() ?? "")", "ranges": [{ "start": 0, "end": 5000 }] }] },
+                  { "variationKey": "dmFyMg==", "shards": [{ "salt": "\("salt_\\(i)".data(using: .utf8)?.base64EncodedString() ?? "")", "ranges": [{ "start": 5000, "end": 10000 }] }] }
+                ]
+              }],
+              "totalShards": 10000
+            }
+            """
+            flags.append(flagJSON)
+        }
+
+        return """
+        {
+          "createdAt": "2024-04-17T19:40:53.716Z",
+          "environment": { "name": "BenchmarkTestObfuscated" },
+          "flags": { \(flags.joined(separator: ",\n    ")) }
+        }
+        """
+    }
+
+    /// Large configuration JSON for stress testing (~100KB) - Non-obfuscated
     private func generateLargeConfigurationJSON() -> String {
         var flags: [String] = []
 
@@ -161,6 +227,82 @@ final class JSONParsingMemoryBenchmarkTests: XCTestCase {
 
     // MARK: - Configuration Parsing Benchmarks
 
+    /// Benchmark memory allocation for small configuration parsing - Non-obfuscated
+    func testConfigurationParsingSmallNonObfuscated() {
+        let jsonData = Data(smallConfigurationJSON.utf8)
+
+        measure(metrics: [XCTMemoryMetric()]) {
+            autoreleasepool {
+                do {
+                    let _ = try Configuration(flagsConfigurationJson: jsonData, obfuscated: false)
+                } catch {
+                    XCTFail("Failed to parse small non-obfuscated configuration: \(error)")
+                }
+            }
+        }
+    }
+
+    /// Benchmark memory allocation for small configuration parsing - Obfuscated
+    func testConfigurationParsingSmallObfuscated() {
+        let jsonData = Data(smallConfigurationJSONObfuscated.utf8)
+
+        measure(metrics: [XCTMemoryMetric()]) {
+            autoreleasepool {
+                do {
+                    let _ = try Configuration(flagsConfigurationJson: jsonData, obfuscated: true)
+                } catch {
+                    XCTFail("Failed to parse small obfuscated configuration: \(error)")
+                }
+            }
+        }
+    }
+
+    /// Benchmark memory allocation for medium configuration parsing - Non-obfuscated
+    func testConfigurationParsingMediumNonObfuscated() {
+        let jsonData = Data(generateMediumConfigurationJSON().utf8)
+
+        measure(metrics: [XCTMemoryMetric()]) {
+            autoreleasepool {
+                do {
+                    let _ = try Configuration(flagsConfigurationJson: jsonData, obfuscated: false)
+                } catch {
+                    XCTFail("Failed to parse medium non-obfuscated configuration: \(error)")
+                }
+            }
+        }
+    }
+
+    /// Benchmark memory allocation for medium configuration parsing - Obfuscated
+    func testConfigurationParsingMediumObfuscated() {
+        let jsonData = Data(generateMediumConfigurationJSONObfuscated().utf8)
+
+        measure(metrics: [XCTMemoryMetric()]) {
+            autoreleasepool {
+                do {
+                    let _ = try Configuration(flagsConfigurationJson: jsonData, obfuscated: true)
+                } catch {
+                    XCTFail("Failed to parse medium obfuscated configuration: \(error)")
+                }
+            }
+        }
+    }
+
+    /// Benchmark memory allocation for large configuration parsing - Non-obfuscated
+    func testConfigurationParsingLargeNonObfuscated() {
+        let jsonData = Data(generateLargeConfigurationJSON().utf8)
+        print("Large non-obfuscated JSON size: \(jsonData.count / 1024) KB")
+
+        measure(metrics: [XCTMemoryMetric()]) {
+            autoreleasepool {
+                do {
+                    let _ = try Configuration(flagsConfigurationJson: jsonData, obfuscated: false)
+                } catch {
+                    XCTFail("Failed to parse large non-obfuscated configuration: \(error)")
+                }
+            }
+        }
+    }
+
     /// Benchmark memory allocation for small configuration parsing
     func testConfigurationParsingSmall() {
         let jsonData = Data(smallConfigurationJSON.utf8)
@@ -207,7 +349,7 @@ final class JSONParsingMemoryBenchmarkTests: XCTestCase {
         }
     }
 
-    /// Benchmark memory allocation for obfuscated configuration parsing
+    /// Benchmark memory allocation for obfuscated configuration parsing (legacy test)
     func testConfigurationParsingObfuscated() {
         let jsonData = Data(generateMediumConfigurationJSON().utf8)
 
@@ -322,7 +464,43 @@ final class JSONParsingMemoryBenchmarkTests: XCTestCase {
 
     // MARK: - Memory Leak Detection Tests (Simplified)
 
-    /// Test configuration parsing without memory leaks
+    /// Test configuration parsing stress test - Non-obfuscated
+    func testConfigurationParsingStressTestNonObfuscated() {
+        let jsonData = Data(generateMediumConfigurationJSON().utf8)
+
+        // Perform multiple parsing operations to test for memory accumulation
+        measure(metrics: [XCTMemoryMetric()]) {
+            autoreleasepool {
+                for _ in 0..<10 {
+                    do {
+                        let _ = try Configuration(flagsConfigurationJson: jsonData, obfuscated: false)
+                    } catch {
+                        XCTFail("Failed to parse non-obfuscated configuration: \(error)")
+                    }
+                }
+            }
+        }
+    }
+
+    /// Test configuration parsing stress test - Obfuscated
+    func testConfigurationParsingStressTestObfuscated() {
+        let jsonData = Data(generateMediumConfigurationJSONObfuscated().utf8)
+
+        // Perform multiple parsing operations to test for memory accumulation
+        measure(metrics: [XCTMemoryMetric()]) {
+            autoreleasepool {
+                for _ in 0..<10 {
+                    do {
+                        let _ = try Configuration(flagsConfigurationJson: jsonData, obfuscated: true)
+                    } catch {
+                        XCTFail("Failed to parse obfuscated configuration: \(error)")
+                    }
+                }
+            }
+        }
+    }
+
+    /// Test configuration parsing without memory leaks (legacy)
     func testConfigurationParsingStressTest() {
         let jsonData = Data(generateMediumConfigurationJSON().utf8)
 
@@ -360,6 +538,36 @@ final class JSONParsingMemoryBenchmarkTests: XCTestCase {
     }
 
     // MARK: - Performance Comparison Tests
+
+    /// Compare memory allocation between obfuscated vs non-obfuscated configurations
+    func testObfuscationMemoryComparison() {
+        let nonObfuscatedData = Data(generateMediumConfigurationJSON().utf8)
+        let obfuscatedData = Data(generateMediumConfigurationJSONObfuscated().utf8)
+
+        print("JSON Sizes - Non-obfuscated: \(nonObfuscatedData.count) bytes, Obfuscated: \(obfuscatedData.count) bytes")
+
+        // Non-obfuscated parsing
+        measure(metrics: [XCTMemoryMetric()]) {
+            autoreleasepool {
+                do {
+                    let _ = try Configuration(flagsConfigurationJson: nonObfuscatedData, obfuscated: false)
+                } catch {
+                    XCTFail("Failed to parse non-obfuscated configuration: \(error)")
+                }
+            }
+        }
+
+        // Obfuscated parsing
+        measure(metrics: [XCTMemoryMetric()]) {
+            autoreleasepool {
+                do {
+                    let _ = try Configuration(flagsConfigurationJson: obfuscatedData, obfuscated: true)
+                } catch {
+                    XCTFail("Failed to parse obfuscated configuration: \(error)")
+                }
+            }
+        }
+    }
 
     /// Compare memory allocation between small, medium, and large configurations
     func testMemoryScalingComparison() {
