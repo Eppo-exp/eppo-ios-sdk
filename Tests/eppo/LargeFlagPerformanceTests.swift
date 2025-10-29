@@ -77,6 +77,103 @@ class LargeFlagPerformanceTests: XCTestCase {
         }
     }
 
+    func testThreeWayPerformanceBenchmark() throws {
+        // This test benchmarks all three approaches: JSON, Direct FlatBuffer, and Lazy FlatBuffer
+        // to compare startup and evaluation performance across all modes
+
+        print("🚀 Starting Three-Way Performance Benchmark")
+        print("🎯 Comparing: JSON, Direct FlatBuffer, and Lazy FlatBuffer modes")
+        print("📊 Key Metrics: Startup time (primary) and evaluation speed (secondary)")
+
+        // RUN JSON MODE FIRST (isolated)
+        let jsonResults = try autoreleasepool {
+            print("\n📦 Loading JSON data...")
+            let jsonData = try loadTestDataFile("flags-10000.json")
+            let testCases = try loadAllGeneratedTestCases()
+            print("   📄 JSON: \(ByteCountFormatter.string(fromByteCount: Int64(jsonData.count), countStyle: .binary))")
+
+            let results = try benchmarkJSONMode(jsonData: jsonData, testCases: testCases)
+
+            print("   🧹 Releasing JSON memory...")
+            return results
+        }
+
+        autoreleasepool {} // Force memory cleanup
+
+        // RUN DIRECT FLATBUFFER MODE SECOND (isolated)
+        let directFlatBufferResults = try autoreleasepool {
+            print("\n📦 Loading FlatBuffer data for direct mode...")
+            let flatBufferData = try loadTestDataFile("flags-10000.flatbuf")
+            let testCases = try loadAllGeneratedTestCases()
+            print("   ⚡ FlatBuffer: \(ByteCountFormatter.string(fromByteCount: Int64(flatBufferData.count), countStyle: .binary))")
+
+            let results = try benchmarkFlatBufferMode(flatBufferData: flatBufferData, testCases: testCases)
+
+            print("   🧹 Releasing Direct FlatBuffer memory...")
+            return results
+        }
+
+        autoreleasepool {} // Force memory cleanup
+
+        // RUN LAZY FLATBUFFER MODE THIRD (isolated)
+        let lazyFlatBufferResults = try autoreleasepool {
+            print("\n📦 Loading FlatBuffer data for lazy mode...")
+            let flatBufferData = try loadTestDataFile("flags-10000.flatbuf")
+            let testCases = try loadAllGeneratedTestCases()
+            print("   🧠 Lazy FlatBuffer: \(ByteCountFormatter.string(fromByteCount: Int64(flatBufferData.count), countStyle: .binary))")
+
+            let results = try benchmarkLazyFlatBufferMode(flatBufferData: flatBufferData, testCases: testCases)
+
+            print("   🧹 Releasing Lazy FlatBuffer memory...")
+            return results
+        }
+
+        // THREE-WAY RESULTS SUMMARY
+        print("\n🏆 THREE-WAY PERFORMANCE BENCHMARK RESULTS:")
+        print("📊 JSON Mode:")
+        print("   🎯 Startup (KEY METRIC): \(String(format: "%.0f", jsonResults.startupTime))ms")
+        print("   ⚡ Evaluation Speed: \(String(format: "%.0f", jsonResults.evaluationsPerSecond)) evals/sec")
+        print("   💾 Memory Usage: \(String(format: "%.0f", jsonResults.memoryUsage))MB")
+        print("   📊 Total Evaluations: \(jsonResults.totalEvaluations)")
+
+        print("📊 Direct FlatBuffer Mode:")
+        print("   🎯 Startup: \(String(format: "%.0f", directFlatBufferResults.startupTime))ms")
+        print("   ⚡ Evaluation Speed: \(String(format: "%.0f", directFlatBufferResults.evaluationsPerSecond)) evals/sec")
+        print("   💾 Memory Usage: \(String(format: "%.0f", directFlatBufferResults.memoryUsage))MB")
+        print("   📊 Total Evaluations: \(directFlatBufferResults.totalEvaluations)")
+
+        print("📊 Lazy FlatBuffer Mode:")
+        print("   🎯 Startup: \(String(format: "%.0f", lazyFlatBufferResults.startupTime))ms")
+        print("   ⚡ Evaluation Speed: \(String(format: "%.0f", lazyFlatBufferResults.evaluationsPerSecond)) evals/sec")
+        print("   💾 Memory Usage: \(String(format: "%.0f", lazyFlatBufferResults.memoryUsage))MB")
+        print("   📊 Total Evaluations: \(lazyFlatBufferResults.totalEvaluations)")
+
+        // PERFORMANCE COMPARISONS
+        let directStartupSpeedup = jsonResults.startupTime / directFlatBufferResults.startupTime
+        let lazyStartupSpeedup = jsonResults.startupTime / lazyFlatBufferResults.startupTime
+        let directEvaluationSpeedup = directFlatBufferResults.evaluationsPerSecond / jsonResults.evaluationsPerSecond
+        let lazyEvaluationSpeedup = lazyFlatBufferResults.evaluationsPerSecond / jsonResults.evaluationsPerSecond
+
+        print("\n🏁 THREE-WAY PERFORMANCE COMPARISON:")
+        print("   📈 Startup Performance (vs JSON):")
+        print("      ⚡ Direct FlatBuffer: \(String(format: "%.1f", directStartupSpeedup))x faster")
+        print("      🧠 Lazy FlatBuffer: \(String(format: "%.1f", lazyStartupSpeedup))x faster")
+        print("   📈 Evaluation Performance (vs JSON):")
+        print("      ⚡ Direct FlatBuffer: \(String(format: "%.1f", directEvaluationSpeedup))x faster")
+        print("      🧠 Lazy FlatBuffer: \(String(format: "%.1f", lazyEvaluationSpeedup))x faster")
+
+        print("\n🎯 Three-Way Performance Benchmark completed!")
+        print("   📝 Summary: Lazy FlatBuffer combines fast startup with proven JSON evaluation logic")
+
+        // Performance assertions
+        XCTAssertGreaterThan(directStartupSpeedup, 1.0, "Direct FlatBuffer should be faster than JSON for startup")
+        XCTAssertGreaterThan(lazyStartupSpeedup, 1.0, "Lazy FlatBuffer should be faster than JSON for startup")
+        XCTAssertGreaterThan(lazyFlatBufferResults.evaluationsPerSecond, 100, "Lazy mode should handle at least 100 evaluations per second")
+
+        // Explicit cleanup
+        autoreleasepool {}
+    }
+
     // MARK: - Benchmark Methods
 
     private func benchmarkJSONMode(jsonData: Data, testCases: [PerformanceTestCase]) throws -> PerformanceResults {
@@ -209,7 +306,7 @@ class LargeFlagPerformanceTests: XCTestCase {
         }
 
         let startupStart = CFAbsoluteTimeGetCurrent()
-        var client: FlatBufferClient? = try FlatBufferClient(
+        var client: LazyFlatBufferClient? = try LazyFlatBufferClient(
             sdkKey: "flatbuffer-benchmark-key",
             flatBufferData: flatBufferData,
             obfuscated: false,
@@ -305,6 +402,106 @@ class LargeFlagPerformanceTests: XCTestCase {
         client = nil
 
         return results
+    }
+
+    private func benchmarkLazyFlatBufferMode(flatBufferData: Data, testCases: [PerformanceTestCase]) throws -> PerformanceResults {
+        print("\n🔄 Benchmarking Lazy FlatBuffer Mode...")
+
+        // CRITICAL MEASUREMENT: Startup Performance (almost instantaneous)
+        let memoryBefore = getCurrentMemoryUsage()
+        print("   🏁 Starting lazy FlatBuffer client creation...")
+
+        let startupStart = CFAbsoluteTimeGetCurrent()
+        var lazyClient: LazyFlatBufferClient? = try LazyFlatBufferClient(
+            sdkKey: "lazy-flatbuffer-benchmark-key",
+            flatBufferData: flatBufferData,
+            obfuscated: false,
+            assignmentLogger: { assignment in
+                // Simulate realistic logging work (minimal processing)
+                _ = assignment.featureFlag.count + assignment.subject.count
+            }
+        )
+        let startupTime = (CFAbsoluteTimeGetCurrent() - startupStart) * 1000
+
+        let memoryAfter = getCurrentMemoryUsage()
+        print("   ⚡ Startup complete: \(String(format: "%.0f", startupTime))ms, Memory: +\(String(format: "%.0f", memoryAfter - memoryBefore))MB")
+
+        // SECONDARY MEASUREMENT: Evaluation Performance
+        print("   🏃 Running evaluation performance benchmark across all flags...")
+
+        let evaluationStart = CFAbsoluteTimeGetCurrent()
+        var totalEvaluations = 0
+
+        // Get flag keys and test 5 subjects per flag (same as other modes)
+        let flagKeys = lazyClient!.getAllFlagKeys()
+        let subjects = ["user_basic", "user_us", "user_uk", "user_premium", "user_enterprise"]
+
+        print("   📊 Testing \(flagKeys.count) flags with \(subjects.count) subjects each...")
+
+        for flagKey in flagKeys {
+            guard let flagType = lazyClient!.getFlagVariationType(flagKey: flagKey) else { continue }
+
+            for subject in subjects {
+                totalEvaluations += 1
+                let attributes: [String: EppoValue] = ["country": EppoValue.valueOf("US")]
+
+                // Perform evaluation based on flag type
+                switch flagType {
+                case .boolean:
+                    _ = lazyClient!.getBooleanAssignment(
+                        flagKey: flagKey,
+                        subjectKey: subject,
+                        subjectAttributes: attributes,
+                        defaultValue: false
+                    )
+                case .string:
+                    _ = lazyClient!.getStringAssignment(
+                        flagKey: flagKey,
+                        subjectKey: subject,
+                        subjectAttributes: attributes,
+                        defaultValue: "default"
+                    )
+                case .integer:
+                    _ = lazyClient!.getIntegerAssignment(
+                        flagKey: flagKey,
+                        subjectKey: subject,
+                        subjectAttributes: attributes,
+                        defaultValue: 0
+                    )
+                case .numeric:
+                    _ = lazyClient!.getNumericAssignment(
+                        flagKey: flagKey,
+                        subjectKey: subject,
+                        subjectAttributes: attributes,
+                        defaultValue: 0.0
+                    )
+                case .json:
+                    _ = lazyClient!.getJSONStringAssignment(
+                        flagKey: flagKey,
+                        subjectKey: subject,
+                        subjectAttributes: attributes,
+                        defaultValue: "{}"
+                    )
+                }
+            }
+        }
+
+        let evaluationTime = (CFAbsoluteTimeGetCurrent() - evaluationStart) * 1000
+        let evaluationsPerSecond = Double(totalEvaluations) / (evaluationTime / 1000)
+
+        print("   ✅ Evaluations complete: \(totalEvaluations) in \(String(format: "%.0f", evaluationTime))ms")
+        print("   📈 Performance: \(String(format: "%.0f", evaluationsPerSecond)) evals/sec")
+
+        // Clean up
+        lazyClient = nil
+
+        return PerformanceResults(
+            startupTime: startupTime,
+            evaluationTime: evaluationTime,
+            totalEvaluations: totalEvaluations,
+            evaluationsPerSecond: evaluationsPerSecond,
+            memoryUsage: memoryAfter
+        )
     }
 
     // MARK: - Helper Methods

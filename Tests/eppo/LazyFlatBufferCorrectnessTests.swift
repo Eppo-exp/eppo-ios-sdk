@@ -3,12 +3,13 @@ import XCTest
 import Foundation
 
 /**
- * FlatBufferCorrectnessTests verifies that FlatBuffer and JSON modes produce identical assignment results.
+ * LazyFlatBufferCorrectnessTests verifies that Lazy FlatBuffer and JSON modes produce identical assignment results.
  * This test loads the same flag configuration in both formats and compares assignment values.
+ * The lazy approach uses FlatBuffer as canonical source with on-demand Swift object conversion.
  */
-final class FlatBufferCorrectnessTests: XCTestCase {
+final class LazyFlatBufferCorrectnessTests: XCTestCase {
     var jsonClient: EppoClient!
-    var flatBufferClient: FlatBufferClient!
+    var lazyFlatBufferClient: LazyFlatBufferClient!
 
     override func setUpWithError() throws {
         try super.setUpWithError()
@@ -46,9 +47,9 @@ final class FlatBufferCorrectnessTests: XCTestCase {
         }
         let flatBufferData = try Data(contentsOf: flatBufferFileURL)
 
-        // Create FlatBuffer-based client
-        flatBufferClient = try FlatBufferClient(
-            sdkKey: "flatbuffer-test-key",
+        // Create Lazy FlatBuffer-based client
+        lazyFlatBufferClient = try LazyFlatBufferClient(
+            sdkKey: "lazy-flatbuffer-test-key",
             flatBufferData: flatBufferData,
             obfuscated: false,
             assignmentLogger: nil
@@ -57,17 +58,17 @@ final class FlatBufferCorrectnessTests: XCTestCase {
 
     override func tearDownWithError() throws {
         jsonClient = nil
-        flatBufferClient = nil
+        lazyFlatBufferClient = nil
         try super.tearDownWithError()
     }
 
-    func testFlatBufferCorrectnessAgainstJSON() throws {
+    func testLazyFlatBufferCorrectnessAgainstJSON() throws {
         // Get all test case files (same as EppoClientUFCTests)
         let testFiles = try getTestFiles()
         var totalComparisons = 0
         var successfulComparisons = 0
 
-        print("🧪 Starting FlatBuffer vs JSON correctness comparison")
+        print("🧪 Starting Lazy FlatBuffer vs JSON correctness comparison")
         print("📊 Found \(testFiles.count) test case files")
 
         for testFile in testFiles {
@@ -108,16 +109,16 @@ final class FlatBufferCorrectnessTests: XCTestCase {
                         subjectAttributes: subjectAttributes,
                         defaultValue: defaultValue
                     )
-                    let flatBufferResult = flatBufferClient.getBooleanAssignment(
+                    let lazyFlatBufferResult = lazyFlatBufferClient.getBooleanAssignment(
                         flagKey: testCase.flag,
                         subjectKey: subject.subjectKey,
                         subjectAttributes: subjectAttributes,
                         defaultValue: defaultValue
                     )
-                    assignmentsMatch = (jsonResult == flatBufferResult)
+                    assignmentsMatch = (jsonResult == lazyFlatBufferResult)
                     if !assignmentsMatch {
                         print("   ❌ MISMATCH: Boolean flag \(testCase.flag) for subject \(subject.subjectKey)")
-                        print("      JSON: \(jsonResult), FlatBuffer: \(flatBufferResult)")
+                        print("      JSON: \(jsonResult), Lazy FlatBuffer: \(lazyFlatBufferResult)")
                     }
 
                 case "NUMERIC":
@@ -128,16 +129,16 @@ final class FlatBufferCorrectnessTests: XCTestCase {
                         subjectAttributes: subjectAttributes,
                         defaultValue: defaultValue
                     )
-                    let flatBufferResult = flatBufferClient.getNumericAssignment(
+                    let lazyFlatBufferResult = lazyFlatBufferClient.getNumericAssignment(
                         flagKey: testCase.flag,
                         subjectKey: subject.subjectKey,
                         subjectAttributes: subjectAttributes,
                         defaultValue: defaultValue
                     )
-                    assignmentsMatch = (jsonResult == flatBufferResult)
+                    assignmentsMatch = (jsonResult == lazyFlatBufferResult)
                     if !assignmentsMatch {
                         print("   ❌ MISMATCH: Numeric flag \(testCase.flag) for subject \(subject.subjectKey)")
-                        print("      JSON: \(jsonResult), FlatBuffer: \(flatBufferResult)")
+                        print("      JSON: \(jsonResult), Lazy FlatBuffer: \(lazyFlatBufferResult)")
                     }
 
                 case "INTEGER":
@@ -148,16 +149,16 @@ final class FlatBufferCorrectnessTests: XCTestCase {
                         subjectAttributes: subjectAttributes,
                         defaultValue: defaultValue
                     )
-                    let flatBufferResult = flatBufferClient.getIntegerAssignment(
+                    let lazyFlatBufferResult = lazyFlatBufferClient.getIntegerAssignment(
                         flagKey: testCase.flag,
                         subjectKey: subject.subjectKey,
                         subjectAttributes: subjectAttributes,
                         defaultValue: defaultValue
                     )
-                    assignmentsMatch = (jsonResult == flatBufferResult)
+                    assignmentsMatch = (jsonResult == lazyFlatBufferResult)
                     if !assignmentsMatch {
                         print("   ❌ MISMATCH: Integer flag \(testCase.flag) for subject \(subject.subjectKey)")
-                        print("      JSON: \(jsonResult), FlatBuffer: \(flatBufferResult)")
+                        print("      JSON: \(jsonResult), Lazy FlatBuffer: \(lazyFlatBufferResult)")
                     }
 
                 case "STRING":
@@ -168,16 +169,16 @@ final class FlatBufferCorrectnessTests: XCTestCase {
                         subjectAttributes: subjectAttributes,
                         defaultValue: defaultValue
                     )
-                    let flatBufferResult = flatBufferClient.getStringAssignment(
+                    let lazyFlatBufferResult = lazyFlatBufferClient.getStringAssignment(
                         flagKey: testCase.flag,
                         subjectKey: subject.subjectKey,
                         subjectAttributes: subjectAttributes,
                         defaultValue: defaultValue
                     )
-                    assignmentsMatch = (jsonResult == flatBufferResult)
+                    assignmentsMatch = (jsonResult == lazyFlatBufferResult)
                     if !assignmentsMatch {
                         print("   ❌ MISMATCH: String flag \(testCase.flag) for subject \(subject.subjectKey)")
-                        print("      JSON: '\(jsonResult)', FlatBuffer: '\(flatBufferResult)'")
+                        print("      JSON: '\(jsonResult)', Lazy FlatBuffer: '\(lazyFlatBufferResult)'")
                     }
 
                 case "JSON":
@@ -188,16 +189,16 @@ final class FlatBufferCorrectnessTests: XCTestCase {
                         subjectAttributes: subjectAttributes,
                         defaultValue: defaultValue
                     )
-                    let flatBufferResult = flatBufferClient.getJSONStringAssignment(
+                    let lazyFlatBufferResult = lazyFlatBufferClient.getJSONStringAssignment(
                         flagKey: testCase.flag,
                         subjectKey: subject.subjectKey,
                         subjectAttributes: subjectAttributes,
                         defaultValue: defaultValue
                     )
-                    assignmentsMatch = (jsonResult == flatBufferResult)
+                    assignmentsMatch = (jsonResult == lazyFlatBufferResult)
                     if !assignmentsMatch {
                         print("   ❌ MISMATCH: JSON flag \(testCase.flag) for subject \(subject.subjectKey)")
-                        print("      JSON: '\(jsonResult)', FlatBuffer: '\(flatBufferResult)'")
+                        print("      JSON: '\(jsonResult)', Lazy FlatBuffer: '\(lazyFlatBufferResult)'")
                     }
 
                 default:
@@ -215,7 +216,7 @@ final class FlatBufferCorrectnessTests: XCTestCase {
             }
         }
 
-        print("✅ Correctness test completed:")
+        print("✅ Lazy FlatBuffer vs JSON correctness test completed:")
         print("   📊 Total comparisons: \(totalComparisons)")
         print("   ✅ Successful matches: \(successfulComparisons)")
         print("   ❌ Mismatches: \(totalComparisons - successfulComparisons)")
@@ -223,7 +224,7 @@ final class FlatBufferCorrectnessTests: XCTestCase {
 
         // Overall test should pass if all assignments match
         XCTAssertEqual(successfulComparisons, totalComparisons,
-                      "FlatBuffer and JSON modes should produce identical assignment results")
+                      "Lazy FlatBuffer and JSON modes should produce identical assignment results")
     }
 
     // MARK: - Helper Methods
