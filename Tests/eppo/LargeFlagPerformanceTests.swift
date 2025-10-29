@@ -14,7 +14,7 @@ class LargeFlagPerformanceTests: XCTestCase {
 
         // PHASE 1: DATA LOADING
         let dataLoadStart = CFAbsoluteTimeGetCurrent()
-        let jsonData = try loadTestDataFile("flags-2000.json")
+        let jsonData = try loadTestDataFile("flags-10000.json")
         let testCases = try loadAllGeneratedTestCases()
         let dataLoadTime = (CFAbsoluteTimeGetCurrent() - dataLoadStart) * 1000
 
