@@ -12,16 +12,18 @@ class LargeFlagPerformanceTests: XCTestCase {
         print("🎯 Key Focus: Startup performance (JSON->objects conversion)")
         print("📊 Secondary: Evaluation performance across test cases")
 
-        // PHASE 1: DATA LOADING
-        let dataLoadStart = CFAbsoluteTimeGetCurrent()
-        let jsonData = try loadTestDataFile("flags-10000.json")
-        let testCases = try loadAllGeneratedTestCases()
-        let dataLoadTime = (CFAbsoluteTimeGetCurrent() - dataLoadStart) * 1000
+        // PHASE 1: DATA LOADING (wrapped for memory management)
+        let jsonResults = try autoreleasepool {
+            let dataLoadStart = CFAbsoluteTimeGetCurrent()
+            let jsonData = try loadTestDataFile("flags-10000.json")
+            let testCases = try loadAllGeneratedTestCases()
+            let dataLoadTime = (CFAbsoluteTimeGetCurrent() - dataLoadStart) * 1000
 
-        print("\n📦 Data loaded: \(ByteCountFormatter.string(fromByteCount: Int64(jsonData.count), countStyle: .binary)) + \(testCases.count) test cases (\(String(format: "%.2f", dataLoadTime))ms)")
+            print("\n📦 Data loaded: \(ByteCountFormatter.string(fromByteCount: Int64(jsonData.count), countStyle: .binary)) + \(testCases.count) test cases (\(String(format: "%.2f", dataLoadTime))ms)")
 
-        // Measure JSON mode performance
-        let jsonResults = try benchmarkJSONMode(jsonData: jsonData, testCases: testCases)
+            // Measure JSON mode performance
+            return try benchmarkJSONMode(jsonData: jsonData, testCases: testCases)
+        }
 
         // FUTURE: Add FlatBuffer mode benchmark here
         // let flatBufferResults = try benchmarkFlatBufferMode(jsonData: jsonData, testCases: testCases)
@@ -48,6 +50,11 @@ class LargeFlagPerformanceTests: XCTestCase {
 
         print("\n🎯 JSON Performance Benchmark completed!")
         print("   Ready for FlatBuffer comparison when implemented")
+
+        // Explicit cleanup for CI memory pressure relief
+        autoreleasepool {
+            // Force cleanup of large objects
+        }
     }
 
     // MARK: - Benchmark Methods
@@ -60,16 +67,16 @@ class LargeFlagPerformanceTests: XCTestCase {
         print("   🏁 Starting JSON->objects conversion...")
 
         let startupStart = CFAbsoluteTimeGetCurrent()
-        let configuration = try Configuration(flagsConfigurationJson: jsonData, obfuscated: false)
+        var configuration: Configuration? = try Configuration(flagsConfigurationJson: jsonData, obfuscated: false)
         let startupTime = (CFAbsoluteTimeGetCurrent() - startupStart) * 1000
 
         let memoryAfter = getCurrentMemoryUsage()
         print("   ⚡ Startup complete: \(String(format: "%.0f", startupTime))ms, Memory: +\(String(format: "%.0f", memoryAfter - memoryBefore))MB")
 
         // Create client for evaluations
-        let client = EppoClient.initializeOffline(
+        var client: EppoClient? = EppoClient.initializeOffline(
             sdkKey: "json-benchmark-key",
-            initialConfiguration: configuration
+            initialConfiguration: configuration!
         )
 
         // SECONDARY MEASUREMENT: Evaluation Performance across ALL 2000 flags
@@ -87,7 +94,7 @@ class LargeFlagPerformanceTests: XCTestCase {
         ]
 
         // Get all flag keys from configuration
-        let flagsConfiguration = configuration.flagsConfiguration
+        let flagsConfiguration = configuration!.flagsConfiguration
         let allFlagKeys = Array(flagsConfiguration.flags.keys)
 
         print("   📊 Testing \(allFlagKeys.count) flags with \(standardSubjects.count) subjects each...")
@@ -100,35 +107,35 @@ class LargeFlagPerformanceTests: XCTestCase {
                 // Determine appropriate default based on flag's variation type
                 switch flag.variationType {
                 case .string:
-                    _ = client.getStringAssignment(
+                    _ = client!.getStringAssignment(
                         flagKey: flagKey,
                         subjectKey: subjectKey,
                         subjectAttributes: subjectAttributes,
                         defaultValue: "default"
                     )
                 case .numeric:
-                    _ = client.getNumericAssignment(
+                    _ = client!.getNumericAssignment(
                         flagKey: flagKey,
                         subjectKey: subjectKey,
                         subjectAttributes: subjectAttributes,
                         defaultValue: 0.0
                     )
                 case .integer:
-                    _ = client.getIntegerAssignment(
+                    _ = client!.getIntegerAssignment(
                         flagKey: flagKey,
                         subjectKey: subjectKey,
                         subjectAttributes: subjectAttributes,
                         defaultValue: 0
                     )
                 case .boolean:
-                    _ = client.getBooleanAssignment(
+                    _ = client!.getBooleanAssignment(
                         flagKey: flagKey,
                         subjectKey: subjectKey,
                         subjectAttributes: subjectAttributes,
                         defaultValue: false
                     )
                 case .json:
-                    _ = client.getJSONStringAssignment(
+                    _ = client!.getJSONStringAssignment(
                         flagKey: flagKey,
                         subjectKey: subjectKey,
                         subjectAttributes: subjectAttributes,
@@ -146,13 +153,19 @@ class LargeFlagPerformanceTests: XCTestCase {
         print("   ✅ Evaluations complete: \(totalEvaluations) in \(String(format: "%.0f", evaluationTime))ms")
         print("   📈 Performance: \(String(format: "%.0f", evaluationsPerSecond)) evals/sec")
 
-        return PerformanceResults(
+        let results = PerformanceResults(
             startupTime: startupTime,
             evaluationTime: evaluationTime,
             totalEvaluations: totalEvaluations,
             evaluationsPerSecond: evaluationsPerSecond,
             memoryUsage: memoryAfter
         )
+
+        // Explicit cleanup for CI memory management
+        configuration = nil
+        client = nil
+
+        return results
     }
 
     // MARK: - Helper Methods
