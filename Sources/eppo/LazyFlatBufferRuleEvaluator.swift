@@ -234,9 +234,9 @@ public class LazyFlatBufferRuleEvaluator {
                 splits.append(UFC_Split(variationKey: splitVariationKey, shards: shards, extraLogging: nil))
             }
 
-            // Convert dates
-            let startAt = parseTimestamp(fbAllocation.startAt)
-            let endAt = parseTimestamp(fbAllocation.endAt)
+            // Convert dates from UInt64 timestamps
+            let startAt = parseUInt64Timestamp(fbAllocation.startAt)
+            let endAt = parseUInt64Timestamp(fbAllocation.endAt)
 
             allocations.append(UFC_Allocation(
                 key: allocationKey,
@@ -266,38 +266,36 @@ public class LazyFlatBufferRuleEvaluator {
         for i in 0..<conditionsCount {
             guard let fbCondition = fbRule.conditions(at: i) else { continue }
             guard let attribute = fbCondition.attribute else { continue }
-            guard let operatorStr = fbCondition.operator_ else { continue }
+            let operatorType = fbCondition.operator_
             guard let value = fbCondition.value else { continue }
 
-            // Convert operator
+            // Convert operator from FlatBuffer enum to UFC enum
             let operatorEnum: UFC_RuleConditionOperator
-            switch operatorStr {
-            case "LT":
+            switch operatorType {
+            case .lt:
                 operatorEnum = .lessThan
-            case "LTE":
+            case .lte:
                 operatorEnum = .lessThanEqual
-            case "GT":
+            case .gt:
                 operatorEnum = .greaterThan
-            case "GTE":
+            case .gte:
                 operatorEnum = .greaterThanEqual
-            case "MATCHES":
+            case .matches:
                 operatorEnum = .matches
-            case "ONE_OF":
+            case .oneOf:
                 operatorEnum = .oneOf
-            case "NOT_ONE_OF":
+            case .notOneOf:
                 operatorEnum = .notOneOf
-            case "IS_NULL":
+            case .isNull:
                 operatorEnum = .isNull
-            case "NOT_MATCHES":
+            case .notMatches:
                 operatorEnum = .notMatches
-            default:
-                continue // Skip unknown operators
             }
 
             // Convert value to EppoValue based on operator type
             let conditionValue: EppoValue
-            switch operatorStr {
-            case "ONE_OF", "NOT_ONE_OF":
+            switch operatorType {
+            case .oneOf, .notOneOf:
                 // Parse JSON array of strings
                 if let data = value.data(using: .utf8),
                    let array = try? JSONSerialization.jsonObject(with: data) as? [String] {
@@ -305,14 +303,14 @@ public class LazyFlatBufferRuleEvaluator {
                 } else {
                     conditionValue = EppoValue(array: [])
                 }
-            case "GTE", "GT", "LTE", "LT":
+            case .gte, .gt, .lte, .lt:
                 // Numeric operators
                 conditionValue = EppoValue(value: Double(value) ?? 0.0)
-            case "IS_NULL":
+            case .isNull:
                 // Parse boolean value to determine if checking for null (true) or not-null (false)
                 let expectNull = value.lowercased() == "true"
                 conditionValue = EppoValue(value: expectNull)
-            default:
+            case .matches, .notMatches:
                 // String operators (MATCHES, NOT_MATCHES, etc.)
                 conditionValue = EppoValue(value: value)
             }
@@ -341,5 +339,22 @@ public class LazyFlatBufferRuleEvaluator {
             formatter.formatOptions = [.withInternetDateTime]
             return formatter.date(from: timestamp)
         }()
+    }
+
+    private func parseUInt64Timestamp(_ timestamp: UInt64) -> Date? {
+        guard timestamp > 0 else { return nil }
+
+        // Convert UInt64 timestamp to Date
+        // Check if it's milliseconds (13 digits) or seconds (10 digits)
+        let timeInterval: TimeInterval
+        if timestamp > 1_000_000_000_000 {
+            // Likely milliseconds since Unix epoch
+            timeInterval = TimeInterval(timestamp) / 1000.0
+        } else {
+            // Likely seconds since Unix epoch
+            timeInterval = TimeInterval(timestamp)
+        }
+
+        return Date(timeIntervalSince1970: timeInterval)
     }
 }

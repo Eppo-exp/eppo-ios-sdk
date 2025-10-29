@@ -35,6 +35,25 @@ public enum Eppo_UFC_VariationType: Int8, Enum, Verifiable {
 }
 
 
+public enum Eppo_UFC_OperatorType: Int8, Enum, Verifiable {
+  public typealias T = Int8
+  public static var byteSize: Int { return MemoryLayout<Int8>.size }
+  public var value: Int8 { return self.rawValue }
+  case matches = 0
+  case notMatches = 1
+  case gte = 2
+  case gt = 3
+  case lte = 4
+  case lt = 5
+  case oneOf = 6
+  case notOneOf = 7
+  case isNull = 8
+
+  public static var max: Eppo_UFC_OperatorType { return .isNull }
+  public static var min: Eppo_UFC_OperatorType { return .matches }
+}
+
+
 public enum Eppo_UFC_AlgorithmType: Int8, Enum, Verifiable {
   public typealias T = Int8
   public static var byteSize: Int { return MemoryLayout<Int8>.size }
@@ -47,45 +66,47 @@ public enum Eppo_UFC_AlgorithmType: Int8, Enum, Verifiable {
 }
 
 
-public struct Eppo_UFC_Range: FlatBufferObject, Verifiable {
+public struct Eppo_UFC_Range: NativeStruct, Verifiable, FlatbuffersInitializable {
+
+  static func validateVersion() { FlatBuffersVersion_25_9_23() }
+
+  private var _start: Int32
+  private var _end: Int32
+
+  public init(_ bb: ByteBuffer, o: Int32) {
+    let _accessor = Struct(bb: bb, position: o)
+    _start = _accessor.readBuffer(of: Int32.self, at: 0)
+    _end = _accessor.readBuffer(of: Int32.self, at: 4)
+  }
+
+  public init(start: Int32, end: Int32) {
+    _start = start
+    _end = end
+  }
+
+  public init() {
+    _start = 0
+    _end = 0
+  }
+
+  public var start: Int32 { _start }
+  public var end: Int32 { _end }
+
+  public static func verify<T>(_ verifier: inout Verifier, at position: Int, of type: T.Type) throws where T: Verifiable {
+    try verifier.inBuffer(position: position, of: Eppo_UFC_Range.self)
+  }
+}
+
+public struct Eppo_UFC_Range_Mutable: FlatBufferObject {
 
   static func validateVersion() { FlatBuffersVersion_25_9_23() }
   public var __buffer: ByteBuffer! { return _accessor.bb }
-  private var _accessor: Table
+  private var _accessor: Struct
 
-  private init(_ t: Table) { _accessor = t }
-  public init(_ bb: ByteBuffer, o: Int32) { _accessor = Table(bb: bb, position: o) }
+  public init(_ bb: ByteBuffer, o: Int32) { _accessor = Struct(bb: bb, position: o) }
 
-  private enum VTOFFSET: VOffset {
-    case start = 4
-    case end = 6
-    var v: Int32 { Int32(self.rawValue) }
-    var p: VOffset { self.rawValue }
-  }
-
-  public var start: Int32 { let o = _accessor.offset(VTOFFSET.start.v); return o == 0 ? 0 : _accessor.readBuffer(of: Int32.self, at: o) }
-  public var end: Int32 { let o = _accessor.offset(VTOFFSET.end.v); return o == 0 ? 0 : _accessor.readBuffer(of: Int32.self, at: o) }
-  public static func startRange(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 2) }
-  public static func add(start: Int32, _ fbb: inout FlatBufferBuilder) { fbb.add(element: start, def: 0, at: VTOFFSET.start.p) }
-  public static func add(end: Int32, _ fbb: inout FlatBufferBuilder) { fbb.add(element: end, def: 0, at: VTOFFSET.end.p) }
-  public static func endRange(_ fbb: inout FlatBufferBuilder, start: UOffset) -> Offset { let end = Offset(offset: fbb.endTable(at: start)); return end }
-  public static func createRange(
-    _ fbb: inout FlatBufferBuilder,
-    start: Int32 = 0,
-    end: Int32 = 0
-  ) -> Offset {
-    let __start = Eppo_UFC_Range.startRange(&fbb)
-    Eppo_UFC_Range.add(start: start, &fbb)
-    Eppo_UFC_Range.add(end: end, &fbb)
-    return Eppo_UFC_Range.endRange(&fbb, start: __start)
-  }
-
-  public static func verify<T>(_ verifier: inout Verifier, at position: Int, of type: T.Type) throws where T: Verifiable {
-    var _v = try verifier.visitTable(at: position)
-    try _v.visit(field: VTOFFSET.start.p, fieldName: "start", required: false, type: Int32.self)
-    try _v.visit(field: VTOFFSET.end.p, fieldName: "end", required: false, type: Int32.self)
-    _v.finish()
-  }
+  public var start: Int32 { return _accessor.readBuffer(of: Int32.self, at: 0) }
+  public var end: Int32 { return _accessor.readBuffer(of: Int32.self, at: 4) }
 }
 
 public struct Eppo_UFC_Shard: FlatBufferObject, Verifiable {
@@ -108,10 +129,15 @@ public struct Eppo_UFC_Shard: FlatBufferObject, Verifiable {
   public var saltSegmentArray: [UInt8]? { return _accessor.getVector(at: VTOFFSET.salt.v) }
   public var hasRanges: Bool { let o = _accessor.offset(VTOFFSET.ranges.v); return o == 0 ? false : true }
   public var rangesCount: Int32 { let o = _accessor.offset(VTOFFSET.ranges.v); return o == 0 ? 0 : _accessor.vector(count: o) }
-  public func ranges(at index: Int32) -> Eppo_UFC_Range? { let o = _accessor.offset(VTOFFSET.ranges.v); return o == 0 ? nil : Eppo_UFC_Range(_accessor.bb, o: _accessor.indirect(_accessor.vector(at: o) + index * 4)) }
+  public func ranges(at index: Int32) -> Eppo_UFC_Range? { let o = _accessor.offset(VTOFFSET.ranges.v); return o == 0 ? nil : _accessor.directRead(of: Eppo_UFC_Range.self, offset: _accessor.vector(at: o) + index * 8) }
+  public func mutableRanges(at index: Int32) -> Eppo_UFC_Range_Mutable? { let o = _accessor.offset(VTOFFSET.ranges.v); return o == 0 ? nil : Eppo_UFC_Range_Mutable(_accessor.bb, o: _accessor.vector(at: o) + index * 8) }
+  public func withUnsafePointerToRanges<T>(_ body: (UnsafeRawBufferPointer) throws -> T) rethrows -> T? { return try _accessor.withUnsafePointerToSlice(at: VTOFFSET.ranges.v, body: body) }
   public static func startShard(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 2) }
   public static func add(salt: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: salt, at: VTOFFSET.salt.p) }
   public static func addVectorOf(ranges: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: ranges, at: VTOFFSET.ranges.p) }
+  public static func startVectorOfRanges(_ size: Int, in builder: inout FlatBufferBuilder) {
+    builder.startVector(size * MemoryLayout<Eppo_UFC_Range>.size, elementSize: MemoryLayout<Eppo_UFC_Range>.alignment)
+  }
   public static func endShard(_ fbb: inout FlatBufferBuilder, start: UOffset) -> Offset { let end = Offset(offset: fbb.endTable(at: start)); return end }
   public static func createShard(
     _ fbb: inout FlatBufferBuilder,
@@ -127,7 +153,7 @@ public struct Eppo_UFC_Shard: FlatBufferObject, Verifiable {
   public static func verify<T>(_ verifier: inout Verifier, at position: Int, of type: T.Type) throws where T: Verifiable {
     var _v = try verifier.visitTable(at: position)
     try _v.visit(field: VTOFFSET.salt.p, fieldName: "salt", required: false, type: ForwardOffset<String>.self)
-    try _v.visit(field: VTOFFSET.ranges.p, fieldName: "ranges", required: false, type: ForwardOffset<Vector<ForwardOffset<Eppo_UFC_Range>, Eppo_UFC_Range>>.self)
+    try _v.visit(field: VTOFFSET.ranges.p, fieldName: "ranges", required: false, type: ForwardOffset<Vector<Eppo_UFC_Range, Eppo_UFC_Range>>.self)
     _v.finish()
   }
 }
@@ -275,20 +301,19 @@ public struct Eppo_UFC_TargetingRuleCondition: FlatBufferObject, Verifiable {
     var p: VOffset { self.rawValue }
   }
 
-  public var operator_: String? { let o = _accessor.offset(VTOFFSET.operator_.v); return o == 0 ? nil : _accessor.string(at: o) }
-  public var operator_SegmentArray: [UInt8]? { return _accessor.getVector(at: VTOFFSET.operator_.v) }
+  public var operator_: Eppo_UFC_OperatorType { let o = _accessor.offset(VTOFFSET.operator_.v); return o == 0 ? .matches : Eppo_UFC_OperatorType(rawValue: _accessor.readBuffer(of: Int8.self, at: o)) ?? .matches }
   public var attribute: String? { let o = _accessor.offset(VTOFFSET.attribute.v); return o == 0 ? nil : _accessor.string(at: o) }
   public var attributeSegmentArray: [UInt8]? { return _accessor.getVector(at: VTOFFSET.attribute.v) }
   public var value: String? { let o = _accessor.offset(VTOFFSET.value.v); return o == 0 ? nil : _accessor.string(at: o) }
   public var valueSegmentArray: [UInt8]? { return _accessor.getVector(at: VTOFFSET.value.v) }
   public static func startTargetingRuleCondition(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 3) }
-  public static func add(operator_: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: operator_, at: VTOFFSET.operator_.p) }
+  public static func add(operator_: Eppo_UFC_OperatorType, _ fbb: inout FlatBufferBuilder) { fbb.add(element: operator_.rawValue, def: 0, at: VTOFFSET.operator_.p) }
   public static func add(attribute: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: attribute, at: VTOFFSET.attribute.p) }
   public static func add(value: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: value, at: VTOFFSET.value.p) }
   public static func endTargetingRuleCondition(_ fbb: inout FlatBufferBuilder, start: UOffset) -> Offset { let end = Offset(offset: fbb.endTable(at: start)); return end }
   public static func createTargetingRuleCondition(
     _ fbb: inout FlatBufferBuilder,
-    operator_Offset operator_: Offset = Offset(),
+    operator_: Eppo_UFC_OperatorType = .matches,
     attributeOffset attribute: Offset = Offset(),
     valueOffset value: Offset = Offset()
   ) -> Offset {
@@ -301,7 +326,7 @@ public struct Eppo_UFC_TargetingRuleCondition: FlatBufferObject, Verifiable {
 
   public static func verify<T>(_ verifier: inout Verifier, at position: Int, of type: T.Type) throws where T: Verifiable {
     var _v = try verifier.visitTable(at: position)
-    try _v.visit(field: VTOFFSET.operator_.p, fieldName: "operator_", required: false, type: ForwardOffset<String>.self)
+    try _v.visit(field: VTOFFSET.operator_.p, fieldName: "operator_", required: false, type: Eppo_UFC_OperatorType.self)
     try _v.visit(field: VTOFFSET.attribute.p, fieldName: "attribute", required: false, type: ForwardOffset<String>.self)
     try _v.visit(field: VTOFFSET.value.p, fieldName: "value", required: false, type: ForwardOffset<String>.self)
     _v.finish()
@@ -370,10 +395,8 @@ public struct Eppo_UFC_Allocation: FlatBufferObject, Verifiable {
   public var hasRules: Bool { let o = _accessor.offset(VTOFFSET.rules.v); return o == 0 ? false : true }
   public var rulesCount: Int32 { let o = _accessor.offset(VTOFFSET.rules.v); return o == 0 ? 0 : _accessor.vector(count: o) }
   public func rules(at index: Int32) -> Eppo_UFC_Rule? { let o = _accessor.offset(VTOFFSET.rules.v); return o == 0 ? nil : Eppo_UFC_Rule(_accessor.bb, o: _accessor.indirect(_accessor.vector(at: o) + index * 4)) }
-  public var startAt: String? { let o = _accessor.offset(VTOFFSET.startAt.v); return o == 0 ? nil : _accessor.string(at: o) }
-  public var startAtSegmentArray: [UInt8]? { return _accessor.getVector(at: VTOFFSET.startAt.v) }
-  public var endAt: String? { let o = _accessor.offset(VTOFFSET.endAt.v); return o == 0 ? nil : _accessor.string(at: o) }
-  public var endAtSegmentArray: [UInt8]? { return _accessor.getVector(at: VTOFFSET.endAt.v) }
+  public var startAt: UInt64 { let o = _accessor.offset(VTOFFSET.startAt.v); return o == 0 ? 0 : _accessor.readBuffer(of: UInt64.self, at: o) }
+  public var endAt: UInt64 { let o = _accessor.offset(VTOFFSET.endAt.v); return o == 0 ? 0 : _accessor.readBuffer(of: UInt64.self, at: o) }
   public var hasSplits: Bool { let o = _accessor.offset(VTOFFSET.splits.v); return o == 0 ? false : true }
   public var splitsCount: Int32 { let o = _accessor.offset(VTOFFSET.splits.v); return o == 0 ? 0 : _accessor.vector(count: o) }
   public func splits(at index: Int32) -> Eppo_UFC_Split? { let o = _accessor.offset(VTOFFSET.splits.v); return o == 0 ? nil : Eppo_UFC_Split(_accessor.bb, o: _accessor.indirect(_accessor.vector(at: o) + index * 4)) }
@@ -381,8 +404,8 @@ public struct Eppo_UFC_Allocation: FlatBufferObject, Verifiable {
   public static func startAllocation(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 6) }
   public static func add(key: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: key, at: VTOFFSET.key.p) }
   public static func addVectorOf(rules: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: rules, at: VTOFFSET.rules.p) }
-  public static func add(startAt: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: startAt, at: VTOFFSET.startAt.p) }
-  public static func add(endAt: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: endAt, at: VTOFFSET.endAt.p) }
+  public static func add(startAt: UInt64, _ fbb: inout FlatBufferBuilder) { fbb.add(element: startAt, def: 0, at: VTOFFSET.startAt.p) }
+  public static func add(endAt: UInt64, _ fbb: inout FlatBufferBuilder) { fbb.add(element: endAt, def: 0, at: VTOFFSET.endAt.p) }
   public static func addVectorOf(splits: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: splits, at: VTOFFSET.splits.p) }
   public static func add(doLog: Bool, _ fbb: inout FlatBufferBuilder) { fbb.add(element: doLog, def: false,
    at: VTOFFSET.doLog.p) }
@@ -391,8 +414,8 @@ public struct Eppo_UFC_Allocation: FlatBufferObject, Verifiable {
     _ fbb: inout FlatBufferBuilder,
     keyOffset key: Offset = Offset(),
     rulesVectorOffset rules: Offset = Offset(),
-    startAtOffset startAt: Offset = Offset(),
-    endAtOffset endAt: Offset = Offset(),
+    startAt: UInt64 = 0,
+    endAt: UInt64 = 0,
     splitsVectorOffset splits: Offset = Offset(),
     doLog: Bool = false
   ) -> Offset {
@@ -410,8 +433,8 @@ public struct Eppo_UFC_Allocation: FlatBufferObject, Verifiable {
     var _v = try verifier.visitTable(at: position)
     try _v.visit(field: VTOFFSET.key.p, fieldName: "key", required: false, type: ForwardOffset<String>.self)
     try _v.visit(field: VTOFFSET.rules.p, fieldName: "rules", required: false, type: ForwardOffset<Vector<ForwardOffset<Eppo_UFC_Rule>, Eppo_UFC_Rule>>.self)
-    try _v.visit(field: VTOFFSET.startAt.p, fieldName: "startAt", required: false, type: ForwardOffset<String>.self)
-    try _v.visit(field: VTOFFSET.endAt.p, fieldName: "endAt", required: false, type: ForwardOffset<String>.self)
+    try _v.visit(field: VTOFFSET.startAt.p, fieldName: "startAt", required: false, type: UInt64.self)
+    try _v.visit(field: VTOFFSET.endAt.p, fieldName: "endAt", required: false, type: UInt64.self)
     try _v.visit(field: VTOFFSET.splits.p, fieldName: "splits", required: false, type: ForwardOffset<Vector<ForwardOffset<Eppo_UFC_Split>, Eppo_UFC_Split>>.self)
     try _v.visit(field: VTOFFSET.doLog.p, fieldName: "doLog", required: false, type: Bool.self)
     _v.finish()
