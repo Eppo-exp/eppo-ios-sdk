@@ -2,7 +2,7 @@ name: Swift
 
 env:
   SDK_BRANCH_NAME: ${{ inputs.sdk_branch  || github.head_ref || github.ref_name }}
-  TEST_DATA_BRANCH_NAME: ${{ inputs.test_data_branch || 'main' }}
+  TEST_DATA_BRANCH_NAME: ${{ inputs.test_data_branch || 'lr/very-large-flag' }}
 
 on:
   push:
@@ -18,7 +18,7 @@ on:
         type: string
         description: The branch in sdk-test-data to target for testcase files
         required: false
-        default: main
+        default: lr/very-large-flag
       sdk_branch:
         type: string
         description: The branch of the SDK to test
