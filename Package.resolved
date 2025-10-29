@@ -2,6 +2,15 @@
   "object": {
     "pins": [
       {
+        "package": "FlatBuffers",
+        "repositoryURL": "https://github.com/google/flatbuffers.git",
+        "state": {
+          "branch": null,
+          "revision": "187240970746d00bbd26b0f5873ed54d2477f9f3",
+          "version": "25.9.23"
+        }
+      },
+      {
         "package": "OHHTTPStubs",
         "repositoryURL": "https://github.com/AliSoftware/OHHTTPStubs",
         "state": {

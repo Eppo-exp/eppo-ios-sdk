@@ -1,4 +1,5 @@
 import Foundation
+import FlatBuffers
 
 public struct UniversalFlagConfig: Codable {
     let createdAt: Date
@@ -37,6 +38,172 @@ public struct UniversalFlagConfig: Codable {
         } catch {
             throw UniversalFlagConfigError.parsingError("Unexpected error: \(error.localizedDescription)")
         }
+    }
+
+    static func decodeFromFlatBuffer(from data: Data) throws -> UniversalFlagConfig {
+        do {
+            let buffer = ByteBuffer(data: data)
+            let ufcRoot = Eppo_UFC_UniversalFlagConfig(buffer, o: Int32(buffer.read(def: UOffset.self, position: buffer.reader)) + Int32(buffer.reader))
+
+            // Parse creation date (now UInt64 timestamp instead of string)
+            let createdAt: Date
+            let createdAtTimestamp = ufcRoot.createdAt
+            if createdAtTimestamp > 0 {
+                createdAt = Date(timeIntervalSince1970: TimeInterval(createdAtTimestamp) / 1000.0) // Assuming milliseconds
+            } else {
+                throw UniversalFlagConfigError.parsingError("Missing or invalid creation date in FlatBuffer")
+            }
+
+            // Parse environment
+            guard let fbEnvironment = ufcRoot.environment else {
+                throw UniversalFlagConfigError.parsingError("Missing environment in FlatBuffer")
+            }
+            guard let environmentName = fbEnvironment.name else {
+                throw UniversalFlagConfigError.parsingError("Missing environment name in FlatBuffer")
+            }
+            let environment = Environment(name: environmentName)
+
+            // Convert format enum to string
+            let format: String
+            switch ufcRoot.format {
+            case .server:
+                format = "server"
+            case .client:
+                format = "client"
+            }
+
+            // Parse flags
+            var flags: [String: UFC_Flag] = [:]
+            let flagsCount = ufcRoot.flagsCount
+            for i in 0..<flagsCount {
+                guard let flagEntry = ufcRoot.flags(at: i) else { continue }
+                guard let flagKey = flagEntry.key else { continue }
+                guard let fbFlag = flagEntry.flag else { continue }
+
+                if let ufcFlag = try? convertFlatBufferFlag(fbFlag) {
+                    flags[flagKey] = ufcFlag
+                }
+            }
+
+            return UniversalFlagConfig(
+                createdAt: createdAt,
+                format: format,
+                environment: environment,
+                flags: flags
+            )
+        } catch {
+            throw UniversalFlagConfigError.parsingError("FlatBuffer parsing error: \(error.localizedDescription)")
+        }
+    }
+
+    static func convertFlatBufferFlag(_ fbFlag: Eppo_UFC_Flag) throws -> UFC_Flag {
+        // Extract basic properties
+        guard let key = fbFlag.key else {
+            throw UniversalFlagConfigError.parsingError("Missing flag key in FlatBuffer")
+        }
+
+        let enabled = fbFlag.enabled
+
+        // Convert variation type
+        let variationType: UFC_VariationType
+        switch fbFlag.variationType {
+        case .boolean:
+            variationType = .boolean
+        case .integer:
+            variationType = .integer
+        case .json:
+            variationType = .json
+        case .numeric:
+            variationType = .numeric
+        case .string:
+            variationType = .string
+        }
+
+        // Convert variations
+        var variations: [String: UFC_Variation] = [:]
+        let variationsCount = fbFlag.variationsCount
+        for i in 0..<variationsCount {
+            guard let fbVariation = fbFlag.variations(at: i) else { continue }
+            guard let variationKey = fbVariation.key else { continue }
+            guard let valueString = fbVariation.value else { continue }
+
+            let variationValue: EppoValue
+            switch variationType {
+            case .boolean:
+                variationValue = EppoValue(value: valueString.lowercased() == "true")
+            case .integer:
+                if let intVal = Int(valueString) {
+                    variationValue = EppoValue(value: intVal)
+                } else {
+                    variationValue = EppoValue(value: 0)
+                }
+            case .numeric:
+                if let doubleVal = Double(valueString) {
+                    variationValue = EppoValue(value: doubleVal)
+                } else {
+                    variationValue = EppoValue(value: 0.0)
+                }
+            case .string, .json:
+                variationValue = EppoValue(value: valueString)
+            }
+
+            variations[variationKey] = UFC_Variation(key: variationKey, value: variationValue)
+        }
+
+        // Convert allocations (simplified for now)
+        var allocations: [UFC_Allocation] = []
+        let allocationsCount = fbFlag.allocationsCount
+        for i in 0..<allocationsCount {
+            guard let fbAllocation = fbFlag.allocations(at: i) else { continue }
+            guard let allocationKey = fbAllocation.key else { continue }
+
+            // Convert splits
+            var splits: [UFC_Split] = []
+            let splitsCount = fbAllocation.splitsCount
+            for j in 0..<splitsCount {
+                guard let fbSplit = fbAllocation.splits(at: j) else { continue }
+                guard let splitVariationKey = fbSplit.variationKey else { continue }
+
+                // Convert shards
+                var shards: [UFC_Shard] = []
+                let shardsCount = fbSplit.shardsCount
+                for k in 0..<shardsCount {
+                    guard let fbShard = fbSplit.shards(at: k) else { continue }
+                    guard let salt = fbShard.salt else { continue }
+
+                    // Convert ranges
+                    var ranges: [UFC_Range] = []
+                    let rangesCount = fbShard.rangesCount
+                    for l in 0..<rangesCount {
+                        guard let fbRange = fbShard.ranges(at: l) else { continue }
+                        ranges.append(UFC_Range(start: Int(fbRange.start), end: Int(fbRange.end)))
+                    }
+
+                    shards.append(UFC_Shard(salt: salt, ranges: ranges))
+                }
+
+                splits.append(UFC_Split(variationKey: splitVariationKey, shards: shards, extraLogging: nil))
+            }
+
+            allocations.append(UFC_Allocation(
+                key: allocationKey,
+                rules: nil, // TODO: Implement rules conversion if needed
+                startAt: nil, // TODO: Implement date conversion if needed
+                endAt: nil,
+                splits: splits,
+                doLog: fbAllocation.doLog
+            ))
+        }
+
+        return UFC_Flag(
+            key: key,
+            enabled: enabled,
+            variationType: variationType,
+            variations: variations,
+            allocations: allocations,
+            totalShards: Int(fbFlag.totalShards),
+            entityId: fbFlag.entityId != 0 ? Int(fbFlag.entityId) : nil
+        )
     }
 }
 

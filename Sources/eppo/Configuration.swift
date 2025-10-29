@@ -1,4 +1,5 @@
 import Foundation
+import FlatBuffers
 
 public struct ConfigDetails {
     public let configFetchedAt: String
@@ -23,6 +24,19 @@ public struct Configuration: Codable {
 
     public init(flagsConfigurationJson: Data, obfuscated: Bool) throws {
         let flagsConfiguration = try UniversalFlagConfig.decodeFromJSON(from: flagsConfigurationJson)
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let now = formatter.string(from: Date())
+        self.init(
+            flagsConfiguration: flagsConfiguration,
+            obfuscated: obfuscated,
+            fetchedAt: now,
+            publishedAt: formatter.string(from: flagsConfiguration.createdAt)
+        )
+    }
+
+    public init(flagsConfigurationFlatBuffer: Data, obfuscated: Bool) throws {
+        let flagsConfiguration = try UniversalFlagConfig.decodeFromFlatBuffer(from: flagsConfigurationFlatBuffer)
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         let now = formatter.string(from: Date())

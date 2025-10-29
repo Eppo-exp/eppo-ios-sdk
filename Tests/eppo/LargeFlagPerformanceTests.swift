@@ -12,21 +12,36 @@ class LargeFlagPerformanceTests: XCTestCase {
         print("🎯 Key Focus: Startup performance (JSON->objects conversion)")
         print("📊 Secondary: Evaluation performance across test cases")
 
-        // PHASE 1: DATA LOADING (wrapped for memory management)
+        // RUN JSON MODE FIRST (isolated)
         let jsonResults = try autoreleasepool {
-            let dataLoadStart = CFAbsoluteTimeGetCurrent()
+            print("\n📦 Loading JSON data...")
             let jsonData = try loadTestDataFile("flags-10000.json")
             let testCases = try loadAllGeneratedTestCases()
-            let dataLoadTime = (CFAbsoluteTimeGetCurrent() - dataLoadStart) * 1000
+            print("   📄 JSON: \(ByteCountFormatter.string(fromByteCount: Int64(jsonData.count), countStyle: .binary))")
 
-            print("\n📦 Data loaded: \(ByteCountFormatter.string(fromByteCount: Int64(jsonData.count), countStyle: .binary)) + \(testCases.count) test cases (\(String(format: "%.2f", dataLoadTime))ms)")
+            let results = try benchmarkJSONMode(jsonData: jsonData, testCases: testCases)
 
-            // Measure JSON mode performance
-            return try benchmarkJSONMode(jsonData: jsonData, testCases: testCases)
+            // Force memory cleanup
+            print("   🧹 Releasing JSON memory...")
+            return results
         }
 
-        // FUTURE: Add FlatBuffer mode benchmark here
-        // let flatBufferResults = try benchmarkFlatBufferMode(jsonData: jsonData, testCases: testCases)
+        // FORCE MEMORY CLEANUP BETWEEN MODES
+        autoreleasepool {}
+
+        // RUN FLATBUFFER MODE SECOND (isolated)
+        let flatBufferResults = try autoreleasepool {
+            print("\n📦 Loading FlatBuffer data...")
+            let flatBufferData = try loadTestDataFile("flags-10000.flatbuf")
+            let testCases = try loadAllGeneratedTestCases()
+            print("   ⚡ FlatBuffer: \(ByteCountFormatter.string(fromByteCount: Int64(flatBufferData.count), countStyle: .binary))")
+
+            let results = try benchmarkFlatBufferMode(flatBufferData: flatBufferData, testCases: testCases)
+
+            // Force memory cleanup
+            print("   🧹 Releasing FlatBuffer memory...")
+            return results
+        }
 
         // RESULTS SUMMARY
         print("\n🏆 PERFORMANCE BENCHMARK RESULTS:")
@@ -36,13 +51,18 @@ class LargeFlagPerformanceTests: XCTestCase {
         print("   💾 Memory Usage: \(String(format: "%.0f", jsonResults.memoryUsage))MB")
         print("   📊 Total Evaluations: \(jsonResults.totalEvaluations)")
 
-        // FUTURE: Add FlatBuffer comparison here
-        // print("📊 FlatBuffer Mode:")
-        // print("   🎯 Startup: \(String(format: "%.0f", flatBufferResults.startupTime))ms")
-        // print("   ⚡ Evaluation Speed: \(String(format: "%.0f", flatBufferResults.evaluationsPerSecond)) evals/sec")
-        // print("   💾 Memory Usage: \(String(format: "%.0f", flatBufferResults.memoryUsage))MB")
-        // print("   📊 Total Evaluations: \(flatBufferResults.totalEvaluations)")
+        print("📊 FlatBuffer Mode:")
+        print("   🎯 Startup: \(String(format: "%.0f", flatBufferResults.startupTime))ms")
+        print("   ⚡ Evaluation Speed: \(String(format: "%.0f", flatBufferResults.evaluationsPerSecond)) evals/sec")
+        print("   💾 Memory Usage: \(String(format: "%.0f", flatBufferResults.memoryUsage))MB")
+        print("   📊 Total Evaluations: \(flatBufferResults.totalEvaluations)")
 
+        // PERFORMANCE COMPARISON
+        let startupSpeedup = jsonResults.startupTime / flatBufferResults.startupTime
+        let evaluationSpeedup = flatBufferResults.evaluationsPerSecond / jsonResults.evaluationsPerSecond
+        print("\n🏁 PERFORMANCE COMPARISON:")
+        print("   ⚡ Startup Speedup: \(String(format: "%.1f", startupSpeedup))x faster")
+        print("   🚀 Evaluation Speedup: \(String(format: "%.1f", evaluationSpeedup))x faster")
         // PERFORMANCE ASSERTIONS (focusing on startup as primary)
         XCTAssertLessThan(jsonResults.startupTime, 10000, "JSON startup should be under 10 seconds for 2000 flags")
         XCTAssertGreaterThan(jsonResults.evaluationsPerSecond, 100, "Should handle at least 100 evaluations per second")
@@ -73,9 +93,16 @@ class LargeFlagPerformanceTests: XCTestCase {
         let memoryAfter = getCurrentMemoryUsage()
         print("   ⚡ Startup complete: \(String(format: "%.0f", startupTime))ms, Memory: +\(String(format: "%.0f", memoryAfter - memoryBefore))MB")
 
+        // Create assignment logger for realistic benchmarking
+        let assignmentLogger: EppoClient.AssignmentLogger = { assignment in
+            // Simulate realistic logging work (minimal processing)
+            _ = assignment.featureFlag.count + assignment.subject.count
+        }
+
         // Create client for evaluations
         var client: EppoClient? = EppoClient.initializeOffline(
             sdkKey: "json-benchmark-key",
+            assignmentLogger: assignmentLogger,
             initialConfiguration: configuration!
         )
 
@@ -163,6 +190,118 @@ class LargeFlagPerformanceTests: XCTestCase {
 
         // Explicit cleanup for CI memory management
         configuration = nil
+        client = nil
+
+        return results
+    }
+
+    private func benchmarkFlatBufferMode(flatBufferData: Data, testCases: [PerformanceTestCase]) throws -> PerformanceResults {
+        print("\n🔄 Benchmarking FlatBuffer Mode...")
+
+        // CRITICAL MEASUREMENT: Startup Performance (no conversion, direct FlatBuffer access)
+        let memoryBefore = getCurrentMemoryUsage()
+        print("   🏁 Starting direct FlatBuffer client creation...")
+
+        // Create assignment logger for realistic benchmarking (same as JSON mode)
+        let assignmentLogger: EppoClient.AssignmentLogger = { assignment in
+            // Simulate realistic logging work (minimal processing)
+            _ = assignment.featureFlag.count + assignment.subject.count
+        }
+
+        let startupStart = CFAbsoluteTimeGetCurrent()
+        var client: FlatBufferClient? = try FlatBufferClient(
+            sdkKey: "flatbuffer-benchmark-key",
+            flatBufferData: flatBufferData,
+            obfuscated: false,
+            assignmentLogger: assignmentLogger
+        )
+        let startupTime = (CFAbsoluteTimeGetCurrent() - startupStart) * 1000
+
+        let memoryAfter = getCurrentMemoryUsage()
+        print("   ⚡ Startup complete: \(String(format: "%.0f", startupTime))ms, Memory: +\(String(format: "%.0f", memoryAfter - memoryBefore))MB")
+
+        // SECONDARY MEASUREMENT: Evaluation Performance across ALL 10K flags
+        print("   🏃 Running evaluation performance benchmark across all flags...")
+        let evaluationStart = CFAbsoluteTimeGetCurrent()
+        var totalEvaluations = 0
+
+        // Standard test subjects for consistent evaluation
+        let standardSubjects = [
+            ("user_basic", [:]),
+            ("user_us", ["country": EppoValue(value: "US")]),
+            ("user_uk", ["country": EppoValue(value: "UK")]),
+            ("user_premium", ["tier": EppoValue(value: "premium"), "country": EppoValue(value: "US")]),
+            ("user_enterprise", ["tier": EppoValue(value: "enterprise"), "plan": EppoValue(value: "annual")])
+        ]
+
+        // Get all flag keys from FlatBuffer client
+        let allFlagKeys = client!.getAllFlagKeys()
+
+        print("   📊 Testing \(allFlagKeys.count) flags with \(standardSubjects.count) subjects each...")
+
+        // Evaluate every flag with every standard subject
+        for flagKey in allFlagKeys {
+            guard let flagVariationType = client!.getFlagVariationType(flagKey: flagKey) else { continue }
+
+            for (subjectKey, subjectAttributes) in standardSubjects {
+                // Determine appropriate default based on flag's variation type
+                switch flagVariationType {
+                case .string:
+                    _ = client!.getStringAssignment(
+                        flagKey: flagKey,
+                        subjectKey: subjectKey,
+                        subjectAttributes: subjectAttributes,
+                        defaultValue: "default"
+                    )
+                case .numeric:
+                    _ = client!.getNumericAssignment(
+                        flagKey: flagKey,
+                        subjectKey: subjectKey,
+                        subjectAttributes: subjectAttributes,
+                        defaultValue: 0.0
+                    )
+                case .integer:
+                    _ = client!.getIntegerAssignment(
+                        flagKey: flagKey,
+                        subjectKey: subjectKey,
+                        subjectAttributes: subjectAttributes,
+                        defaultValue: 0
+                    )
+                case .boolean:
+                    _ = client!.getBooleanAssignment(
+                        flagKey: flagKey,
+                        subjectKey: subjectKey,
+                        subjectAttributes: subjectAttributes,
+                        defaultValue: false
+                    )
+                case .json:
+                    _ = client!.getJSONStringAssignment(
+                        flagKey: flagKey,
+                        subjectKey: subjectKey,
+                        subjectAttributes: subjectAttributes,
+                        defaultValue: "{}"
+                    )
+                }
+
+                totalEvaluations += 1
+            }
+        }
+
+        let evaluationTime = (CFAbsoluteTimeGetCurrent() - evaluationStart) * 1000
+        let evaluationsPerSecond = Double(totalEvaluations) / (evaluationTime / 1000.0)
+
+        print("   ✅ Evaluations complete: \(totalEvaluations) in \(String(format: "%.0f", evaluationTime))ms")
+        print("   📈 Performance: \(String(format: "%.0f", evaluationsPerSecond)) evals/sec")
+
+        let results = PerformanceResults(
+            startupTime: startupTime,
+            evaluationTime: evaluationTime,
+            totalEvaluations: totalEvaluations,
+            evaluationsPerSecond: evaluationsPerSecond,
+            memoryUsage: memoryAfter
+        )
+
+        // Explicit cleanup for CI memory management
         client = nil
 
         return results
