@@ -112,25 +112,11 @@ public class LazyFlatBufferRuleEvaluator {
     }
 
     private func findFlatBufferFlag(flagKey: String) -> Eppo_UFC_Flag? {
-        // Try O(log n) binary search using FlatBuffer's native indexed lookup first
-        if let flagEntry = ufcRoot.flagsBy(key: flagKey) {
-            return flagEntry.flag
+        // O(log n) binary search using FlatBuffer's native indexed lookup
+        guard let flagEntry = ufcRoot.flagsBy(key: flagKey) else {
+            return nil
         }
-
-        // Fallback to O(n) sequential search if indexed lookup fails
-        // This works around an issue with the FlatBuffer indexed lookup mechanism
-        let flagsCount = ufcRoot.flagsCount
-        for i in 0..<flagsCount {
-            if let flagEntry = ufcRoot.flags(at: i),
-               let flag = flagEntry.flag,
-               let key = flag.key {
-                if key == flagKey {
-                    return flag
-                }
-            }
-        }
-
-        return nil
+        return flagEntry.flag
     }
 
     private func convertFlatBufferFlagToUFC(_ fbFlag: Eppo_UFC_Flag) throws -> UFC_Flag {
