@@ -288,6 +288,8 @@ public class LazyFlatBufferRuleEvaluator {
                 operatorEnum = .notOneOf
             case "IS_NULL":
                 operatorEnum = .isNull
+            case "NOT_MATCHES":
+                operatorEnum = .notMatches
             default:
                 continue // Skip unknown operators
             }
@@ -306,8 +308,12 @@ public class LazyFlatBufferRuleEvaluator {
             case "GTE", "GT", "LTE", "LT":
                 // Numeric operators
                 conditionValue = EppoValue(value: Double(value) ?? 0.0)
+            case "IS_NULL":
+                // Parse boolean value to determine if checking for null (true) or not-null (false)
+                let expectNull = value.lowercased() == "true"
+                conditionValue = EppoValue(value: expectNull)
             default:
-                // String operators (MATCHES, IS_NULL, etc.)
+                // String operators (MATCHES, NOT_MATCHES, etc.)
                 conditionValue = EppoValue(value: value)
             }
 
