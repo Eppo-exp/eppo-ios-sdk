@@ -173,9 +173,12 @@ public class LazyFlatBufferRuleEvaluator {
                 let cleanValue = valueString.trimmingCharacters(in: CharacterSet(charactersIn: "\""))
                 eppoValue = EppoValue(value: cleanValue)
             case .json:
-                // JSON values need outer quotes trimmed to avoid double-encoding
+                // JSON values are stored as quoted strings with escaped inner quotes
+                // Need to trim outer quotes and unescape the inner JSON
                 let cleanValue = valueString.trimmingCharacters(in: CharacterSet(charactersIn: "\""))
-                eppoValue = EppoValue(value: cleanValue)
+                // Unescape the JSON string
+                let unescapedValue = cleanValue.replacingOccurrences(of: "\\\"", with: "\"")
+                eppoValue = EppoValue(value: unescapedValue)
             }
 
             variations[variationKey] = UFC_Variation(key: variationKey, value: eppoValue)
