@@ -112,11 +112,25 @@ public class LazyFlatBufferRuleEvaluator {
     }
 
     private func findFlatBufferFlag(flagKey: String) -> Eppo_UFC_Flag? {
-        // O(log n) binary search using FlatBuffer's native indexed lookup
-        guard let flagEntry = ufcRoot.flagsBy(key: flagKey) else {
-            return nil
+        // Try O(log n) binary search using FlatBuffer's native indexed lookup first
+        if let flagEntry = ufcRoot.flagsBy(key: flagKey) {
+            return flagEntry.flag
         }
-        return flagEntry.flag
+
+        // Fallback to O(n) sequential search if indexed lookup fails
+        // This works around an issue with the FlatBuffer indexed lookup mechanism
+        let flagsCount = ufcRoot.flagsCount
+        for i in 0..<flagsCount {
+            if let flagEntry = ufcRoot.flags(at: i),
+               let flag = flagEntry.flag,
+               let key = flag.key {
+                if key == flagKey {
+                    return flag
+                }
+            }
+        }
+
+        return nil
     }
 
     private func convertFlatBufferFlagToUFC(_ fbFlag: Eppo_UFC_Flag) throws -> UFC_Flag {
@@ -124,6 +138,7 @@ public class LazyFlatBufferRuleEvaluator {
         guard let key = fbFlag.key else {
             throw NSError(domain: "LazyFlatBufferError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Missing flag key"])
         }
+
 
         let enabled = fbFlag.enabled
 
@@ -198,7 +213,7 @@ public class LazyFlatBufferRuleEvaluator {
                 var rulesList: [UFC_Rule] = []
                 for j in 0..<rulesCount {
                     if let fbRule = fbAllocation.rules(at: j) {
-                        if let ufcRule = convertRule(fbRule) {
+                        if let ufcRule = convertRule(fbRule, flagKey: key) {
                             rulesList.append(ufcRule)
                         }
                     }
@@ -259,7 +274,7 @@ public class LazyFlatBufferRuleEvaluator {
         )
     }
 
-    private func convertRule(_ fbRule: Eppo_UFC_Rule) -> UFC_Rule? {
+    private func convertRule(_ fbRule: Eppo_UFC_Rule, flagKey: String) -> UFC_Rule? {
         // Convert conditions
         var conditions: [UFC_TargetingRuleCondition] = []
         let conditionsCount = fbRule.conditionsCount
