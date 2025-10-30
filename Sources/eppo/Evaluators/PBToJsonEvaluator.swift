@@ -1,7 +1,7 @@
 import Foundation
 import SwiftProtobuf
 
-public class PurePBEvaluator {
+public class PBToJsonEvaluator {
     private let flagEvaluator: FlagEvaluator
 
     // Pre-converted flags stored in memory (not lazy)

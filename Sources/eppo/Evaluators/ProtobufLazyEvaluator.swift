@@ -87,10 +87,7 @@ public class ProtobufLazyEvaluator {
         return result
     }
 
-    // Get all flag keys - this is the ONLY time we scan all flags
-    func getAllFlagKeys() -> [String] {
-        return universalFlagConfig.flags.map { $0.key }
-    }
+    // REMOVED: getAllFlagKeys() - truly lazy should never scan all flags upfront
 
     // Get flag variation type - truly on-demand
     func getFlagVariationType(flagKey: String) -> UFC_VariationType? {

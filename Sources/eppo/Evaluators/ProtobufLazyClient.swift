@@ -223,9 +223,7 @@ public class ProtobufLazyClient {
 
     // MARK: - Benchmark Support
 
-    func getAllFlagKeys() -> [String] {
-        return lazyEvaluator.getAllFlagKeys()
-    }
+    // REMOVED: getAllFlagKeys() - truly lazy should never scan all flags upfront
 
     func getFlagVariationType(flagKey: String) -> UFC_VariationType? {
         return lazyEvaluator.getFlagVariationType(flagKey: flagKey)

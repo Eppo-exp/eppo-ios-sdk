@@ -4,7 +4,7 @@ import SwiftProtobuf
 public class PurePBClient {
     public typealias AssignmentLogger = (Assignment) -> Void
 
-    private let pureEvaluator: PurePBEvaluator
+    private let pureEvaluator: PBToJsonEvaluator
     private let assignmentLogger: AssignmentLogger?
     private let isObfuscated: Bool
     private let sdkKey: String
@@ -16,7 +16,7 @@ public class PurePBClient {
         assignmentLogger: AssignmentLogger?
     ) throws {
         self.sdkKey = sdkKey
-        self.pureEvaluator = try PurePBEvaluator(protobufData: protobufData)
+        self.pureEvaluator = try PBToJsonEvaluator(protobufData: protobufData)
         self.assignmentLogger = assignmentLogger
         self.isObfuscated = obfuscated
     }
