@@ -271,7 +271,7 @@ final class MultiwayLoadTest: XCTestCase {
     }
 
     func testNativeProtobufLazyEvaluatorPerformance() throws {
-        NSLog("📦 7. Testing Native Protobuf Evaluator (Lazy)...")
+        NSLog("📦 7. Testing Native Protobuf Evaluator (LAZY - Parse on First Access)...")
         try testEvaluatorPerformance(
             evaluatorName: "Native PB Lazy",
             setupBlock: {
@@ -285,18 +285,18 @@ final class MultiwayLoadTest: XCTestCase {
                     prewarmCache: false
                 )
                 let startupTime = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
-                return (client, startupTime, "Native protobuf evaluation - NO SWIFT STRUCTS")
+                return (client, startupTime, "LAZY - protobuf parsing deferred until first evaluation")
             }
         )
     }
 
     func testNativeProtobufPrewarmedEvaluatorPerformance() throws {
-        NSLog("📦 8. Testing Native Protobuf Evaluator (Prewarmed)...")
+        NSLog("📦 8. Testing Native Protobuf Evaluator (BLOCKING - Parse All Upfront)...")
         try testEvaluatorPerformance(
             evaluatorName: "Native PB Prewarmed",
             setupBlock: {
                 let protobufData = try self.loadProtobufData()
-                NSLog("   🔄 Pre-parsed protobuf config...")
+                NSLog("   ⏳ BLOCKING until all protobuf parsing completes...")
                 let startTime = CFAbsoluteTimeGetCurrent()
                 let client = try NativeProtobufClient(
                     sdkKey: "native-protobuf-prewarmed-test-key",
@@ -306,17 +306,19 @@ final class MultiwayLoadTest: XCTestCase {
                     prewarmCache: true
                 )
                 let startupTime = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
-                return (client, startupTime, "Native protobuf prewarmed cache - NO SWIFT STRUCTS")
+                NSLog("   ✅ BLOCKED - all flags parsed and ready for evaluation")
+                return (client, startupTime, "BLOCKING - protobuf fully parsed upfront, objects ready")
             }
         )
     }
 
     func testNativeFlatBufferNoIndexEvaluatorPerformance() throws {
-        NSLog("📦 9. Testing Native FlatBuffer Evaluator (No Index)...")
+        NSLog("📦 9. Testing Native FlatBuffer Evaluator (BLOCKING - Parse FlatBuffer Only)...")
         try testEvaluatorPerformance(
             evaluatorName: "Native FB No Index",
             setupBlock: {
                 let flatBufferData = try self.loadFlatBufferData()
+                NSLog("   ⏳ BLOCKING until FlatBuffer parsing completes...")
                 let startTime = CFAbsoluteTimeGetCurrent()
                 let client = try NativeFlatBufferClient(
                     sdkKey: "native-flatbuffer-test-key",
@@ -326,17 +328,19 @@ final class MultiwayLoadTest: XCTestCase {
                     useIndex: false
                 )
                 let startupTime = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
-                return (client, startupTime, "Native FlatBuffer evaluation - NO SWIFT STRUCTS, O(log n) lookup")
+                NSLog("   ✅ BLOCKED - FlatBuffer parsed and ready, O(log n) flag lookup")
+                return (client, startupTime, "BLOCKING - FlatBuffer parsed, ready for O(log n) evaluation")
             }
         )
     }
 
     func testNativeFlatBufferWithIndexEvaluatorPerformance() throws {
-        NSLog("📦 10. Testing Native FlatBuffer Evaluator (With Index)...")
+        NSLog("📦 10. Testing Native FlatBuffer Evaluator (BLOCKING - Parse + Build O(1) Index)...")
         try testEvaluatorPerformance(
             evaluatorName: "Native FB With Index",
             setupBlock: {
                 let flatBufferData = try self.loadFlatBufferData()
+                NSLog("   ⏳ BLOCKING until FlatBuffer parsing AND O(1) index building completes...")
                 let startTime = CFAbsoluteTimeGetCurrent()
                 let client = try NativeFlatBufferClient(
                     sdkKey: "native-flatbuffer-indexed-test-key",
@@ -346,7 +350,8 @@ final class MultiwayLoadTest: XCTestCase {
                     useIndex: true
                 )
                 let startupTime = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
-                return (client, startupTime, "Native FlatBuffer with O(1) index - NO SWIFT STRUCTS")
+                NSLog("   ✅ BLOCKED - FlatBuffer parsed + O(1) index built, ready for fastest evaluation")
+                return (client, startupTime, "BLOCKING - FlatBuffer parsed + O(1) index built, ready for ultra-fast evaluation")
             }
         )
     }
