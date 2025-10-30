@@ -8,7 +8,11 @@ public class SwiftStructFromProtobufEvaluator: SwiftStructEvaluatorProtocol {
     // For lazy mode - cached flags loaded on-demand
     public var flagCache: [String: UFC_Flag] = [:]
     public var flagTypeCache: [String: UFC_VariationType] = [:]
-    public let cacheLock = NSLock()
+    public let cacheLock = NSLock() // Keep for protocol compliance but will use cacheQueue
+
+    // Concurrent access queues for optimal performance
+    private let cacheQueue = DispatchQueue(label: "com.eppo.swift-struct-protobuf-cache", attributes: .concurrent)
+    private let configQueue = DispatchQueue(label: "com.eppo.swift-struct-protobuf-config", attributes: .concurrent)
 
     // For prewarm mode - all flags pre-converted
     private let prewarmedFlags: [String: UFC_Flag]
@@ -17,7 +21,6 @@ public class SwiftStructFromProtobufEvaluator: SwiftStructEvaluatorProtocol {
     // Raw protobuf data for lazy parsing
     private let protobufData: Data
     private var universalFlagConfig: Eppo_Ufc_UniversalFlagConfig?
-    private let configLock = NSLock()
 
     init(protobufData: Data, prewarmCache: Bool = false) throws {
         self.flagEvaluator = FlagEvaluator(sharder: MD5Sharder())
@@ -112,78 +115,101 @@ public class SwiftStructFromProtobufEvaluator: SwiftStructEvaluatorProtocol {
         if isPrewarmed {
             return prewarmedTypeCache[flagKey]
         } else {
-            // Lazy lookup from protobuf
-            cacheLock.lock()
-            defer { cacheLock.unlock() }
-
-            if let cachedType = flagTypeCache[flagKey] {
-                return cachedType
+            // Concurrent read - check cache first
+            let cachedType = cacheQueue.sync {
+                return flagTypeCache[flagKey]
             }
 
-            // Find and cache the type
-            guard let config = getUniversalFlagConfig() else {
-                return nil
-            }
-
-            if let protobufFlag = config.flags[flagKey] {
-                let variationType = Self.convertProtobufVariationType(protobufFlag.variationType)
-                flagTypeCache[flagKey] = variationType
+            if let variationType = cachedType {
                 return variationType
             }
 
-            return nil
+            // Barrier write - find and cache the type
+            return cacheQueue.sync(flags: .barrier) {
+                // Double-check after acquiring write lock
+                if let cachedType = flagTypeCache[flagKey] {
+                    return cachedType
+                }
+
+                // Find and cache the type
+                guard let config = getUniversalFlagConfig() else {
+                    return nil
+                }
+
+                if let protobufFlag = config.flags[flagKey] {
+                    let variationType = Self.convertProtobufVariationType(protobufFlag.variationType)
+                    flagTypeCache[flagKey] = variationType
+                    return variationType
+                }
+
+                return nil
+            }
         }
     }
 
     // MARK: - Private Methods (Lazy Loading)
 
     private func getUniversalFlagConfig() -> Eppo_Ufc_UniversalFlagConfig? {
-        if let config = universalFlagConfig {
+        // Concurrent read - check if already parsed
+        let existingConfig = configQueue.sync {
+            return universalFlagConfig
+        }
+
+        if let config = existingConfig {
             return config
         }
 
-        configLock.lock()
-        defer { configLock.unlock() }
+        // Barrier write - parse protobuf data for the first time
+        return configQueue.sync(flags: .barrier) {
+            // Double-check after acquiring write lock
+            if let config = universalFlagConfig {
+                return config
+            }
 
-        // Double-check after acquiring lock
-        if let config = universalFlagConfig {
-            return config
-        }
-
-        // Parse protobuf data for the first time
-        do {
-            let config = try Eppo_Ufc_UniversalFlagConfig(serializedBytes: protobufData)
-            self.universalFlagConfig = config
-            return config
-        } catch {
-            print("❌ Failed to parse protobuf data: \(error)")
-            return nil
+            // Parse protobuf data
+            do {
+                let config = try Eppo_Ufc_UniversalFlagConfig(serializedBytes: protobufData)
+                self.universalFlagConfig = config
+                return config
+            } catch {
+                print("❌ Failed to parse protobuf data: \(error)")
+                return nil
+            }
         }
     }
 
     public func getOrLoadFlag(flagKey: String) -> UFC_Flag? {
-        cacheLock.lock()
-        defer { cacheLock.unlock() }
-
-        // Check cache first
-        if let cachedFlag = flagCache[flagKey] {
-            return cachedFlag
+        // Concurrent read - try to get from cache first
+        let cachedFlag = cacheQueue.sync {
+            return flagCache[flagKey]
         }
 
-        // Find protobuf flag
-        guard let protobufFlag = findProtobufFlag(flagKey: flagKey) else {
-            return nil
+        if let flag = cachedFlag {
+            return flag
         }
 
-        // Convert and cache
-        let variationType = Self.convertProtobufVariationType(protobufFlag.variationType)
-        guard let ufcFlag = Self.convertProtobufFlag(protobufFlag, variationType: variationType) else {
-            return nil
-        }
+        // Barrier write - load and convert flag
+        return cacheQueue.sync(flags: .barrier) {
+            // Double-check after acquiring write lock
+            if let cachedFlag = flagCache[flagKey] {
+                return cachedFlag
+            }
 
-        flagCache[flagKey] = ufcFlag
-        flagTypeCache[flagKey] = variationType
-        return ufcFlag
+            // Find protobuf flag
+            guard let protobufFlag = findProtobufFlag(flagKey: flagKey) else {
+                return nil
+            }
+
+            // Convert and cache
+            let variationType = Self.convertProtobufVariationType(protobufFlag.variationType)
+            guard let ufcFlag = Self.convertProtobufFlag(protobufFlag, variationType: variationType) else {
+                return nil
+            }
+
+            flagCache[flagKey] = ufcFlag
+            flagTypeCache[flagKey] = variationType
+            return ufcFlag
+        }
     }
 
     private func findProtobufFlag(flagKey: String) -> Eppo_Ufc_Flag? {
@@ -426,24 +452,23 @@ public class SwiftStructFromProtobufEvaluator: SwiftStructEvaluatorProtocol {
     public func prewarmAllFlags() throws {
         guard !isPrewarmed else { return } // Already prewarmed during init
 
-        cacheLock.lock()
-        defer { cacheLock.unlock() }
-
         guard let config = getUniversalFlagConfig() else {
             throw NSError(domain: "SwiftStructFromProtobufEvaluator", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to load protobuf configuration"])
         }
 
-        // Pre-convert all flags
-        for (flagKey, protobufFlag) in config.flags {
-            let ufcVariationType = Self.convertProtobufVariationType(protobufFlag.variationType)
+        // Pre-convert all flags using barrier write
+        cacheQueue.sync(flags: .barrier) {
+            for (flagKey, protobufFlag) in config.flags {
+                let ufcVariationType = Self.convertProtobufVariationType(protobufFlag.variationType)
 
-            // Convert protobuf flag to UFC_Flag
-            if let ufcFlag = Self.convertProtobufFlag(protobufFlag, variationType: ufcVariationType) {
-                flagCache[flagKey] = ufcFlag
-                flagTypeCache[flagKey] = ufcVariationType
+                // Convert protobuf flag to UFC_Flag
+                if let ufcFlag = Self.convertProtobufFlag(protobufFlag, variationType: ufcVariationType) {
+                    flagCache[flagKey] = ufcFlag
+                    flagTypeCache[flagKey] = ufcVariationType
+                }
             }
-        }
 
-        print("   ✅ Pre-converted \(flagCache.count) flags successfully")
+            print("   ✅ Pre-converted \(flagCache.count) flags successfully")
+        }
     }
 }

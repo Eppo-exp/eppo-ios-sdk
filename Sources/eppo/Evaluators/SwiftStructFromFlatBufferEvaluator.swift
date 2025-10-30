@@ -7,7 +7,8 @@ public class SwiftStructFromFlatBufferEvaluator: SwiftStructEvaluatorProtocol {
     public let isPrewarmed: Bool
 
     // For prewarmed mode - all flags and types pre-cached
-    private let prewarmedFlagTypeCache: [String: UFC_VariationType]
+    private var prewarmedFlags: [String: UFC_Flag]
+    private var prewarmedFlagTypeCache: [String: UFC_VariationType]
 
     // For lazy mode - flags and types loaded on-demand
     public var flagCache: [String: UFC_Flag] = [:]
@@ -24,30 +25,45 @@ public class SwiftStructFromFlatBufferEvaluator: SwiftStructEvaluatorProtocol {
         self.flagEvaluator = FlagEvaluator(sharder: MD5Sharder())
 
         if prewarmCache {
-            // Prewarm mode - pre-cache flag variation types for fast lookup during evaluation
-            var typeCache: [String: UFC_VariationType] = [:]
+            // Initialize empty caches
+            self.prewarmedFlags = [:]
+            self.prewarmedFlagTypeCache = [:]
+
             let flagsCount = ufcRoot.flagsCount
+            print("   🔄 Pre-converting \(flagsCount) FlatBuffer flags to UFC objects...")
+
             for i in 0..<flagsCount {
                 if let flagEntry = ufcRoot.flags(at: i),
                    let flag = flagEntry.flag,
                    let key = flag.key {
+
+                    // Determine and cache the type
+                    let variationType: UFC_VariationType
                     switch flag.variationType {
                     case .boolean:
-                        typeCache[key] = .boolean
+                        variationType = .boolean
                     case .integer:
-                        typeCache[key] = .integer
+                        variationType = .integer
                     case .numeric:
-                        typeCache[key] = .numeric
+                        variationType = .numeric
                     case .string:
-                        typeCache[key] = .string
+                        variationType = .string
                     case .json:
-                        typeCache[key] = .json
+                        variationType = .json
+                    }
+                    self.prewarmedFlagTypeCache[key] = variationType
+
+                    // Convert and cache the full flag
+                    if let ufcFlag = try? self.convertFlatBufferFlagToUFC(flag) {
+                        self.prewarmedFlags[key] = ufcFlag
                     }
                 }
             }
-            self.prewarmedFlagTypeCache = typeCache
+
+            print("   ✅ Pre-converted \(prewarmedFlags.count) flags successfully")
         } else {
-            // Lazy mode - no upfront scanning
+            // Lazy mode - no upfront scanning or conversion
+            self.prewarmedFlags = [:]
             self.prewarmedFlagTypeCache = [:]
         }
     }
@@ -59,8 +75,18 @@ public class SwiftStructFromFlatBufferEvaluator: SwiftStructEvaluatorProtocol {
         isConfigObfuscated: Bool,
         expectedVariationType: UFC_VariationType? = nil
     ) -> FlagEvaluation {
-        // Get or load the flag from cache using lazy hydration
-        guard let ufcFlag = getOrLoadFlag(flagKey: flagKey) else {
+        // Get flag using appropriate strategy
+        let ufcFlag: UFC_Flag?
+
+        if isPrewarmed {
+            // Prewarm mode - get pre-converted flag (NO synchronization - direct dictionary access)
+            ufcFlag = prewarmedFlags[flagKey]
+        } else {
+            // Lazy mode - get or load flag on-demand (WITH synchronization - concurrent queue access)
+            ufcFlag = getOrLoadFlag(flagKey: flagKey)
+        }
+
+        guard let flag = ufcFlag else {
             return FlagEvaluation.noneResult(
                 flagKey: flagKey,
                 subjectKey: subjectKey,
@@ -70,9 +96,9 @@ public class SwiftStructFromFlatBufferEvaluator: SwiftStructEvaluatorProtocol {
             )
         }
 
-        // Use the existing JSON evaluation logic with the hydrated UFC_Flag
+        // Use the existing JSON evaluation logic with the UFC_Flag
         let result = flagEvaluator.evaluateFlag(
-            flag: ufcFlag,
+            flag: flag,
             subjectKey: subjectKey,
             subjectAttributes: subjectAttributes,
             isConfigObfuscated: isConfigObfuscated
@@ -93,7 +119,7 @@ public class SwiftStructFromFlatBufferEvaluator: SwiftStructEvaluatorProtocol {
     // Get all flag keys for benchmark
     public func getAllFlagKeys() -> [String] {
         if isPrewarmed {
-            return Array(prewarmedFlagTypeCache.keys)
+            return Array(prewarmedFlags.keys)
         } else {
             // For lazy mode, scan all flags (only for benchmark purposes)
             var allKeys: [String] = []
@@ -114,8 +140,18 @@ public class SwiftStructFromFlatBufferEvaluator: SwiftStructEvaluatorProtocol {
         if isPrewarmed {
             return prewarmedFlagTypeCache[flagKey]
         } else {
-            // Lazy lookup with caching
-            return cacheQueue.sync {
+            // Concurrent read - check cache first
+            let cachedType = cacheQueue.sync {
+                return flagTypeCache[flagKey]
+            }
+
+            if let variationType = cachedType {
+                return variationType
+            }
+
+            // Barrier write - find and cache the type
+            return cacheQueue.sync(flags: .barrier) {
+                // Double-check after acquiring write lock
                 if let cachedType = flagTypeCache[flagKey] {
                     return cachedType
                 }

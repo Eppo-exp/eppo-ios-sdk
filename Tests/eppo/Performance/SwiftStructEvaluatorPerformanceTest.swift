@@ -68,7 +68,7 @@ final class MultiwayLoadTest: XCTestCase {
 
         let jsonStartupTime = (CFAbsoluteTimeGetCurrent() - jsonStartTime) * 1000
         let jsonFlagCount = configuration.flagsConfiguration.flags.count
-        print("   ⚡ Startup: \(Int(jsonStartupTime))ms (swift structs populated from JSON - \(jsonFlagCount) flags)")
+        print("   ⚡ Startup: \(formatNumber(Int(jsonStartupTime)))ms (swift structs populated from JSON - \(jsonFlagCount) flags)")
 
         // Swift Struct Evaluator (JSON init) Evaluation Performance
         let jsonResults = try performEvaluationBenchmark(client: jsonClient, clientName: "Swift Struct Evaluator (JSON init)")
@@ -93,7 +93,7 @@ final class MultiwayLoadTest: XCTestCase {
         )
 
         let protobufStartupTime = (CFAbsoluteTimeGetCurrent() - protobufStartTime) * 1000
-        print("   ⚡ Startup: \(Int(protobufStartupTime))ms (protobuf parsed only - lazy swift struct conversion)")
+        print("   ⚡ Startup: \(formatNumber(Int(protobufStartupTime)))ms (protobuf parsed only - lazy swift struct conversion)")
 
         // Swift Struct Evaluator (Lazy PB) Evaluation Performance
         let protobufResults = try performEvaluationBenchmark(client: lazyProtobufClient, clientName: "Swift Struct Evaluator (Lazy PB)")
@@ -116,7 +116,7 @@ final class MultiwayLoadTest: XCTestCase {
         )
 
         let pureProtobufStartupTime = (CFAbsoluteTimeGetCurrent() - pureProtobufStartTime) * 1000
-        print("   ⚡ Startup: \(Int(pureProtobufStartupTime))ms (swift structs populated from protobuf)")
+        print("   ⚡ Startup: \(formatNumber(Int(pureProtobufStartupTime)))ms (swift structs populated from protobuf)")
 
         // Swift Struct Evaluator (Protobuf init) Evaluation Performance
         let pureProtobufResults = try performEvaluationBenchmark(client: pureProtobufClient, clientName: "Swift Struct Evaluator (Protobuf init)")
@@ -139,7 +139,7 @@ final class MultiwayLoadTest: XCTestCase {
         )
 
         let lazyFlatBufferStartupTime = (CFAbsoluteTimeGetCurrent() - lazyFlatBufferStartTime) * 1000
-        print("   ⚡ Startup: \(Int(lazyFlatBufferStartupTime))ms (FlatBuffer parsed only - lazy swift struct conversion)")
+        print("   ⚡ Startup: \(formatNumber(Int(lazyFlatBufferStartupTime)))ms (FlatBuffer parsed only - lazy swift struct conversion)")
 
         // Swift Struct Evaluator (Lazy FlatBuffer) Evaluation Performance
         let lazyFlatBufferResults = try performEvaluationBenchmark(client: lazyFlatBufferClient, clientName: "Swift Struct Evaluator (Lazy FlatBuffer)")
@@ -162,7 +162,7 @@ final class MultiwayLoadTest: XCTestCase {
         )
 
         let flatBufferStartupTime = (CFAbsoluteTimeGetCurrent() - flatBufferStartTime) * 1000
-        print("   ⚡ Startup: \(Int(flatBufferStartupTime))ms (swift structs populated from FlatBuffer)")
+        print("   ⚡ Startup: \(formatNumber(Int(flatBufferStartupTime)))ms (swift structs populated from FlatBuffer)")
 
         // Swift Struct Evaluator (FlatBuffer init) Evaluation Performance
         let flatBufferResults = try performEvaluationBenchmark(client: flatBufferClient, clientName: "Swift Struct Evaluator (FlatBuffer init)")
@@ -191,7 +191,7 @@ final class MultiwayLoadTest: XCTestCase {
         )
 
         let nativeProtobufStartupTime = (CFAbsoluteTimeGetCurrent() - nativeProtobufStartTime) * 1000
-        print("   ⚡ Startup: \(Int(nativeProtobufStartupTime))ms (Native protobuf evaluation - NO SWIFT STRUCTS)")
+        print("   ⚡ Startup: \(formatNumber(Int(nativeProtobufStartupTime)))ms (Native protobuf evaluation - NO SWIFT STRUCTS)")
 
         // Native Protobuf Evaluator Evaluation Performance
         let nativeProtobufResults = try performEvaluationBenchmark(client: nativeProtobufClient, clientName: "Native Protobuf Evaluator (Lazy)")
@@ -214,7 +214,7 @@ final class MultiwayLoadTest: XCTestCase {
         )
 
         let nativeProtobufPrewarmedStartupTime = (CFAbsoluteTimeGetCurrent() - nativeProtobufPrewarmedStartTime) * 1000
-        print("   ⚡ Startup: \(Int(nativeProtobufPrewarmedStartupTime))ms (Native protobuf prewarmed cache - NO SWIFT STRUCTS)")
+        print("   ⚡ Startup: \(formatNumber(Int(nativeProtobufPrewarmedStartupTime)))ms (Native protobuf prewarmed cache - NO SWIFT STRUCTS)")
 
         // Native Protobuf Evaluator (Prewarmed) Evaluation Performance
         let nativeProtobufPrewarmedResults = try performEvaluationBenchmark(client: nativeProtobufPrewarmedClient, clientName: "Native Protobuf Evaluator (Prewarmed)")
@@ -241,34 +241,34 @@ final class MultiwayLoadTest: XCTestCase {
         print("\n🏆 PERFORMANCE RESULTS:")
         print("═══════════════════════════════════════════════")
         print("📊 Swift Struct Evaluator (JSON init) - BASELINE:")
-        print("   🎯 Startup: \(Int(jsonStartupTime))ms")
-        print("   🚀 Evaluation: \(Int(jsonResults.evalsPerSec)) evals/sec")
+        print("   ⏱️ Startup: \(formatNumber(Int(jsonStartupTime)))ms")
+        print("   🚀 Evaluation: \(formatNumber(Int(jsonResults.evalsPerSec))) evals/sec")
 
         print("📊 Swift Struct Evaluator (Lazy PB):")
-        print("   🎯 Startup: \(Int(protobufStartupTime))ms")
-        print("   🚀 Evaluation: \(Int(protobufResults.evalsPerSec)) evals/sec")
+        print("   ⏱️ Startup: \(formatNumber(Int(protobufStartupTime)))ms")
+        print("   🚀 Evaluation: \(formatNumber(Int(protobufResults.evalsPerSec))) evals/sec")
 
         print("📊 Swift Struct Evaluator (Protobuf init):")
-        print("   🎯 Startup: \(Int(pureProtobufStartupTime))ms")
-        print("   🚀 Evaluation: \(Int(pureProtobufResults.evalsPerSec)) evals/sec")
+        print("   ⏱️ Startup: \(formatNumber(Int(pureProtobufStartupTime)))ms")
+        print("   🚀 Evaluation: \(formatNumber(Int(pureProtobufResults.evalsPerSec))) evals/sec")
 
         print("📊 Swift Struct Evaluator (Lazy FlatBuffer):")
-        print("   🎯 Startup: \(Int(lazyFlatBufferStartupTime))ms")
-        print("   🚀 Evaluation: \(Int(lazyFlatBufferResults.evalsPerSec)) evals/sec")
+        print("   ⏱️ Startup: \(formatNumber(Int(lazyFlatBufferStartupTime)))ms")
+        print("   🚀 Evaluation: \(formatNumber(Int(lazyFlatBufferResults.evalsPerSec))) evals/sec")
 
         print("📊 Swift Struct Evaluator (FlatBuffer init):")
-        print("   🎯 Startup: \(Int(flatBufferStartupTime))ms")
-        print("   🚀 Evaluation: \(Int(flatBufferResults.evalsPerSec)) evals/sec")
+        print("   ⏱️ Startup: \(formatNumber(Int(flatBufferStartupTime)))ms")
+        print("   🚀 Evaluation: \(formatNumber(Int(flatBufferResults.evalsPerSec))) evals/sec")
 
         print("")
         print("🔴 NATIVE EVALUATORS (NO SWIFT STRUCTS):")
         print("📊 Native Protobuf Evaluator (Lazy):")
-        print("   🎯 Startup: \(Int(nativeProtobufStartupTime))ms")
-        print("   🚀 Evaluation: \(Int(nativeProtobufResults.evalsPerSec)) evals/sec")
+        print("   ⏱️ Startup: \(formatNumber(Int(nativeProtobufStartupTime)))ms")
+        print("   🚀 Evaluation: \(formatNumber(Int(nativeProtobufResults.evalsPerSec))) evals/sec")
 
         print("📊 Native Protobuf Evaluator (Prewarmed):")
-        print("   🎯 Startup: \(Int(nativeProtobufPrewarmedStartupTime))ms")
-        print("   🚀 Evaluation: \(Int(nativeProtobufPrewarmedResults.evalsPerSec)) evals/sec")
+        print("   ⏱️ Startup: \(formatNumber(Int(nativeProtobufPrewarmedStartupTime)))ms")
+        print("   🚀 Evaluation: \(formatNumber(Int(nativeProtobufPrewarmedResults.evalsPerSec))) evals/sec")
 
         print("\n🏁 COMPARISON (vs JSON init baseline):")
         print("   ⚡ Startup Performance:")
@@ -287,13 +287,13 @@ final class MultiwayLoadTest: XCTestCase {
         print("      🔴 Native PB (Prewarmed): \(String(format: "%.1f", nativeProtobufPrewarmedEvaluationSpeedRatio))x relative speed")
 
         print("\n🎯 ARCHITECTURE TRADEOFFS:")
-        print("   📄 JSON init: Slow startup (\(Int(jsonStartupTime))ms - swift structs populated from JSON), fast evaluation (Swift structs)")
-        print("   🧠 Lazy PB: Fast startup (\(Int(protobufStartupTime))ms - protobuf parsed only), slow evaluation (on-demand conversion)")
-        print("   🚀 Protobuf init: Medium startup (\(Int(pureProtobufStartupTime))ms - swift structs populated from protobuf), fast evaluation (pre-converted Swift structs)")
-        print("   🟦 Lazy FlatBuffer: Fast startup (\(Int(lazyFlatBufferStartupTime))ms - FlatBuffer parsed only), slow evaluation (on-demand conversion)")
-        print("   📦 FlatBuffer init: Medium startup (\(Int(flatBufferStartupTime))ms - swift structs populated from FlatBuffer), fast evaluation (pre-converted Swift structs)")
-        print("   🔴 Native PB (Lazy): Fast startup (\(Int(nativeProtobufStartupTime))ms - NO SWIFT STRUCTS), native protobuf evaluation")
-        print("   🔴 Native PB (Prewarmed): Medium startup (\(Int(nativeProtobufPrewarmedStartupTime))ms - cached protobuf lookups), fast native protobuf evaluation")
+        print("   📄 JSON init: Slow startup (\(formatNumber(Int(jsonStartupTime)))ms - swift structs populated from JSON), fast evaluation (Swift structs)")
+        print("   🧠 Lazy PB: Fast startup (\(formatNumber(Int(protobufStartupTime)))ms - protobuf parsed only), slow evaluation (on-demand conversion)")
+        print("   🚀 Protobuf init: Medium startup (\(formatNumber(Int(pureProtobufStartupTime)))ms - swift structs populated from protobuf), fast evaluation (pre-converted Swift structs)")
+        print("   🟦 Lazy FlatBuffer: Fast startup (\(formatNumber(Int(lazyFlatBufferStartupTime)))ms - FlatBuffer parsed only), slow evaluation (on-demand conversion)")
+        print("   📦 FlatBuffer init: Medium startup (\(formatNumber(Int(flatBufferStartupTime)))ms - swift structs populated from FlatBuffer), fast evaluation (pre-converted Swift structs)")
+        print("   🔴 Native PB (Lazy): Fast startup (\(formatNumber(Int(nativeProtobufStartupTime)))ms - NO SWIFT STRUCTS), native protobuf evaluation")
+        print("   🔴 Native PB (Prewarmed): Medium startup (\(formatNumber(Int(nativeProtobufPrewarmedStartupTime)))ms - cached protobuf lookups), fast native protobuf evaluation")
 
         // Performance assertions
         XCTAssertGreaterThan(lazyStartupSpeedup, 1.0, "Lazy Protobuf should have faster startup than JSON")
@@ -328,7 +328,7 @@ final class MultiwayLoadTest: XCTestCase {
             if iteration == 1 {
                 print("   🔥 First iteration (warming up caches/parsing)...")
             } else {
-                print("   ⚡ Iteration \(iteration) (cached performance)...")
+                print("   💨 Iteration \(iteration) (cached performance)...")
             }
 
             let iterationStart = CFAbsoluteTimeGetCurrent()
@@ -401,14 +401,22 @@ final class MultiwayLoadTest: XCTestCase {
 
             let iterationTime = (CFAbsoluteTimeGetCurrent() - iterationStart) * 1000
             let iterationEvalsPerSec = Double(iterationEvalCount) / (iterationTime / 1000.0)
-            print("      -> \(iterationEvalCount) evals in \(Int(iterationTime))ms = \(Int(iterationEvalsPerSec)) evals/sec")
+            print("      -> \(formatNumber(iterationEvalCount)) evals in \(formatNumber(Int(iterationTime)))ms = \(formatNumber(Int(iterationEvalsPerSec))) evals/sec")
         }
 
         let evalTime = (CFAbsoluteTimeGetCurrent() - evalStart) * 1000
         let evalsPerSec = Double(evaluationCount) / (evalTime / 1000.0)
-        print("   🏁 \(clientName) TOTAL: \(Int(evalsPerSec)) evals/sec (\(evaluationCount) evals in \(Int(evalTime))ms over \(BENCHMARK_ITERATIONS) iterations)")
+        print("   🏁 \(clientName) TOTAL: \(formatNumber(Int(evalsPerSec))) evals/sec (\(formatNumber(evaluationCount)) evals in \(formatNumber(Int(evalTime)))ms over \(BENCHMARK_ITERATIONS) iterations)")
 
         return (evaluationCount, evalTime, evalsPerSec)
+    }
+
+    // MARK: - Number Formatting Helper
+
+    private func formatNumber(_ number: Int) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        return formatter.string(from: NSNumber(value: number)) ?? "\(number)"
     }
 
     private func loadTestDataFile(_ filename: String) throws -> Data {
