@@ -1,10 +1,11 @@
 import Foundation
 import SwiftProtobuf
 
-public class SwiftStructFromProtobufClient {
+/// Native protobuf client that works directly with protobuf types without Swift struct conversion
+public class NativeProtobufClient {
     public typealias AssignmentLogger = (Assignment) -> Void
 
-    private let evaluator: FlagEvaluatorProtocol
+    private let evaluator: NativeProtobufEvaluator
     private let assignmentLogger: AssignmentLogger?
     private let isObfuscated: Bool
     private let sdkKey: String
@@ -17,7 +18,7 @@ public class SwiftStructFromProtobufClient {
         prewarmCache: Bool = false
     ) throws {
         self.sdkKey = sdkKey
-        self.evaluator = try SwiftStructFromProtobufEvaluator(protobufData: protobufData, prewarmCache: prewarmCache)
+        self.evaluator = try NativeProtobufEvaluator(protobufData: protobufData, prewarmCache: prewarmCache)
         self.assignmentLogger = assignmentLogger
         self.isObfuscated = obfuscated
     }
@@ -128,11 +129,6 @@ public class SwiftStructFromProtobufClient {
                 extraLogging: evaluation.extraLogging
             )
             logger(assignment)
-        }
-
-        // Check for assignment error (type mismatch)
-        if evaluation.flagEvaluationCode == .assignmentError {
-            return defaultValue
         }
 
         // Return the integer value or default

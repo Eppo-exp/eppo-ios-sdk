@@ -1,7 +1,7 @@
 import Foundation
 import FlatBuffers
 
-public class LazyFlatBufferRuleEvaluator: SwiftStructEvaluatorProtocol {
+public class SwiftStructFromFlatBufferEvaluator: SwiftStructEvaluatorProtocol {
     private let ufcRoot: Eppo_UFC_UniversalFlagConfig
     private let flagEvaluator: FlagEvaluator
     public let isPrewarmed: Bool
@@ -13,7 +13,7 @@ public class LazyFlatBufferRuleEvaluator: SwiftStructEvaluatorProtocol {
     public var flagCache: [String: UFC_Flag] = [:]
     public var flagTypeCache: [String: UFC_VariationType] = [:]
     public let cacheLock = NSLock()
-    private let cacheQueue = DispatchQueue(label: "com.eppo.lazy-flatbuffer-cache", attributes: .concurrent)
+    private let cacheQueue = DispatchQueue(label: "com.eppo.swift-struct-flatbuffer-cache", attributes: .concurrent)
 
     init(flatBufferData: Data, prewarmCache: Bool = false) throws {
         let buffer = ByteBuffer(data: flatBufferData)
@@ -194,7 +194,7 @@ public class LazyFlatBufferRuleEvaluator: SwiftStructEvaluatorProtocol {
     private func convertFlatBufferFlagToUFC(_ fbFlag: Eppo_UFC_Flag) throws -> UFC_Flag {
         // Extract basic properties
         guard let key = fbFlag.key else {
-            throw NSError(domain: "LazyFlatBufferError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Missing flag key"])
+            throw NSError(domain: "SwiftStructFromFlatBufferEvaluatorError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Missing flag key"])
         }
 
 

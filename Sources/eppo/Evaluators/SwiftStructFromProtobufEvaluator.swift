@@ -1,7 +1,7 @@
 import Foundation
 import SwiftProtobuf
 
-public class ProtobufEvaluator: SwiftStructEvaluatorProtocol {
+public class SwiftStructFromProtobufEvaluator: SwiftStructEvaluatorProtocol {
     private let flagEvaluator: FlagEvaluator
     public let isPrewarmed: Bool
 
@@ -34,8 +34,7 @@ public class ProtobufEvaluator: SwiftStructEvaluatorProtocol {
 
             print("   🔄 Pre-converting \(universalFlagConfig.flags.count) protobuf flags to UFC objects...")
 
-            for protobufFlag in universalFlagConfig.flags {
-                let flagKey = protobufFlag.key
+            for (flagKey, protobufFlag) in universalFlagConfig.flags {
                 let ufcVariationType = Self.convertProtobufVariationType(protobufFlag.variationType)
 
                 // Convert protobuf flag to UFC_Flag immediately
@@ -105,11 +104,7 @@ public class ProtobufEvaluator: SwiftStructEvaluatorProtocol {
                 return []
             }
 
-            var allKeys: [String] = []
-            for protobufFlag in config.flags {
-                allKeys.append(protobufFlag.key)
-            }
-            return allKeys
+            return Array(config.flags.keys)
         }
     }
 
@@ -130,12 +125,10 @@ public class ProtobufEvaluator: SwiftStructEvaluatorProtocol {
                 return nil
             }
 
-            for protobufFlag in config.flags {
-                if protobufFlag.key == flagKey {
-                    let variationType = Self.convertProtobufVariationType(protobufFlag.variationType)
-                    flagTypeCache[flagKey] = variationType
-                    return variationType
-                }
+            if let protobufFlag = config.flags[flagKey] {
+                let variationType = Self.convertProtobufVariationType(protobufFlag.variationType)
+                flagTypeCache[flagKey] = variationType
+                return variationType
             }
 
             return nil
@@ -198,12 +191,7 @@ public class ProtobufEvaluator: SwiftStructEvaluatorProtocol {
             return nil
         }
 
-        for protobufFlag in config.flags {
-            if protobufFlag.key == flagKey {
-                return protobufFlag
-            }
-        }
-        return nil
+        return config.flags[flagKey]
     }
 
     // MARK: - Static Conversion Methods
@@ -442,12 +430,11 @@ public class ProtobufEvaluator: SwiftStructEvaluatorProtocol {
         defer { cacheLock.unlock() }
 
         guard let config = getUniversalFlagConfig() else {
-            throw NSError(domain: "ProtobufEvaluator", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to load protobuf configuration"])
+            throw NSError(domain: "SwiftStructFromProtobufEvaluator", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to load protobuf configuration"])
         }
 
         // Pre-convert all flags
-        for protobufFlag in config.flags {
-            let flagKey = protobufFlag.key
+        for (flagKey, protobufFlag) in config.flags {
             let ufcVariationType = Self.convertProtobufVariationType(protobufFlag.variationType)
 
             // Convert protobuf flag to UFC_Flag

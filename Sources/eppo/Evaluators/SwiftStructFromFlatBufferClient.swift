@@ -3,7 +3,7 @@ import Foundation
 public class SwiftStructFromFlatBufferClient {
     public typealias AssignmentLogger = (Assignment) -> Void
 
-    private let lazyEvaluator: LazyFlatBufferRuleEvaluator
+    private let lazyEvaluator: SwiftStructFromFlatBufferEvaluator
     private let assignmentLogger: AssignmentLogger?
     private let isObfuscated: Bool
     private let sdkKey: String
@@ -16,7 +16,7 @@ public class SwiftStructFromFlatBufferClient {
         prewarmCache: Bool = false
     ) throws {
         self.sdkKey = sdkKey
-        self.lazyEvaluator = try LazyFlatBufferRuleEvaluator(flatBufferData: flatBufferData, prewarmCache: prewarmCache)
+        self.lazyEvaluator = try SwiftStructFromFlatBufferEvaluator(flatBufferData: flatBufferData, prewarmCache: prewarmCache)
         self.assignmentLogger = assignmentLogger
         self.isObfuscated = obfuscated
 

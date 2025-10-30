@@ -20,16 +20,30 @@ extension SwiftStructFromProtobufClient: AssignmentClient {}
 // Extend SwiftStructFromFlatBufferClient to conform to the protocol
 extension SwiftStructFromFlatBufferClient: AssignmentClient {}
 
+// Extend NativeProtobufClient to conform to the protocol
+extension NativeProtobufClient: AssignmentClient {}
+
+// MARK: - Performance Test Configuration
+
+/// Number of times to run through the test data to measure cached performance
+private let BENCHMARK_ITERATIONS = 3
+
 /**
- * Swift Struct Evaluator Performance Benchmark
- * Tests startup time and evaluation performance comparing JSON init, lazy PB, protobuf init, lazy FlatBuffer, and FlatBuffer init
+ * Evaluator Performance Benchmark
+ * Tests startup time and evaluation performance comparing:
+ * - Swift Struct Evaluators: JSON init, lazy PB, protobuf init, lazy FlatBuffer, and FlatBuffer init
+ * - Native Evaluators (NO SWIFT STRUCTS): Native protobuf (lazy & prewarmed) - direct binary format evaluation
+ *
+ * Runs test data \(BENCHMARK_ITERATIONS)x to measure performance after caches are warmed up
  */
 final class MultiwayLoadTest: XCTestCase {
 
     func testSwiftStructEvaluatorPerformance() throws {
-        print("🚀 Swift Struct Evaluator Performance Benchmark")
+        print("🚀 Evaluator Performance Benchmark")
         print("🎯 Dataset: flags-10000 (large scale)")
-        print("📋 Modes: JSON init (baseline), Lazy PB, Protobuf init, Lazy FlatBuffer, FlatBuffer init")
+        print("🔄 Iterations: \(BENCHMARK_ITERATIONS)x per evaluator (to measure cached performance)")
+        print("📋 Swift Struct Modes: JSON init (baseline), Lazy PB, Protobuf init, Lazy FlatBuffer, FlatBuffer init")
+        print("📋 Native Modes: Native PB (Lazy & Prewarmed) - NO SWIFT STRUCTS")
 
         // Load test data
         let jsonData = try loadTestDataFile("flags-10000.json")
@@ -158,15 +172,71 @@ final class MultiwayLoadTest: XCTestCase {
         // Allow ARC to cleanup
         _ = flatBufferClient_temp
 
+        // === NATIVE EVALUATORS (NO SWIFT STRUCT CONVERSION) ===
+        print("\n🔴 ============================================")
+        print("🔴 NATIVE EVALUATORS (Direct Binary Format)")
+        print("🔴 NO SWIFT STRUCT CONVERSION - Pure Binary")
+        print("🔴 ============================================")
+
+        // === NATIVE PROTOBUF EVALUATOR (LAZY) BENCHMARK ===
+        print("\n📦 6. Benchmarking Native Protobuf Evaluator (Lazy)...")
+        let nativeProtobufStartTime = CFAbsoluteTimeGetCurrent()
+
+        let nativeProtobufClient = try NativeProtobufClient(
+            sdkKey: "native-protobuf-test",
+            protobufData: protobufData,
+            obfuscated: false,
+            assignmentLogger: nil,
+            prewarmCache: false
+        )
+
+        let nativeProtobufStartupTime = (CFAbsoluteTimeGetCurrent() - nativeProtobufStartTime) * 1000
+        print("   ⚡ Startup: \(Int(nativeProtobufStartupTime))ms (Native protobuf evaluation - NO SWIFT STRUCTS)")
+
+        // Native Protobuf Evaluator Evaluation Performance
+        let nativeProtobufResults = try performEvaluationBenchmark(client: nativeProtobufClient, clientName: "Native Protobuf Evaluator (Lazy)")
+
+        // Release Native Protobuf client memory
+        let nativeProtobufClient_temp = nativeProtobufClient // Keep reference
+        // Allow ARC to cleanup
+        _ = nativeProtobufClient_temp
+
+        // === NATIVE PROTOBUF EVALUATOR (PREWARMED) BENCHMARK ===
+        print("\n📦 7. Benchmarking Native Protobuf Evaluator (Prewarmed)...")
+        let nativeProtobufPrewarmedStartTime = CFAbsoluteTimeGetCurrent()
+
+        let nativeProtobufPrewarmedClient = try NativeProtobufClient(
+            sdkKey: "native-protobuf-prewarmed-test",
+            protobufData: protobufData,
+            obfuscated: false,
+            assignmentLogger: nil,
+            prewarmCache: true
+        )
+
+        let nativeProtobufPrewarmedStartupTime = (CFAbsoluteTimeGetCurrent() - nativeProtobufPrewarmedStartTime) * 1000
+        print("   ⚡ Startup: \(Int(nativeProtobufPrewarmedStartupTime))ms (Native protobuf prewarmed cache - NO SWIFT STRUCTS)")
+
+        // Native Protobuf Evaluator (Prewarmed) Evaluation Performance
+        let nativeProtobufPrewarmedResults = try performEvaluationBenchmark(client: nativeProtobufPrewarmedClient, clientName: "Native Protobuf Evaluator (Prewarmed)")
+
+        // Release Native Protobuf Prewarmed client memory
+        let nativeProtobufPrewarmedClient_temp = nativeProtobufPrewarmedClient // Keep reference
+        // Allow ARC to cleanup
+        _ = nativeProtobufPrewarmedClient_temp
+
         // === PERFORMANCE COMPARISON ===
         let lazyStartupSpeedup = jsonStartupTime / protobufStartupTime
         let pureStartupSpeedup = jsonStartupTime / pureProtobufStartupTime
         let lazyFlatBufferStartupSpeedup = jsonStartupTime / lazyFlatBufferStartupTime
         let flatBufferStartupSpeedup = jsonStartupTime / flatBufferStartupTime
+        let nativeProtobufStartupSpeedup = jsonStartupTime / nativeProtobufStartupTime
+        let nativeProtobufPrewarmedStartupSpeedup = jsonStartupTime / nativeProtobufPrewarmedStartupTime
         let lazyEvaluationSpeedRatio = protobufResults.evalsPerSec / jsonResults.evalsPerSec
         let pureEvaluationSpeedRatio = pureProtobufResults.evalsPerSec / jsonResults.evalsPerSec
         let lazyFlatBufferEvaluationSpeedRatio = lazyFlatBufferResults.evalsPerSec / jsonResults.evalsPerSec
         let flatBufferEvaluationSpeedRatio = flatBufferResults.evalsPerSec / jsonResults.evalsPerSec
+        let nativeProtobufEvaluationSpeedRatio = nativeProtobufResults.evalsPerSec / jsonResults.evalsPerSec
+        let nativeProtobufPrewarmedEvaluationSpeedRatio = nativeProtobufPrewarmedResults.evalsPerSec / jsonResults.evalsPerSec
 
         print("\n🏆 PERFORMANCE RESULTS:")
         print("═══════════════════════════════════════════════")
@@ -190,17 +260,31 @@ final class MultiwayLoadTest: XCTestCase {
         print("   🎯 Startup: \(Int(flatBufferStartupTime))ms")
         print("   🚀 Evaluation: \(Int(flatBufferResults.evalsPerSec)) evals/sec")
 
+        print("")
+        print("🔴 NATIVE EVALUATORS (NO SWIFT STRUCTS):")
+        print("📊 Native Protobuf Evaluator (Lazy):")
+        print("   🎯 Startup: \(Int(nativeProtobufStartupTime))ms")
+        print("   🚀 Evaluation: \(Int(nativeProtobufResults.evalsPerSec)) evals/sec")
+
+        print("📊 Native Protobuf Evaluator (Prewarmed):")
+        print("   🎯 Startup: \(Int(nativeProtobufPrewarmedStartupTime))ms")
+        print("   🚀 Evaluation: \(Int(nativeProtobufPrewarmedResults.evalsPerSec)) evals/sec")
+
         print("\n🏁 COMPARISON (vs JSON init baseline):")
         print("   ⚡ Startup Performance:")
         print("      🧠 Lazy PB: \(String(format: "%.1f", lazyStartupSpeedup))x faster")
         print("      🚀 Protobuf init: \(String(format: "%.1f", pureStartupSpeedup))x faster")
         print("      🟦 Lazy FlatBuffer: \(String(format: "%.1f", lazyFlatBufferStartupSpeedup))x faster")
         print("      📦 FlatBuffer init: \(String(format: "%.1f", flatBufferStartupSpeedup))x faster")
+        print("      🔴 Native PB (Lazy): \(String(format: "%.1f", nativeProtobufStartupSpeedup))x faster")
+        print("      🔴 Native PB (Prewarmed): \(String(format: "%.1f", nativeProtobufPrewarmedStartupSpeedup))x faster")
         print("   🚀 Evaluation Performance:")
         print("      🧠 Lazy PB: \(String(format: "%.3f", lazyEvaluationSpeedRatio))x relative speed")
         print("      🚀 Protobuf init: \(String(format: "%.1f", pureEvaluationSpeedRatio))x relative speed")
         print("      🟦 Lazy FlatBuffer: \(String(format: "%.3f", lazyFlatBufferEvaluationSpeedRatio))x relative speed")
         print("      📦 FlatBuffer init: \(String(format: "%.1f", flatBufferEvaluationSpeedRatio))x relative speed")
+        print("      🔴 Native PB (Lazy): \(String(format: "%.3f", nativeProtobufEvaluationSpeedRatio))x relative speed")
+        print("      🔴 Native PB (Prewarmed): \(String(format: "%.1f", nativeProtobufPrewarmedEvaluationSpeedRatio))x relative speed")
 
         print("\n🎯 ARCHITECTURE TRADEOFFS:")
         print("   📄 JSON init: Slow startup (\(Int(jsonStartupTime))ms - swift structs populated from JSON), fast evaluation (Swift structs)")
@@ -208,16 +292,23 @@ final class MultiwayLoadTest: XCTestCase {
         print("   🚀 Protobuf init: Medium startup (\(Int(pureProtobufStartupTime))ms - swift structs populated from protobuf), fast evaluation (pre-converted Swift structs)")
         print("   🟦 Lazy FlatBuffer: Fast startup (\(Int(lazyFlatBufferStartupTime))ms - FlatBuffer parsed only), slow evaluation (on-demand conversion)")
         print("   📦 FlatBuffer init: Medium startup (\(Int(flatBufferStartupTime))ms - swift structs populated from FlatBuffer), fast evaluation (pre-converted Swift structs)")
+        print("   🔴 Native PB (Lazy): Fast startup (\(Int(nativeProtobufStartupTime))ms - NO SWIFT STRUCTS), native protobuf evaluation")
+        print("   🔴 Native PB (Prewarmed): Medium startup (\(Int(nativeProtobufPrewarmedStartupTime))ms - cached protobuf lookups), fast native protobuf evaluation")
 
         // Performance assertions
         XCTAssertGreaterThan(lazyStartupSpeedup, 1.0, "Lazy Protobuf should have faster startup than JSON")
         XCTAssertGreaterThan(pureStartupSpeedup, 1.0, "Pure Protobuf should have faster startup than JSON")
         XCTAssertGreaterThan(lazyFlatBufferStartupSpeedup, 1.0, "Lazy FlatBuffer should have faster startup than JSON")
         XCTAssertGreaterThan(flatBufferStartupSpeedup, 1.0, "FlatBuffer should have faster startup than JSON")
+        XCTAssertGreaterThan(nativeProtobufStartupSpeedup, 1.0, "Native Protobuf (Lazy) should have faster startup than JSON")
+        XCTAssertGreaterThan(nativeProtobufPrewarmedStartupSpeedup, 1.0, "Native Protobuf (Prewarmed) should have faster startup than JSON")
         XCTAssertGreaterThan(pureEvaluationSpeedRatio, lazyEvaluationSpeedRatio, "Pure Protobuf should evaluate faster than Lazy Protobuf")
         XCTAssertGreaterThan(flatBufferEvaluationSpeedRatio, lazyEvaluationSpeedRatio, "FlatBuffer should evaluate faster than Lazy Protobuf")
         XCTAssertGreaterThan(flatBufferEvaluationSpeedRatio, lazyFlatBufferEvaluationSpeedRatio, "FlatBuffer init should evaluate faster than Lazy FlatBuffer")
+        XCTAssertGreaterThan(nativeProtobufPrewarmedEvaluationSpeedRatio, nativeProtobufEvaluationSpeedRatio, "Native Protobuf (Prewarmed) should evaluate faster than Native Protobuf (Lazy)")
         XCTAssertGreaterThan(jsonResults.evalsPerSec, 100, "JSON should handle at least 100 evaluations per second")
+        XCTAssertGreaterThan(nativeProtobufResults.evalsPerSec, 100, "Native Protobuf (Lazy) should handle at least 100 evaluations per second")
+        XCTAssertGreaterThan(nativeProtobufPrewarmedResults.evalsPerSec, 100, "Native Protobuf (Prewarmed) should handle at least 100 evaluations per second")
 
         print("\n✅ Performance benchmark completed successfully!")
     }
@@ -228,77 +319,94 @@ final class MultiwayLoadTest: XCTestCase {
         let evalStart = CFAbsoluteTimeGetCurrent()
         var evaluationCount = 0
 
-        // Get all test case files and iterate through them
+        // Get all test case files once
         let testFiles = try getTestFiles()
-        for testFile in testFiles {
-            let testCase = try loadTestCase(from: testFile)
+        let testCases = try testFiles.map { try loadTestCase(from: $0) }
 
-            for subject in testCase.subjects {
-                // Convert subject attributes to EppoValue
-                let subjectAttributes = subject.subjectAttributes.mapValues { value in
-                    switch value.value {
-                    case let string as String:
-                        return EppoValue.valueOf(string)
-                    case let int as Int:
-                        return EppoValue.valueOf(int)
-                    case let double as Double:
-                        return EppoValue.valueOf(double)
-                    case let bool as Bool:
-                        return EppoValue.valueOf(bool)
-                    case is NSNull:
-                        return EppoValue.nullValue()
-                    default:
-                        return EppoValue.nullValue()
-                    }
-                }
-
-                // Get assignment based on variation type
-                switch testCase.variationType {
-                case "BOOLEAN":
-                    _ = client.getBooleanAssignment(
-                        flagKey: testCase.flag,
-                        subjectKey: subject.subjectKey,
-                        subjectAttributes: subjectAttributes,
-                        defaultValue: (testCase.defaultValue.value as? Bool) ?? false
-                    )
-                case "STRING":
-                    _ = client.getStringAssignment(
-                        flagKey: testCase.flag,
-                        subjectKey: subject.subjectKey,
-                        subjectAttributes: subjectAttributes,
-                        defaultValue: (testCase.defaultValue.value as? String) ?? ""
-                    )
-                case "NUMERIC":
-                    _ = client.getNumericAssignment(
-                        flagKey: testCase.flag,
-                        subjectKey: subject.subjectKey,
-                        subjectAttributes: subjectAttributes,
-                        defaultValue: (testCase.defaultValue.value as? Double) ?? 0.0
-                    )
-                case "INTEGER":
-                    _ = client.getIntegerAssignment(
-                        flagKey: testCase.flag,
-                        subjectKey: subject.subjectKey,
-                        subjectAttributes: subjectAttributes,
-                        defaultValue: (testCase.defaultValue.value as? Int) ?? 0
-                    )
-                case "JSON":
-                    _ = client.getJSONStringAssignment(
-                        flagKey: testCase.flag,
-                        subjectKey: subject.subjectKey,
-                        subjectAttributes: subjectAttributes,
-                        defaultValue: (testCase.defaultValue.value as? String) ?? ""
-                    )
-                default:
-                    continue
-                }
-                evaluationCount += 1
+        // Run through the test data multiple times to measure cached performance
+        for iteration in 1...BENCHMARK_ITERATIONS {
+            if iteration == 1 {
+                print("   🔥 First iteration (warming up caches/parsing)...")
+            } else {
+                print("   ⚡ Iteration \(iteration) (cached performance)...")
             }
+
+            let iterationStart = CFAbsoluteTimeGetCurrent()
+            var iterationEvalCount = 0
+
+            for testCase in testCases {
+                for subject in testCase.subjects {
+                    // Convert subject attributes to EppoValue
+                    let subjectAttributes = subject.subjectAttributes.mapValues { value in
+                        switch value.value {
+                        case let string as String:
+                            return EppoValue.valueOf(string)
+                        case let int as Int:
+                            return EppoValue.valueOf(int)
+                        case let double as Double:
+                            return EppoValue.valueOf(double)
+                        case let bool as Bool:
+                            return EppoValue.valueOf(bool)
+                        case is NSNull:
+                            return EppoValue.nullValue()
+                        default:
+                            return EppoValue.nullValue()
+                        }
+                    }
+
+                    // Get assignment based on variation type
+                    switch testCase.variationType {
+                    case "BOOLEAN":
+                        _ = client.getBooleanAssignment(
+                            flagKey: testCase.flag,
+                            subjectKey: subject.subjectKey,
+                            subjectAttributes: subjectAttributes,
+                            defaultValue: (testCase.defaultValue.value as? Bool) ?? false
+                        )
+                    case "STRING":
+                        _ = client.getStringAssignment(
+                            flagKey: testCase.flag,
+                            subjectKey: subject.subjectKey,
+                            subjectAttributes: subjectAttributes,
+                            defaultValue: (testCase.defaultValue.value as? String) ?? ""
+                        )
+                    case "NUMERIC":
+                        _ = client.getNumericAssignment(
+                            flagKey: testCase.flag,
+                            subjectKey: subject.subjectKey,
+                            subjectAttributes: subjectAttributes,
+                            defaultValue: (testCase.defaultValue.value as? Double) ?? 0.0
+                        )
+                    case "INTEGER":
+                        _ = client.getIntegerAssignment(
+                            flagKey: testCase.flag,
+                            subjectKey: subject.subjectKey,
+                            subjectAttributes: subjectAttributes,
+                            defaultValue: (testCase.defaultValue.value as? Int) ?? 0
+                        )
+                    case "JSON":
+                        _ = client.getJSONStringAssignment(
+                            flagKey: testCase.flag,
+                            subjectKey: subject.subjectKey,
+                            subjectAttributes: subjectAttributes,
+                            defaultValue: (testCase.defaultValue.value as? String) ?? ""
+                        )
+                    default:
+                        continue
+                    }
+                    evaluationCount += 1
+                    iterationEvalCount += 1
+                }
+            }
+
+            let iterationTime = (CFAbsoluteTimeGetCurrent() - iterationStart) * 1000
+            let iterationEvalsPerSec = Double(iterationEvalCount) / (iterationTime / 1000.0)
+            print("      -> \(iterationEvalCount) evals in \(Int(iterationTime))ms = \(Int(iterationEvalsPerSec)) evals/sec")
         }
 
         let evalTime = (CFAbsoluteTimeGetCurrent() - evalStart) * 1000
         let evalsPerSec = Double(evaluationCount) / (evalTime / 1000.0)
-        print("   🚀 \(clientName) evaluation: \(Int(evalsPerSec)) evals/sec (\(evaluationCount) evals in \(Int(evalTime))ms)")
+        print("   🏁 \(clientName) TOTAL: \(Int(evalsPerSec)) evals/sec (\(evaluationCount) evals in \(Int(evalTime))ms over \(BENCHMARK_ITERATIONS) iterations)")
 
         return (evaluationCount, evalTime, evalsPerSec)
     }

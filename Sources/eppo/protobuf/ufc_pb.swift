@@ -410,8 +410,8 @@ struct Eppo_Ufc_UniversalFlagConfig: Sendable {
   /// Clears the value of `environment`. Subsequent reads from it will return its default value.
   mutating func clearEnvironment() {self._environment = nil}
 
-  /// Sorted by key for fast lookup
-  var flags: [Eppo_Ufc_Flag] = []
+  /// Map of flag key to flag object
+  var flags: Dictionary<String,Eppo_Ufc_Flag> = [:]
 
   /// Optional bandit references
   var banditReferences: Dictionary<String,Eppo_Ufc_BanditReference> = [:]
@@ -909,7 +909,7 @@ extension Eppo_Ufc_UniversalFlagConfig: SwiftProtobuf.Message, SwiftProtobuf._Me
       case 1: try { try decoder.decodeSingularUInt64Field(value: &self.createdAt) }()
       case 2: try { try decoder.decodeSingularEnumField(value: &self.format) }()
       case 3: try { try decoder.decodeSingularMessageField(value: &self._environment) }()
-      case 4: try { try decoder.decodeRepeatedMessageField(value: &self.flags) }()
+      case 4: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufMessageMap<SwiftProtobuf.ProtobufString,Eppo_Ufc_Flag>.self, value: &self.flags) }()
       case 5: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufMessageMap<SwiftProtobuf.ProtobufString,Eppo_Ufc_BanditReference>.self, value: &self.banditReferences) }()
       case 6: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufMessageMap<SwiftProtobuf.ProtobufString,Eppo_Ufc_BanditFlagVariation>.self, value: &self.bandits) }()
       default: break
@@ -932,7 +932,7 @@ extension Eppo_Ufc_UniversalFlagConfig: SwiftProtobuf.Message, SwiftProtobuf._Me
       try visitor.visitSingularMessageField(value: v, fieldNumber: 3)
     } }()
     if !self.flags.isEmpty {
-      try visitor.visitRepeatedMessageField(value: self.flags, fieldNumber: 4)
+      try visitor.visitMapField(fieldType: SwiftProtobuf._ProtobufMessageMap<SwiftProtobuf.ProtobufString,Eppo_Ufc_Flag>.self, value: self.flags, fieldNumber: 4)
     }
     if !self.banditReferences.isEmpty {
       try visitor.visitMapField(fieldType: SwiftProtobuf._ProtobufMessageMap<SwiftProtobuf.ProtobufString,Eppo_Ufc_BanditReference>.self, value: self.banditReferences, fieldNumber: 5)
