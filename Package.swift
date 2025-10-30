@@ -21,7 +21,8 @@ let package = Package(
         .package(url: "https://github.com/ddddxxx/Semver", from: "0.2.1"),
         .package(url: "https://github.com/AliSoftware/OHHTTPStubs", .upToNextMajor(from: "9.0.0")),
         .package(url: "https://github.com/google/flatbuffers.git", .upToNextMajor(from: "25.0.0")),
-        .package(url: "https://github.com/orlandos-nl/IkigaJSON.git", .upToNextMajor(from: "2.0.0"))
+        .package(url: "https://github.com/orlandos-nl/IkigaJSON.git", .upToNextMajor(from: "2.0.0")),
+        .package(url: "https://github.com/apple/swift-protobuf.git", from: "1.20.0")
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
@@ -31,7 +32,8 @@ let package = Package(
             dependencies: [
                 "Semver",
                 .product(name: "FlatBuffers", package: "flatbuffers"),
-                .product(name: "IkigaJSON", package: "IkigaJSON")
+                .product(name: "IkigaJSON", package: "IkigaJSON"),
+                .product(name: "SwiftProtobuf", package: "swift-protobuf")
             ],
             path: "./Sources/eppo"
         ),
