@@ -9,22 +9,85 @@ protocol AssignmentClient {
     func getNumericAssignment(flagKey: String, subjectKey: String, subjectAttributes: SubjectAttributes, defaultValue: Double) -> Double
     func getIntegerAssignment(flagKey: String, subjectKey: String, subjectAttributes: SubjectAttributes, defaultValue: Int) -> Int
     func getJSONStringAssignment(flagKey: String, subjectKey: String, subjectAttributes: SubjectAttributes, defaultValue: String) -> String
+
+    /// Describes the performance characteristics and benefits of this evaluator
+    func getPerformanceDescription() -> String
 }
 
 // Extend EppoClient to conform to the protocol
-extension EppoClient: AssignmentClient {}
+extension EppoClient: AssignmentClient {
+    func getPerformanceDescription() -> String {
+        return """
+        🏛️  BASELINE: Traditional JSON Configuration Evaluator
+        📊 What's tested: JSON parsing → Swift struct conversion → evaluation
+        🔬 Startup hypothesis: SLOWEST - Full JSON parsing and object creation overhead
+        🔬 Evaluation hypothesis: GOOD - Optimized Swift struct access patterns
+        💾 Memory hypothesis: HIGH - All flags converted to Swift objects in memory
+        🎯 Use case: Traditional approach, good for comparison baseline
+        ✅ Benefits: Mature, well-tested, human-readable config format
+        """
+    }
+}
 
 // Extend SwiftStructFromProtobufClient to conform to the protocol
-extension SwiftStructFromProtobufClient: AssignmentClient {}
+extension SwiftStructFromProtobufClient: AssignmentClient {
+    func getPerformanceDescription() -> String {
+        return """
+        📦 SWIFT STRUCTS: Protobuf → Swift Objects Evaluator
+        📊 What's tested: Protobuf parsing → Swift struct conversion → evaluation
+        🔬 Startup hypothesis: SLOW - Protobuf parsing + Swift struct conversion overhead
+        🔬 Evaluation hypothesis: EXCELLENT - Fast Swift struct access patterns
+        💾 Memory hypothesis: HIGH - All flags as Swift objects, more compact source than JSON
+        🎯 Use case: Balanced approach with better serialization than JSON
+        ✅ Benefits: Compact wire format, type safety, should be faster than JSON startup
+        """
+    }
+}
 
 // Extend SwiftStructFromFlatBufferClient to conform to the protocol
-extension SwiftStructFromFlatBufferClient: AssignmentClient {}
+extension SwiftStructFromFlatBufferClient: AssignmentClient {
+    func getPerformanceDescription() -> String {
+        return """
+        ⚡ SWIFT STRUCTS: FlatBuffer → Swift Objects Evaluator
+        📊 What's tested: FlatBuffer parsing → Swift struct conversion → evaluation
+        🔬 Startup hypothesis: SLOW - FlatBuffer parsing + Swift struct conversion overhead
+        🔬 Evaluation hypothesis: EXCELLENT - Fast Swift struct access patterns
+        💾 Memory hypothesis: HIGH - All flags as Swift objects, most compact source format
+        🎯 Use case: Most compact serialization with Swift struct benefits
+        ✅ Benefits: Ultra-compact wire format, zero-copy parsing potential, type safety
+        """
+    }
+}
 
 // Extend NativeProtobufClient to conform to the protocol
-extension NativeProtobufClient: AssignmentClient {}
+extension NativeProtobufClient: AssignmentClient {
+    func getPerformanceDescription() -> String {
+        return """
+        🔥 NATIVE: Direct Protobuf Binary Evaluator (NO SWIFT STRUCTS)
+        📊 What's tested: Direct protobuf binary evaluation without object conversion
+        🔬 Startup hypothesis: VERY FAST - No Swift struct creation, binary ready
+        🔬 Evaluation hypothesis: GOOD - Direct binary access, no object overhead
+        💾 Memory hypothesis: LOW - Raw binary format, minimal memory allocation
+        🎯 Use case: Memory-constrained environments, ultra-fast startup required
+        ✅ Benefits: Minimal memory footprint, lightning startup, no GC pressure
+        """
+    }
+}
 
 // Extend NativeFlatBufferClient to conform to the protocol
-extension NativeFlatBufferClient: AssignmentClient {}
+extension NativeFlatBufferClient: AssignmentClient {
+    func getPerformanceDescription() -> String {
+        return """
+        🚀 NATIVE: Direct FlatBuffer Binary Evaluator (NO SWIFT STRUCTS)
+        📊 What's tested: Direct FlatBuffer binary evaluation with optional O(1) indexing
+        🔬 Startup hypothesis: FASTEST - Zero-copy access, optional index building
+        🔬 Evaluation hypothesis: FASTEST - O(1) lookup with index, zero allocations
+        💾 Memory hypothesis: LOWEST - Raw binary format, absolute minimal allocation
+        🎯 Use case: Performance-critical applications, maximum throughput required
+        ✅ Benefits: Ultimate performance potential, zero-copy access, optional O(1) vs O(log n) trade-off
+        """
+    }
+}
 
 // MARK: - Performance Test Configuration
 
@@ -330,6 +393,11 @@ final class MultiwayLoadTest: XCTestCase {
         setupBlock: () throws -> (AssignmentClient, Double, String)
     ) throws {
         let (client, startupTime, description) = try setupBlock()
+
+        // Print performance characteristics and benefits
+        print("\n" + String(repeating: "─", count: 80))
+        print(client.getPerformanceDescription())
+        print(String(repeating: "─", count: 80))
 
         print("   ⚡ Startup: \(formatNumber(Int(startupTime)))ms (\(description))")
 
