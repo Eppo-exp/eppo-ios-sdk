@@ -125,7 +125,7 @@ final class MultiwayLoadTest: XCTestCase {
     // MARK: - Individual Evaluator Tests (DRY with memory management)
 
     func testJSONEvaluatorPerformance() throws {
-        print("📦 1. Testing Swift Struct Evaluator (JSON init)...")
+        NSLog("📦 1. Testing Swift Struct Evaluator (JSON init)...")
         try testEvaluatorPerformance(
             evaluatorName: "JSON",
             setupBlock: {
@@ -145,7 +145,7 @@ final class MultiwayLoadTest: XCTestCase {
     }
 
     func testProtobufLazyEvaluatorPerformance() throws {
-        print("📦 2. Testing Swift Struct Evaluator (Lazy PB)...")
+        NSLog("📦 2. Testing Swift Struct Evaluator (Lazy PB)...")
         try testEvaluatorPerformance(
             evaluatorName: "Lazy PB",
             setupBlock: {
@@ -165,12 +165,12 @@ final class MultiwayLoadTest: XCTestCase {
     }
 
     func testProtobufPrewarmedEvaluatorPerformance() throws {
-        print("📦 3. Testing Swift Struct Evaluator (Protobuf init)...")
+        NSLog("📦 3. Testing Swift Struct Evaluator (Protobuf init)...")
         try testEvaluatorPerformance(
             evaluatorName: "Protobuf init",
             setupBlock: {
                 let protobufData = try self.loadProtobufData()
-                print("   🔄 Pre-converting flags to UFC objects...")
+                NSLog("   🔄 Pre-converting flags to UFC objects...")
                 let startTime = CFAbsoluteTimeGetCurrent()
                 let client = try SwiftStructFromProtobufClient(
                     sdkKey: "protobuf-prewarmed-test-key",
@@ -180,14 +180,14 @@ final class MultiwayLoadTest: XCTestCase {
                     prewarmCache: true
                 )
                 let startupTime = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
-                print("   ✅ Pre-converted flags successfully")
+                NSLog("   ✅ Pre-converted flags successfully")
                 return (client, startupTime, "swift structs populated from protobuf")
             }
         )
     }
 
     func testFlatBufferLazyEvaluatorPerformance() throws {
-        print("📦 4. Testing Swift Struct Evaluator (Lazy FlatBuffer)...")
+        NSLog("📦 4. Testing Swift Struct Evaluator (Lazy FlatBuffer)...")
         try testEvaluatorPerformance(
             evaluatorName: "Lazy FlatBuffer",
             setupBlock: {
@@ -207,12 +207,12 @@ final class MultiwayLoadTest: XCTestCase {
     }
 
     func testFlatBufferPrewarmedEvaluatorPerformance() throws {
-        print("📦 5. Testing Swift Struct Evaluator (FlatBuffer init)...")
+        NSLog("📦 5. Testing Swift Struct Evaluator (FlatBuffer init)...")
         try testEvaluatorPerformance(
             evaluatorName: "FlatBuffer init",
             setupBlock: {
                 let flatBufferData = try self.loadFlatBufferData()
-                print("   🔄 Pre-converting flags to UFC objects...")
+                NSLog("   🔄 Pre-converting flags to UFC objects...")
                 let startTime = CFAbsoluteTimeGetCurrent()
                 let client = try SwiftStructFromFlatBufferClient(
                     sdkKey: "flatbuffer-prewarmed-test-key",
@@ -222,14 +222,14 @@ final class MultiwayLoadTest: XCTestCase {
                     prewarmCache: true
                 )
                 let startupTime = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
-                print("   ✅ Pre-converted flags successfully")
+                NSLog("   ✅ Pre-converted flags successfully")
                 return (client, startupTime, "swift structs populated from FlatBuffer")
             }
         )
     }
 
     func testNativeProtobufLazyEvaluatorPerformance() throws {
-        print("📦 6. Testing Native Protobuf Evaluator (Lazy)...")
+        NSLog("📦 6. Testing Native Protobuf Evaluator (Lazy)...")
         try testEvaluatorPerformance(
             evaluatorName: "Native PB Lazy",
             setupBlock: {
@@ -249,12 +249,12 @@ final class MultiwayLoadTest: XCTestCase {
     }
 
     func testNativeProtobufPrewarmedEvaluatorPerformance() throws {
-        print("📦 7. Testing Native Protobuf Evaluator (Prewarmed)...")
+        NSLog("📦 7. Testing Native Protobuf Evaluator (Prewarmed)...")
         try testEvaluatorPerformance(
             evaluatorName: "Native PB Prewarmed",
             setupBlock: {
                 let protobufData = try self.loadProtobufData()
-                print("   🔄 Pre-parsed protobuf config...")
+                NSLog("   🔄 Pre-parsed protobuf config...")
                 let startTime = CFAbsoluteTimeGetCurrent()
                 let client = try NativeProtobufClient(
                     sdkKey: "native-protobuf-prewarmed-test-key",
@@ -270,7 +270,7 @@ final class MultiwayLoadTest: XCTestCase {
     }
 
     func testNativeFlatBufferNoIndexEvaluatorPerformance() throws {
-        print("📦 8. Testing Native FlatBuffer Evaluator (No Index)...")
+        NSLog("📦 8. Testing Native FlatBuffer Evaluator (No Index)...")
         try testEvaluatorPerformance(
             evaluatorName: "Native FB No Index",
             setupBlock: {
@@ -290,7 +290,7 @@ final class MultiwayLoadTest: XCTestCase {
     }
 
     func testNativeFlatBufferWithIndexEvaluatorPerformance() throws {
-        print("📦 9. Testing Native FlatBuffer Evaluator (With Index)...")
+        NSLog("📦 9. Testing Native FlatBuffer Evaluator (With Index)...")
         try testEvaluatorPerformance(
             evaluatorName: "Native FB With Index",
             setupBlock: {
@@ -312,45 +312,45 @@ final class MultiwayLoadTest: XCTestCase {
     // MARK: - Performance Comparison Test
 
     func testZZZPerformanceComparison() throws {
-        print("\n" + String(repeating: "=", count: 60))
-        print("🏆 CROSS-EVALUATOR PERFORMANCE COMPARISON")
-        print(String(repeating: "=", count: 60))
+        NSLog("\n" + String(repeating: "=", count: 60))
+        NSLog("🏆 CROSS-EVALUATOR PERFORMANCE COMPARISON")
+        NSLog(String(repeating: "=", count: 60))
 
         let allResults = Self.getAllResults()
 
         guard !allResults.isEmpty else {
-            print("⚠️  No individual test results found. Run individual evaluator tests first.")
+            NSLog("⚠️  No individual test results found. Run individual evaluator tests first.")
             return
         }
 
-        print("📊 Results Summary:")
+        NSLog("📊 Results Summary:")
         for (evaluator, result) in allResults.sorted(by: { $0.key < $1.key }) {
-            print("   • \(evaluator): \(formatNumber(Int(result.startupMs)))ms startup, \(formatNumber(Int(result.evalsPerSec))) evals/sec")
+            NSLog("   • \(evaluator): \(formatNumber(Int(result.startupMs)))ms startup, \(formatNumber(Int(result.evalsPerSec))) evals/sec")
         }
 
         // Fastest Startup Analysis
-        print("\n⚡ STARTUP SPEED RANKINGS:")
+        NSLog("\n⚡ STARTUP SPEED RANKINGS:")
         let sortedByStartup = allResults.sorted { $0.value.startupMs < $1.value.startupMs }
         for (index, (evaluator, result)) in sortedByStartup.enumerated() {
             let rank = index + 1
-            print("   \(rank). \(evaluator): \(formatNumber(Int(result.startupMs)))ms")
+            NSLog("   \(rank). \(evaluator): \(formatNumber(Int(result.startupMs)))ms")
         }
 
         // Fastest Evaluation Analysis
-        print("\n🚀 EVALUATION SPEED RANKINGS:")
+        NSLog("\n🚀 EVALUATION SPEED RANKINGS:")
         let sortedBySpeed = allResults.sorted { $0.value.evalsPerSec > $1.value.evalsPerSec }
         for (index, (evaluator, result)) in sortedBySpeed.enumerated() {
             let rank = index + 1
-            print("   \(rank). \(evaluator): \(formatNumber(Int(result.evalsPerSec))) evals/sec")
+            NSLog("   \(rank). \(evaluator): \(formatNumber(Int(result.evalsPerSec))) evals/sec")
         }
 
         // Baseline Comparisons
         if let jsonResult = allResults["JSON"] {
-            print("\n📈 SPEEDUP vs JSON BASELINE:")
+            NSLog("\n📈 SPEEDUP vs JSON BASELINE:")
             for (evaluator, result) in allResults.sorted(by: { $0.value.evalsPerSec > $1.value.evalsPerSec }) {
                 let startupSpeedup = jsonResult.startupMs / result.startupMs
                 let evalSpeedup = result.evalsPerSec / jsonResult.evalsPerSec
-                print("   • \(evaluator): \(String(format: "%.1f", startupSpeedup))x startup, \(String(format: "%.1f", evalSpeedup))x evaluation")
+                NSLog("   • \(evaluator): \(String(format: "%.1f", startupSpeedup))x startup, \(String(format: "%.1f", evalSpeedup))x evaluation")
             }
         }
 
@@ -364,25 +364,25 @@ final class MultiwayLoadTest: XCTestCase {
             let avgSwiftStartup = swiftStructEvaluators.values.map { $0.startupMs }.reduce(0, +) / Double(swiftStructEvaluators.count)
             let avgSwiftEvals = swiftStructEvaluators.values.map { $0.evalsPerSec }.reduce(0, +) / Double(swiftStructEvaluators.count)
 
-            print("\n🥊 NATIVE vs SWIFT STRUCT AVERAGES:")
-            print("   Native Avg: \(formatNumber(Int(avgNativeStartup)))ms startup, \(formatNumber(Int(avgNativeEvals))) evals/sec")
-            print("   Swift Avg:  \(formatNumber(Int(avgSwiftStartup)))ms startup, \(formatNumber(Int(avgSwiftEvals))) evals/sec")
-            print("   Native wins by: \(String(format: "%.1f", avgSwiftStartup/avgNativeStartup))x startup, \(String(format: "%.1f", avgNativeEvals/avgSwiftEvals))x evaluation")
+            NSLog("\n🥊 NATIVE vs SWIFT STRUCT AVERAGES:")
+            NSLog("   Native Avg: \(formatNumber(Int(avgNativeStartup)))ms startup, \(formatNumber(Int(avgNativeEvals))) evals/sec")
+            NSLog("   Swift Avg:  \(formatNumber(Int(avgSwiftStartup)))ms startup, \(formatNumber(Int(avgSwiftEvals))) evals/sec")
+            NSLog("   Native wins by: \(String(format: "%.1f", avgSwiftStartup/avgNativeStartup))x startup, \(String(format: "%.1f", avgNativeEvals/avgSwiftEvals))x evaluation")
         }
 
         // FlatBuffer Analysis
         if let fbNoIndex = allResults["Native FB No Index"],
            let fbWithIndex = allResults["Native FB With Index"] {
-            print("\n📦 FLATBUFFER INDEX ANALYSIS:")
+            NSLog("\n📦 FLATBUFFER INDEX ANALYSIS:")
             let indexBuildCost = fbWithIndex.startupMs - fbNoIndex.startupMs
             let indexSpeedGain = fbWithIndex.evalsPerSec / fbNoIndex.evalsPerSec
-            print("   Index Build Cost: +\(formatNumber(Int(indexBuildCost)))ms")
-            print("   Index Speed Gain: \(String(format: "%.1f", indexSpeedGain))x faster evaluation")
-            print("   Trade-off: Pay \(formatNumber(Int(indexBuildCost)))ms once for \(String(format: "%.1f", indexSpeedGain))x ongoing performance")
+            NSLog("   Index Build Cost: +\(formatNumber(Int(indexBuildCost)))ms")
+            NSLog("   Index Speed Gain: \(String(format: "%.1f", indexSpeedGain))x faster evaluation")
+            NSLog("   Trade-off: Pay \(formatNumber(Int(indexBuildCost)))ms once for \(String(format: "%.1f", indexSpeedGain))x ongoing performance")
         }
 
-        print("\n✅ Performance comparison completed!")
-        print("💾 Memory benefit: Each test ran in isolation with automatic cleanup between tests")
+        NSLog("\n✅ Performance comparison completed!")
+        NSLog("💾 Memory benefit: Each test ran in isolation with automatic cleanup between tests")
     }
 
     // MARK: - DRY Helper Functions
@@ -395,11 +395,11 @@ final class MultiwayLoadTest: XCTestCase {
         let (client, startupTime, description) = try setupBlock()
 
         // Print performance characteristics and benefits
-        print("\n" + String(repeating: "─", count: 80))
-        print(client.getPerformanceDescription())
-        print(String(repeating: "─", count: 80))
+        NSLog("\n" + String(repeating: "─", count: 80))
+        NSLog(client.getPerformanceDescription())
+        NSLog(String(repeating: "─", count: 80))
 
-        print("   ⚡ Startup: \(formatNumber(Int(startupTime)))ms (\(description))")
+        NSLog("   ⚡ Startup: \(formatNumber(Int(startupTime)))ms (\(description))")
 
         // Run evaluation benchmark
         let results = try performEvaluationBenchmark(client: client, clientName: evaluatorName)
@@ -407,7 +407,7 @@ final class MultiwayLoadTest: XCTestCase {
         // Performance assertions
         XCTAssertGreaterThan(results.evalsPerSec, 100, "\(evaluatorName) should handle at least 100 evaluations per second")
 
-        print("   ✅ \(evaluatorName) test completed: \(formatNumber(Int(startupTime)))ms startup, \(formatNumber(Int(results.evalsPerSec))) evals/sec")
+        NSLog("   ✅ \(evaluatorName) test completed: \(formatNumber(Int(startupTime)))ms startup, \(formatNumber(Int(results.evalsPerSec))) evals/sec")
 
         // Store results for cross-test comparison
         Self.storeResult(evaluator: evaluatorName, startupMs: startupTime, evalsPerSec: results.evalsPerSec)
@@ -465,9 +465,9 @@ final class MultiwayLoadTest: XCTestCase {
         // Run through the test data multiple times to measure cached performance
         for iteration in 1...BENCHMARK_ITERATIONS {
             if iteration == 1 {
-                print("   🔥 First iteration (warming up caches/parsing)...")
+                NSLog("   🔥 First iteration (warming up caches/parsing)...")
             } else {
-                print("   💨 Iteration \(iteration) (cached performance)...")
+                NSLog("   💨 Iteration \(iteration) (cached performance)...")
             }
 
             let iterationStart = CFAbsoluteTimeGetCurrent()
@@ -540,12 +540,12 @@ final class MultiwayLoadTest: XCTestCase {
 
             let iterationTime = (CFAbsoluteTimeGetCurrent() - iterationStart) * 1000
             let iterationEvalsPerSec = Double(iterationEvalCount) / (iterationTime / 1000.0)
-            print("      -> \(formatNumber(iterationEvalCount)) evals in \(formatNumber(Int(iterationTime)))ms = \(formatNumber(Int(iterationEvalsPerSec))) evals/sec")
+            NSLog("      -> \(formatNumber(iterationEvalCount)) evals in \(formatNumber(Int(iterationTime)))ms = \(formatNumber(Int(iterationEvalsPerSec))) evals/sec")
         }
 
         let evalTime = (CFAbsoluteTimeGetCurrent() - evalStart) * 1000
         let evalsPerSec = Double(evaluationCount) / (evalTime / 1000.0)
-        print("   🏁 \(clientName) TOTAL: \(formatNumber(Int(evalsPerSec))) evals/sec (\(formatNumber(evaluationCount)) evals in \(formatNumber(Int(evalTime)))ms over \(BENCHMARK_ITERATIONS) iterations)")
+        NSLog("   🏁 \(clientName) TOTAL: \(formatNumber(Int(evalsPerSec))) evals/sec (\(formatNumber(evaluationCount)) evals in \(formatNumber(Int(evalTime)))ms over \(BENCHMARK_ITERATIONS) iterations)")
 
         return (evaluationCount, evalTime, evalsPerSec)
     }
