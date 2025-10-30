@@ -88,6 +88,21 @@ public class LazyFlatBufferRuleEvaluator {
         return flagTypeCache[flagKey]
     }
 
+    // Prewarm all flags - convert all FlatBuffer flags to Swift structs upfront
+    func prewarmAllFlags() throws {
+        print("   🔄 Pre-converting \(flagTypeCache.count) FlatBuffer flags to UFC objects...")
+
+        var convertedCount = 0
+        for flagKey in flagTypeCache.keys {
+            // Force load each flag to populate the cache
+            if let _ = getOrLoadFlag(flagKey: flagKey) {
+                convertedCount += 1
+            }
+        }
+
+        print("   ✅ Pre-converted \(convertedCount) FlatBuffer flags successfully")
+    }
+
     // MARK: - Private Methods
 
     private func getOrLoadFlag(flagKey: String) -> UFC_Flag? {

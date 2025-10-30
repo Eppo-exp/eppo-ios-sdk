@@ -14,30 +14,32 @@ protocol AssignmentClient {
 // Extend EppoClient to conform to the protocol
 extension EppoClient: AssignmentClient {}
 
-// Extend ProtobufLazyClient to conform to the protocol
-extension ProtobufLazyClient: AssignmentClient {}
+// Extend ProtobufClient to conform to the protocol
+extension ProtobufClient: AssignmentClient {}
 
-// Extend PurePBClient to conform to the protocol
-extension PurePBClient: AssignmentClient {}
+// Extend LazyFlatBufferClient to conform to the protocol
+extension LazyFlatBufferClient: AssignmentClient {}
 
 /**
  * Swift Struct Evaluator Performance Benchmark
- * Tests startup time and evaluation performance comparing JSON init, lazy PB, and protobuf init
+ * Tests startup time and evaluation performance comparing JSON init, lazy PB, protobuf init, and FlatBuffer init
  */
 final class MultiwayLoadTest: XCTestCase {
 
     func testSwiftStructEvaluatorPerformance() throws {
         print("🚀 Swift Struct Evaluator Performance Benchmark")
         print("🎯 Dataset: flags-10000 (large scale)")
-        print("📋 Modes: JSON init (baseline), Lazy PB, Protobuf init (pre-converted)")
+        print("📋 Modes: JSON init (baseline), Lazy PB, Protobuf init, FlatBuffer init")
 
         // Load test data
         let jsonData = try loadTestDataFile("flags-10000.json")
         let protobufData = try loadTestDataFile("flags-10000.pb")
+        let flatBufferData = try loadTestDataFile("flags-10000.flatbuf")
 
         print("\n📁 Data file sizes:")
         print("   📄 JSON: \(ByteCountFormatter.string(fromByteCount: Int64(jsonData.count), countStyle: .binary))")
         print("   🧠 Protobuf: \(ByteCountFormatter.string(fromByteCount: Int64(protobufData.count), countStyle: .binary))")
+        print("   📦 FlatBuffer: \(ByteCountFormatter.string(fromByteCount: Int64(flatBufferData.count), countStyle: .binary))")
 
         // === SWIFT STRUCT EVALUATOR (JSON INIT) BENCHMARK ===
         print("\n📦 1. Benchmarking Swift Struct Evaluator (JSON init)...")
@@ -52,7 +54,7 @@ final class MultiwayLoadTest: XCTestCase {
 
         let jsonStartupTime = (CFAbsoluteTimeGetCurrent() - jsonStartTime) * 1000
         let jsonFlagCount = configuration.flagsConfiguration.flags.count
-        print("   ⚡ Swift Struct Evaluator (JSON init) startup: \(Int(jsonStartupTime))ms (\(jsonFlagCount) flags)")
+        print("   ⚡ Startup: \(Int(jsonStartupTime))ms (swift structs populated from JSON - \(jsonFlagCount) flags)")
 
         // Swift Struct Evaluator (JSON init) Evaluation Performance
         let jsonResults = try performEvaluationBenchmark(client: jsonClient, clientName: "Swift Struct Evaluator (JSON init)")
@@ -68,15 +70,16 @@ final class MultiwayLoadTest: XCTestCase {
         print("\n📦 2. Benchmarking Swift Struct Evaluator (Lazy PB)...")
         let protobufStartTime = CFAbsoluteTimeGetCurrent()
 
-        let lazyProtobufClient = try ProtobufLazyClient(
+        let lazyProtobufClient = try ProtobufClient(
             sdkKey: "protobuf-test",
             protobufData: protobufData,
             obfuscated: false,
-            assignmentLogger: nil
+            assignmentLogger: nil,
+            prewarmCache: false
         )
 
         let protobufStartupTime = (CFAbsoluteTimeGetCurrent() - protobufStartTime) * 1000
-        print("   ⚡ Swift Struct Evaluator (Lazy PB) startup: \(Int(protobufStartupTime))ms")
+        print("   ⚡ Startup: \(Int(protobufStartupTime))ms (protobuf parsed only - lazy swift struct conversion)")
 
         // Swift Struct Evaluator (Lazy PB) Evaluation Performance
         let protobufResults = try performEvaluationBenchmark(client: lazyProtobufClient, clientName: "Swift Struct Evaluator (Lazy PB)")
@@ -90,15 +93,16 @@ final class MultiwayLoadTest: XCTestCase {
         print("\n📦 3. Benchmarking Swift Struct Evaluator (Protobuf init)...")
         let pureProtobufStartTime = CFAbsoluteTimeGetCurrent()
 
-        let pureProtobufClient = try PurePBClient(
+        let pureProtobufClient = try ProtobufClient(
             sdkKey: "protobuf-init-test",
             protobufData: protobufData,
             obfuscated: false,
-            assignmentLogger: nil
+            assignmentLogger: nil,
+            prewarmCache: true
         )
 
         let pureProtobufStartupTime = (CFAbsoluteTimeGetCurrent() - pureProtobufStartTime) * 1000
-        print("   ⚡ Swift Struct Evaluator (Protobuf init) startup: \(Int(pureProtobufStartupTime))ms")
+        print("   ⚡ Startup: \(Int(pureProtobufStartupTime))ms (swift structs populated from protobuf)")
 
         // Swift Struct Evaluator (Protobuf init) Evaluation Performance
         let pureProtobufResults = try performEvaluationBenchmark(client: pureProtobufClient, clientName: "Swift Struct Evaluator (Protobuf init)")
@@ -108,11 +112,36 @@ final class MultiwayLoadTest: XCTestCase {
         // Allow ARC to cleanup
         _ = pureProtobufClient_temp
 
+        // === SWIFT STRUCT EVALUATOR (FLATBUFFER INIT) BENCHMARK ===
+        print("\n📦 4. Benchmarking Swift Struct Evaluator (FlatBuffer init)...")
+        let flatBufferStartTime = CFAbsoluteTimeGetCurrent()
+
+        let flatBufferClient = try LazyFlatBufferClient(
+            sdkKey: "flatbuffer-init-test",
+            flatBufferData: flatBufferData,
+            obfuscated: false,
+            assignmentLogger: nil,
+            prewarmCache: true
+        )
+
+        let flatBufferStartupTime = (CFAbsoluteTimeGetCurrent() - flatBufferStartTime) * 1000
+        print("   ⚡ Startup: \(Int(flatBufferStartupTime))ms (swift structs populated from FlatBuffer)")
+
+        // Swift Struct Evaluator (FlatBuffer init) Evaluation Performance
+        let flatBufferResults = try performEvaluationBenchmark(client: flatBufferClient, clientName: "Swift Struct Evaluator (FlatBuffer init)")
+
+        // Release FlatBuffer client memory
+        let flatBufferClient_temp = flatBufferClient // Keep reference
+        // Allow ARC to cleanup
+        _ = flatBufferClient_temp
+
         // === PERFORMANCE COMPARISON ===
         let lazyStartupSpeedup = jsonStartupTime / protobufStartupTime
         let pureStartupSpeedup = jsonStartupTime / pureProtobufStartupTime
+        let flatBufferStartupSpeedup = jsonStartupTime / flatBufferStartupTime
         let lazyEvaluationSpeedRatio = protobufResults.evalsPerSec / jsonResults.evalsPerSec
         let pureEvaluationSpeedRatio = pureProtobufResults.evalsPerSec / jsonResults.evalsPerSec
+        let flatBufferEvaluationSpeedRatio = flatBufferResults.evalsPerSec / jsonResults.evalsPerSec
 
         print("\n🏆 PERFORMANCE RESULTS:")
         print("═══════════════════════════════════════════════")
@@ -128,23 +157,32 @@ final class MultiwayLoadTest: XCTestCase {
         print("   🎯 Startup: \(Int(pureProtobufStartupTime))ms")
         print("   🚀 Evaluation: \(Int(pureProtobufResults.evalsPerSec)) evals/sec")
 
+        print("📊 Swift Struct Evaluator (FlatBuffer init):")
+        print("   🎯 Startup: \(Int(flatBufferStartupTime))ms")
+        print("   🚀 Evaluation: \(Int(flatBufferResults.evalsPerSec)) evals/sec")
+
         print("\n🏁 COMPARISON (vs JSON init baseline):")
         print("   ⚡ Startup Performance:")
         print("      🧠 Lazy PB: \(String(format: "%.1f", lazyStartupSpeedup))x faster")
         print("      🚀 Protobuf init: \(String(format: "%.1f", pureStartupSpeedup))x faster")
+        print("      📦 FlatBuffer init: \(String(format: "%.1f", flatBufferStartupSpeedup))x faster")
         print("   🚀 Evaluation Performance:")
         print("      🧠 Lazy PB: \(String(format: "%.3f", lazyEvaluationSpeedRatio))x relative speed")
         print("      🚀 Protobuf init: \(String(format: "%.1f", pureEvaluationSpeedRatio))x relative speed")
+        print("      📦 FlatBuffer init: \(String(format: "%.1f", flatBufferEvaluationSpeedRatio))x relative speed")
 
         print("\n🎯 ARCHITECTURE TRADEOFFS:")
-        print("   📄 JSON init: Slow startup (\(Int(jsonStartupTime))ms), fast evaluation (Swift structs)")
-        print("   🧠 Lazy PB: Fast startup (\(Int(protobufStartupTime))ms), slow evaluation (on-demand conversion)")
-        print("   🚀 Protobuf init: Medium startup (\(Int(pureProtobufStartupTime))ms), fast evaluation (pre-converted Swift structs)")
+        print("   📄 JSON init: Slow startup (\(Int(jsonStartupTime))ms - swift structs populated from JSON), fast evaluation (Swift structs)")
+        print("   🧠 Lazy PB: Fast startup (\(Int(protobufStartupTime))ms - protobuf parsed only), slow evaluation (on-demand conversion)")
+        print("   🚀 Protobuf init: Medium startup (\(Int(pureProtobufStartupTime))ms - swift structs populated from protobuf), fast evaluation (pre-converted Swift structs)")
+        print("   📦 FlatBuffer init: Medium startup (\(Int(flatBufferStartupTime))ms - swift structs populated from FlatBuffer), fast evaluation (pre-converted Swift structs)")
 
         // Performance assertions
         XCTAssertGreaterThan(lazyStartupSpeedup, 1.0, "Lazy Protobuf should have faster startup than JSON")
         XCTAssertGreaterThan(pureStartupSpeedup, 1.0, "Pure Protobuf should have faster startup than JSON")
+        XCTAssertGreaterThan(flatBufferStartupSpeedup, 1.0, "FlatBuffer should have faster startup than JSON")
         XCTAssertGreaterThan(pureEvaluationSpeedRatio, lazyEvaluationSpeedRatio, "Pure Protobuf should evaluate faster than Lazy Protobuf")
+        XCTAssertGreaterThan(flatBufferEvaluationSpeedRatio, lazyEvaluationSpeedRatio, "FlatBuffer should evaluate faster than Lazy Protobuf")
         XCTAssertGreaterThan(jsonResults.evalsPerSec, 100, "JSON should handle at least 100 evaluations per second")
 
         print("\n✅ Performance benchmark completed successfully!")

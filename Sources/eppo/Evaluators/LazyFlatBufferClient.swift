@@ -12,12 +12,17 @@ public class LazyFlatBufferClient {
         sdkKey: String,
         flatBufferData: Data,
         obfuscated: Bool,
-        assignmentLogger: AssignmentLogger?
+        assignmentLogger: AssignmentLogger?,
+        prewarmCache: Bool = false
     ) throws {
         self.sdkKey = sdkKey
         self.lazyEvaluator = try LazyFlatBufferRuleEvaluator(flatBufferData: flatBufferData)
         self.assignmentLogger = assignmentLogger
         self.isObfuscated = obfuscated
+
+        if prewarmCache {
+            try lazyEvaluator.prewarmAllFlags()
+        }
     }
 
     // MARK: - Assignment Methods

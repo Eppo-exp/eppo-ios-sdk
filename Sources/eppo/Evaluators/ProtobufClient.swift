@@ -1,10 +1,10 @@
 import Foundation
 import SwiftProtobuf
 
-public class ProtobufLazyClient {
+public class ProtobufClient {
     public typealias AssignmentLogger = (Assignment) -> Void
 
-    private let lazyEvaluator: ProtobufLazyEvaluator
+    private let evaluator: ProtobufEvaluator
     private let assignmentLogger: AssignmentLogger?
     private let isObfuscated: Bool
     private let sdkKey: String
@@ -13,10 +13,11 @@ public class ProtobufLazyClient {
         sdkKey: String,
         protobufData: Data,
         obfuscated: Bool,
-        assignmentLogger: AssignmentLogger?
+        assignmentLogger: AssignmentLogger?,
+        prewarmCache: Bool = false
     ) throws {
         self.sdkKey = sdkKey
-        self.lazyEvaluator = try ProtobufLazyEvaluator(protobufData: protobufData)
+        self.evaluator = try ProtobufEvaluator(protobufData: protobufData, prewarmCache: prewarmCache)
         self.assignmentLogger = assignmentLogger
         self.isObfuscated = obfuscated
     }
@@ -29,7 +30,7 @@ public class ProtobufLazyClient {
         subjectAttributes: SubjectAttributes,
         defaultValue: Bool
     ) -> Bool {
-        let evaluation = lazyEvaluator.evaluateFlag(
+        let evaluation = evaluator.evaluateFlag(
             flagKey: flagKey,
             subjectKey: subjectKey,
             subjectAttributes: subjectAttributes,
@@ -67,7 +68,7 @@ public class ProtobufLazyClient {
         subjectAttributes: SubjectAttributes,
         defaultValue: String
     ) -> String {
-        let evaluation = lazyEvaluator.evaluateFlag(
+        let evaluation = evaluator.evaluateFlag(
             flagKey: flagKey,
             subjectKey: subjectKey,
             subjectAttributes: subjectAttributes,
@@ -105,7 +106,7 @@ public class ProtobufLazyClient {
         subjectAttributes: SubjectAttributes,
         defaultValue: Int
     ) -> Int {
-        let evaluation = lazyEvaluator.evaluateFlag(
+        let evaluation = evaluator.evaluateFlag(
             flagKey: flagKey,
             subjectKey: subjectKey,
             subjectAttributes: subjectAttributes,
@@ -151,7 +152,7 @@ public class ProtobufLazyClient {
         subjectAttributes: SubjectAttributes,
         defaultValue: Double
     ) -> Double {
-        let evaluation = lazyEvaluator.evaluateFlag(
+        let evaluation = evaluator.evaluateFlag(
             flagKey: flagKey,
             subjectKey: subjectKey,
             subjectAttributes: subjectAttributes,
@@ -189,7 +190,7 @@ public class ProtobufLazyClient {
         subjectAttributes: SubjectAttributes,
         defaultValue: String
     ) -> String {
-        let evaluation = lazyEvaluator.evaluateFlag(
+        let evaluation = evaluator.evaluateFlag(
             flagKey: flagKey,
             subjectKey: subjectKey,
             subjectAttributes: subjectAttributes,
@@ -223,9 +224,11 @@ public class ProtobufLazyClient {
 
     // MARK: - Benchmark Support
 
-    // REMOVED: getAllFlagKeys() - truly lazy should never scan all flags upfront
+    func getAllFlagKeys() -> [String] {
+        return evaluator.getAllFlagKeys()
+    }
 
     func getFlagVariationType(flagKey: String) -> UFC_VariationType? {
-        return lazyEvaluator.getFlagVariationType(flagKey: flagKey)
+        return evaluator.getFlagVariationType(flagKey: flagKey)
     }
 }
