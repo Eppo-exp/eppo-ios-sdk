@@ -1,35 +1,40 @@
 import Foundation
 import SwiftProtobuf
 
-public class ProtobufLazyEvaluator {
-    private let protobufData: Data
+public class PurePBEvaluator {
     private let flagEvaluator: FlagEvaluator
+
+    // Pre-converted flags stored in memory (not lazy)
+    private let flags: [String: UFC_Flag]
     private let flagTypeCache: [String: UFC_VariationType]
 
-    // Thread-safe cache for lazy-loaded UFC_Flag objects
-    private var flagCache: [String: UFC_Flag] = [:]
-    private let cacheQueue = DispatchQueue(label: "com.eppo.protobuf-lazy-cache", attributes: .concurrent)
-
-    // Parsed protobuf config for efficient access
-    private let universalFlagConfig: Eppo_Ufc_UniversalFlagConfig
-
     init(protobufData: Data) throws {
-        self.protobufData = protobufData
         self.flagEvaluator = FlagEvaluator(sharder: MD5Sharder())
 
         // Parse protobuf once using SwiftProtobuf
-        self.universalFlagConfig = try Eppo_Ufc_UniversalFlagConfig(serializedBytes: protobufData)
+        let universalFlagConfig = try Eppo_Ufc_UniversalFlagConfig(serializedBytes: protobufData)
 
-        // Pre-cache flag variation types for fast lookup during evaluation
+        // Pre-convert ALL flags immediately (not lazy)
+        var convertedFlags: [String: UFC_Flag] = [:]
         var typeCache: [String: UFC_VariationType] = [:]
+
+        print("   🔄 Pre-converting \(universalFlagConfig.flags.count) protobuf flags to UFC objects...")
 
         for protobufFlag in universalFlagConfig.flags {
             let flagKey = protobufFlag.key
             let ufcVariationType = Self.convertProtobufVariationType(protobufFlag.variationType)
-            typeCache[flagKey] = ufcVariationType
+
+            // Convert protobuf flag to UFC_Flag immediately
+            if let ufcFlag = Self.convertProtobufFlag(protobufFlag, variationType: ufcVariationType) {
+                convertedFlags[flagKey] = ufcFlag
+                typeCache[flagKey] = ufcVariationType
+            }
         }
 
+        self.flags = convertedFlags
         self.flagTypeCache = typeCache
+
+        print("   ✅ Pre-converted \(flags.count) flags successfully")
     }
 
     func evaluateFlag(
@@ -39,8 +44,8 @@ public class ProtobufLazyEvaluator {
         isConfigObfuscated: Bool,
         expectedVariationType: UFC_VariationType? = nil
     ) -> FlagEvaluation {
-        // Get or load the flag from cache using lazy hydration
-        guard let ufcFlag = getOrLoadFlag(flagKey: flagKey) else {
+        // Get pre-converted flag (no lazy loading)
+        guard let ufcFlag = flags[flagKey] else {
             return FlagEvaluation.noneResult(
                 flagKey: flagKey,
                 subjectKey: subjectKey,
@@ -50,7 +55,7 @@ public class ProtobufLazyEvaluator {
             )
         }
 
-        // Use the existing flag evaluation logic with the hydrated UFC_Flag
+        // Use the existing flag evaluation logic with the pre-converted UFC_Flag
         let result = flagEvaluator.evaluateFlag(
             flag: ufcFlag,
             subjectKey: subjectKey,
@@ -147,67 +152,31 @@ public class ProtobufLazyEvaluator {
         }
     }
 
-    private func getOrLoadFlag(flagKey: String) -> UFC_Flag? {
-        // Try to get from cache first (concurrent read)
-        let cachedFlag = cacheQueue.sync {
-            return flagCache[flagKey]
-        }
-
-        if let flag = cachedFlag {
-            return flag
-        }
-
-        // Not in cache, load it with a barrier write
-        return cacheQueue.sync(flags: .barrier) {
-            // Double-check after acquiring write lock
-            if let cachedFlag = flagCache[flagKey] {
-                return cachedFlag
-            }
-
-            // Load from protobuf and convert to UFC_Flag
-            guard let ufcFlag = convertProtobufFlag(flagKey: flagKey) else {
-                return nil
-            }
-
-            // Cache the converted flag
-            flagCache[flagKey] = ufcFlag
-            return ufcFlag
-        }
-    }
-
-    private func convertProtobufFlag(flagKey: String) -> UFC_Flag? {
-        // Find protobuf flag by key (flags are sorted for fast lookup)
-        guard let protobufFlag = universalFlagConfig.flags.first(where: { $0.key == flagKey }) else {
-            return nil
-        }
-
+    private static func convertProtobufFlag(_ protobufFlag: Eppo_Ufc_Flag, variationType: UFC_VariationType) -> UFC_Flag? {
         // Convert basic properties
+        let flagKey = protobufFlag.key
         let enabled = protobufFlag.enabled
-        let variationType = Self.convertProtobufVariationType(protobufFlag.variationType)
 
         // Convert variations
         var variations: [String: UFC_Variation] = [:]
         for protobufVariation in protobufFlag.variations {
             let variationKey = protobufVariation.key
-            let eppoValue = convertProtobufValue(protobufVariation.value, variationType: variationType)
-
+            let eppoValue = Self.convertProtobufValue(protobufVariation.value, variationType: variationType)
 
             variations[variationKey] = UFC_Variation(key: variationKey, value: eppoValue)
         }
-
 
         // Convert allocations
         var allocations: [UFC_Allocation] = []
         for protobufAllocation in protobufFlag.allocations {
             let allocationKey = protobufAllocation.key
 
-
             // Convert rules
             var rules: [UFC_Rule]? = nil
             if !protobufAllocation.rules.isEmpty {
                 var rulesList: [UFC_Rule] = []
                 for protobufRule in protobufAllocation.rules {
-                    if let ufcRule = convertProtobufRule(protobufRule) {
+                    if let ufcRule = Self.convertProtobufRule(protobufRule) {
                         rulesList.append(ufcRule)
                     }
                 }
@@ -219,7 +188,6 @@ public class ProtobufLazyEvaluator {
             for protobufSplit in protobufAllocation.splits {
                 let splitVariationKey = protobufSplit.variationKey
 
-
                 // Convert shards
                 var shards: [UFC_Shard] = []
                 for protobufShard in protobufSplit.shards {
@@ -230,7 +198,6 @@ public class ProtobufLazyEvaluator {
                     for protobufRange in protobufShard.ranges {
                         ranges.append(UFC_Range(start: Int(protobufRange.start), end: Int(protobufRange.end)))
                     }
-
 
                     shards.append(UFC_Shard(salt: salt, ranges: ranges))
                 }
@@ -273,29 +240,28 @@ public class ProtobufLazyEvaluator {
         )
     }
 
-    private func convertProtobufRule(_ protobufRule: Eppo_Ufc_Rule) -> UFC_Rule? {
+    private static func convertProtobufRule(_ protobufRule: Eppo_Ufc_Rule) -> UFC_Rule? {
         var conditions: [UFC_TargetingRuleCondition] = []
 
         for protobufCondition in protobufRule.conditions {
             let attribute = protobufCondition.attribute
-            let operatorEnum = convertProtobufOperatorType(protobufCondition.operator)
-
+            let operatorEnum = Self.convertProtobufOperatorType(protobufCondition.operator)
 
             // Convert value to EppoValue based on operator type
             let conditionValue: EppoValue
             switch operatorEnum {
             case .oneOf, .notOneOf:
                 // For array values
-                conditionValue = convertProtobufValue(protobufCondition.value, isArray: true)
+                conditionValue = Self.convertProtobufValue(protobufCondition.value, isArray: true)
             case .greaterThanEqual, .greaterThan, .lessThanEqual, .lessThan:
                 // For comparison operators, preserve string or numeric values
-                conditionValue = convertProtobufValue(protobufCondition.value, isArray: false)
+                conditionValue = Self.convertProtobufValue(protobufCondition.value, isArray: false)
             case .isNull:
                 // For null checks, expect boolean value
-                conditionValue = convertProtobufValue(protobufCondition.value, isArray: false)
+                conditionValue = Self.convertProtobufValue(protobufCondition.value, isArray: false)
             case .matches, .notMatches:
                 // For regex, expect string value
-                conditionValue = convertProtobufValue(protobufCondition.value, isArray: false)
+                conditionValue = Self.convertProtobufValue(protobufCondition.value, isArray: false)
             }
 
             conditions.append(UFC_TargetingRuleCondition(
@@ -319,7 +285,7 @@ public class ProtobufLazyEvaluator {
         }
     }
 
-    private func convertProtobufOperatorType(_ protobufOperator: Eppo_Ufc_OperatorType) -> UFC_RuleConditionOperator {
+    private static func convertProtobufOperatorType(_ protobufOperator: Eppo_Ufc_OperatorType) -> UFC_RuleConditionOperator {
         switch protobufOperator {
         case .matches: return .matches
         case .notMatches: return .notMatches
@@ -334,7 +300,7 @@ public class ProtobufLazyEvaluator {
         }
     }
 
-    private func convertProtobufValue(_ protobufValue: String, variationType: UFC_VariationType? = nil, isArray: Bool = false) -> EppoValue {
+    private static func convertProtobufValue(_ protobufValue: String, variationType: UFC_VariationType? = nil, isArray: Bool = false) -> EppoValue {
         if isArray {
             // Parse as JSON array for oneOf/notOneOf operators
             if let data = protobufValue.data(using: .utf8),
