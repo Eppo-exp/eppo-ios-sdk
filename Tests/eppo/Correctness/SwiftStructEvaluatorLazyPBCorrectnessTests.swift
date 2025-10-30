@@ -7,7 +7,7 @@ import SwiftProtobuf
 
 // Data structures are defined in UFCTestDataStructures.swift
 
-final class ProtobufLazyCorrectnessTests: XCTestCase {
+final class SwiftStructEvaluatorLazyPBCorrectnessTests: XCTestCase {
     var configurationStore: ConfigurationStore!
     var eppoClient: ProtobufLazyClient!
     let testStart = Date()
