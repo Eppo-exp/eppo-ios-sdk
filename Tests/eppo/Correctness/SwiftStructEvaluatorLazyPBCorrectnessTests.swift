@@ -9,7 +9,7 @@ import SwiftProtobuf
 
 final class SwiftStructEvaluatorLazyPBCorrectnessTests: XCTestCase {
     var configurationStore: ConfigurationStore!
-    var eppoClient: ProtobufClient!
+    var eppoClient: SwiftStructFromProtobufClient!
     let testStart = Date()
     var UFCTestJSON: Data!
     
@@ -28,7 +28,7 @@ final class SwiftStructEvaluatorLazyPBCorrectnessTests: XCTestCase {
         let protobufData = try Data(contentsOf: fileURL)
         
         // Create protobuf lazy client
-        eppoClient = try ProtobufClient(
+        eppoClient = try SwiftStructFromProtobufClient(
             sdkKey: "protobuf-lazy-test-key",
             protobufData: protobufData,
             obfuscated: false,
@@ -179,7 +179,7 @@ final class SwiftStructEvaluatorLazyPBCorrectnessTests: XCTestCase {
 
 final class SwiftStructEvaluatorPrewarmedPBCorrectnessTests: XCTestCase {
     var configurationStore: ConfigurationStore!
-    var eppoClient: ProtobufClient!
+    var eppoClient: SwiftStructFromProtobufClient!
     let testStart = Date()
     var UFCTestJSON: Data!
 
@@ -198,7 +198,7 @@ final class SwiftStructEvaluatorPrewarmedPBCorrectnessTests: XCTestCase {
         let protobufData = try Data(contentsOf: fileURL)
 
         // Create protobuf prewarmed client
-        eppoClient = try ProtobufClient(
+        eppoClient = try SwiftStructFromProtobufClient(
             sdkKey: "protobuf-prewarmed-test-key",
             protobufData: protobufData,
             obfuscated: false,
@@ -300,7 +300,7 @@ final class SwiftStructEvaluatorPrewarmedPBCorrectnessTests: XCTestCase {
                     )
                     // For JSON values, we need to handle nil variations
                     if subject.assignment.value is NSNull {
-                        // ProtobufClient returns empty string for null assignments
+                        // SwiftStructFromProtobufClient returns empty string for null assignments
                         XCTAssertEqual(result, "")
                     } else if let expectedDict = subject.assignment.value as? [String: Any] {
                         // Convert dictionary to JSON string for comparison

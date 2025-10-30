@@ -1,51 +1,63 @@
 import Foundation
 import FlatBuffers
 
-public class LazyFlatBufferRuleEvaluator {
+public class LazyFlatBufferRuleEvaluator: SwiftStructEvaluatorProtocol {
     private let ufcRoot: Eppo_UFC_UniversalFlagConfig
     private let flagEvaluator: FlagEvaluator
-    private let flagTypeCache: [String: UFC_VariationType]
+    public let isPrewarmed: Bool
 
-    // Thread-safe cache for lazy-loaded UFC_Flag objects
-    private var flagCache: [String: UFC_Flag] = [:]
+    // For prewarmed mode - all flags and types pre-cached
+    private let prewarmedFlagTypeCache: [String: UFC_VariationType]
+
+    // For lazy mode - flags and types loaded on-demand
+    public var flagCache: [String: UFC_Flag] = [:]
+    public var flagTypeCache: [String: UFC_VariationType] = [:]
+    public let cacheLock = NSLock()
     private let cacheQueue = DispatchQueue(label: "com.eppo.lazy-flatbuffer-cache", attributes: .concurrent)
 
-    init(flatBufferData: Data) throws {
+    init(flatBufferData: Data, prewarmCache: Bool = false) throws {
         let buffer = ByteBuffer(data: flatBufferData)
         self.ufcRoot = Eppo_UFC_UniversalFlagConfig(buffer, o: Int32(buffer.read(def: UOffset.self, position: buffer.reader)) + Int32(buffer.reader))
+        self.isPrewarmed = prewarmCache
 
         // Create evaluator with MD5 sharder (same as JSON mode)
         self.flagEvaluator = FlagEvaluator(sharder: MD5Sharder())
 
-        // Pre-cache flag variation types for fast lookup during evaluation
-        var typeCache: [String: UFC_VariationType] = [:]
-        let flagsCount = ufcRoot.flagsCount
-        for i in 0..<flagsCount {
-            if let flagEntry = ufcRoot.flags(at: i),
-               let flag = flagEntry.flag,
-               let key = flag.key {
-                switch flag.variationType {
-                case .boolean:
-                    typeCache[key] = .boolean
-                case .integer:
-                    typeCache[key] = .integer
-                case .numeric:
-                    typeCache[key] = .numeric
-                case .string:
-                    typeCache[key] = .string
-                case .json:
-                    typeCache[key] = .json
+        if prewarmCache {
+            // Prewarm mode - pre-cache flag variation types for fast lookup during evaluation
+            var typeCache: [String: UFC_VariationType] = [:]
+            let flagsCount = ufcRoot.flagsCount
+            for i in 0..<flagsCount {
+                if let flagEntry = ufcRoot.flags(at: i),
+                   let flag = flagEntry.flag,
+                   let key = flag.key {
+                    switch flag.variationType {
+                    case .boolean:
+                        typeCache[key] = .boolean
+                    case .integer:
+                        typeCache[key] = .integer
+                    case .numeric:
+                        typeCache[key] = .numeric
+                    case .string:
+                        typeCache[key] = .string
+                    case .json:
+                        typeCache[key] = .json
+                    }
                 }
             }
+            self.prewarmedFlagTypeCache = typeCache
+        } else {
+            // Lazy mode - no upfront scanning
+            self.prewarmedFlagTypeCache = [:]
         }
-        self.flagTypeCache = typeCache
     }
 
-    func evaluateFlag(
+    public func evaluateFlag(
         flagKey: String,
         subjectKey: String,
         subjectAttributes: SubjectAttributes,
-        isConfigObfuscated: Bool
+        isConfigObfuscated: Bool,
+        expectedVariationType: UFC_VariationType? = nil
     ) -> FlagEvaluation {
         // Get or load the flag from cache using lazy hydration
         guard let ufcFlag = getOrLoadFlag(flagKey: flagKey) else {
@@ -79,33 +91,67 @@ public class LazyFlatBufferRuleEvaluator {
     }
 
     // Get all flag keys for benchmark
-    func getAllFlagKeys() -> [String] {
-        return Array(flagTypeCache.keys)
+    public func getAllFlagKeys() -> [String] {
+        if isPrewarmed {
+            return Array(prewarmedFlagTypeCache.keys)
+        } else {
+            // For lazy mode, scan all flags (only for benchmark purposes)
+            var allKeys: [String] = []
+            let flagsCount = ufcRoot.flagsCount
+            for i in 0..<flagsCount {
+                if let flagEntry = ufcRoot.flags(at: i),
+                   let flag = flagEntry.flag,
+                   let key = flag.key {
+                    allKeys.append(key)
+                }
+            }
+            return allKeys
+        }
     }
 
     // Get flag variation type for benchmark
-    func getFlagVariationType(flagKey: String) -> UFC_VariationType? {
-        return flagTypeCache[flagKey]
-    }
+    public func getFlagVariationType(flagKey: String) -> UFC_VariationType? {
+        if isPrewarmed {
+            return prewarmedFlagTypeCache[flagKey]
+        } else {
+            // Lazy lookup with caching
+            return cacheQueue.sync {
+                if let cachedType = flagTypeCache[flagKey] {
+                    return cachedType
+                }
 
-    // Prewarm all flags - convert all FlatBuffer flags to Swift structs upfront
-    func prewarmAllFlags() throws {
-        print("   🔄 Pre-converting \(flagTypeCache.count) FlatBuffer flags to UFC objects...")
-
-        var convertedCount = 0
-        for flagKey in flagTypeCache.keys {
-            // Force load each flag to populate the cache
-            if let _ = getOrLoadFlag(flagKey: flagKey) {
-                convertedCount += 1
+                // Find and cache the type
+                let flagsCount = ufcRoot.flagsCount
+                for i in 0..<flagsCount {
+                    if let flagEntry = ufcRoot.flags(at: i),
+                       let flag = flagEntry.flag,
+                       let key = flag.key, key == flagKey {
+                        let variationType: UFC_VariationType
+                        switch flag.variationType {
+                        case .boolean:
+                            variationType = .boolean
+                        case .integer:
+                            variationType = .integer
+                        case .numeric:
+                            variationType = .numeric
+                        case .string:
+                            variationType = .string
+                        case .json:
+                            variationType = .json
+                        }
+                        flagTypeCache[flagKey] = variationType
+                        return variationType
+                    }
+                }
+                return nil
             }
         }
-
-        print("   ✅ Pre-converted \(convertedCount) FlatBuffer flags successfully")
     }
+
 
     // MARK: - Private Methods
 
-    private func getOrLoadFlag(flagKey: String) -> UFC_Flag? {
+    public func getOrLoadFlag(flagKey: String) -> UFC_Flag? {
         // Try to get from cache first (concurrent read)
         let cachedFlag = cacheQueue.sync {
             return flagCache[flagKey]
@@ -412,5 +458,44 @@ public class LazyFlatBufferRuleEvaluator {
         }
 
         return Date(timeIntervalSince1970: timeInterval)
+    }
+
+    // MARK: - SwiftStructEvaluatorProtocol Methods
+
+    public func prewarmAllFlags() throws {
+        guard !isPrewarmed else { return } // Already prewarmed during init
+
+        cacheQueue.async(flags: .barrier) {
+            let flagsCount = self.ufcRoot.flagsCount
+            print("   🔄 Pre-converting \(flagsCount) FlatBuffer flags to UFC objects...")
+
+            for i in 0..<flagsCount {
+                guard let flagEntry = self.ufcRoot.flags(at: i),
+                      let flag = flagEntry.flag,
+                      let key = flag.key else {
+                    continue
+                }
+
+                // Convert FlatBuffer flag to UFC_Flag
+                if let ufcFlag = try? self.convertFlatBufferFlagToUFC(flag) {
+                    self.flagCache[key] = ufcFlag
+                    // Also cache the type
+                    switch flag.variationType {
+                    case .boolean:
+                        self.flagTypeCache[key] = .boolean
+                    case .integer:
+                        self.flagTypeCache[key] = .integer
+                    case .numeric:
+                        self.flagTypeCache[key] = .numeric
+                    case .string:
+                        self.flagTypeCache[key] = .string
+                    case .json:
+                        self.flagTypeCache[key] = .json
+                    }
+                }
+            }
+
+            print("   ✅ Pre-converted \(self.flagCache.count) flags successfully")
+        }
     }
 }

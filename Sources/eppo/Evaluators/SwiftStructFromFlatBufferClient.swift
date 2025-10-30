@@ -1,25 +1,28 @@
 import Foundation
-import SwiftProtobuf
 
-public class ProtobufClient {
+public class SwiftStructFromFlatBufferClient {
     public typealias AssignmentLogger = (Assignment) -> Void
 
-    private let evaluator: ProtobufEvaluator
+    private let lazyEvaluator: LazyFlatBufferRuleEvaluator
     private let assignmentLogger: AssignmentLogger?
     private let isObfuscated: Bool
     private let sdkKey: String
 
     public init(
         sdkKey: String,
-        protobufData: Data,
+        flatBufferData: Data,
         obfuscated: Bool,
         assignmentLogger: AssignmentLogger?,
         prewarmCache: Bool = false
     ) throws {
         self.sdkKey = sdkKey
-        self.evaluator = try ProtobufEvaluator(protobufData: protobufData, prewarmCache: prewarmCache)
+        self.lazyEvaluator = try LazyFlatBufferRuleEvaluator(flatBufferData: flatBufferData, prewarmCache: prewarmCache)
         self.assignmentLogger = assignmentLogger
         self.isObfuscated = obfuscated
+
+        if prewarmCache {
+            try lazyEvaluator.prewarmAllFlags()
+        }
     }
 
     // MARK: - Assignment Methods
@@ -30,7 +33,7 @@ public class ProtobufClient {
         subjectAttributes: SubjectAttributes,
         defaultValue: Bool
     ) -> Bool {
-        let evaluation = evaluator.evaluateFlag(
+        let evaluation = lazyEvaluator.evaluateFlag(
             flagKey: flagKey,
             subjectKey: subjectKey,
             subjectAttributes: subjectAttributes,
@@ -68,7 +71,7 @@ public class ProtobufClient {
         subjectAttributes: SubjectAttributes,
         defaultValue: String
     ) -> String {
-        let evaluation = evaluator.evaluateFlag(
+        let evaluation = lazyEvaluator.evaluateFlag(
             flagKey: flagKey,
             subjectKey: subjectKey,
             subjectAttributes: subjectAttributes,
@@ -106,12 +109,11 @@ public class ProtobufClient {
         subjectAttributes: SubjectAttributes,
         defaultValue: Int
     ) -> Int {
-        let evaluation = evaluator.evaluateFlag(
+        let evaluation = lazyEvaluator.evaluateFlag(
             flagKey: flagKey,
             subjectKey: subjectKey,
             subjectAttributes: subjectAttributes,
-            isConfigObfuscated: isObfuscated,
-            expectedVariationType: .integer
+            isConfigObfuscated: isObfuscated
         )
 
         // Log the assignment if logger is available
@@ -126,11 +128,6 @@ public class ProtobufClient {
                 extraLogging: evaluation.extraLogging
             )
             logger(assignment)
-        }
-
-        // Check for assignment error (type mismatch)
-        if evaluation.flagEvaluationCode == .assignmentError {
-            return defaultValue
         }
 
         // Return the integer value or default
@@ -152,7 +149,7 @@ public class ProtobufClient {
         subjectAttributes: SubjectAttributes,
         defaultValue: Double
     ) -> Double {
-        let evaluation = evaluator.evaluateFlag(
+        let evaluation = lazyEvaluator.evaluateFlag(
             flagKey: flagKey,
             subjectKey: subjectKey,
             subjectAttributes: subjectAttributes,
@@ -190,7 +187,7 @@ public class ProtobufClient {
         subjectAttributes: SubjectAttributes,
         defaultValue: String
     ) -> String {
-        let evaluation = evaluator.evaluateFlag(
+        let evaluation = lazyEvaluator.evaluateFlag(
             flagKey: flagKey,
             subjectKey: subjectKey,
             subjectAttributes: subjectAttributes,
@@ -225,10 +222,10 @@ public class ProtobufClient {
     // MARK: - Benchmark Support
 
     func getAllFlagKeys() -> [String] {
-        return evaluator.getAllFlagKeys()
+        return lazyEvaluator.getAllFlagKeys()
     }
 
     func getFlagVariationType(flagKey: String) -> UFC_VariationType? {
-        return evaluator.getFlagVariationType(flagKey: flagKey)
+        return lazyEvaluator.getFlagVariationType(flagKey: flagKey)
     }
 }

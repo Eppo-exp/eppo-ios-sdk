@@ -237,7 +237,7 @@ enum UniversalFlagConfigError: Error, CustomNSError, LocalizedError {
     }
 }
 
-enum UFC_VariationType: String, Codable {
+public enum UFC_VariationType: String, Codable {
     case boolean = "BOOLEAN"
     case integer = "INTEGER"
     case json = "JSON"

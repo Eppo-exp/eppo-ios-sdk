@@ -1,21 +1,23 @@
 import Foundation
+import SwiftProtobuf
 
-public class IkigaJSONLazyClient {
+public class SwiftStructFromProtobufClient {
     public typealias AssignmentLogger = (Assignment) -> Void
 
-    private let lazyEvaluator: IkigaJSONLazyEvaluator
+    private let evaluator: FlagEvaluatorProtocol
     private let assignmentLogger: AssignmentLogger?
     private let isObfuscated: Bool
     private let sdkKey: String
 
     public init(
         sdkKey: String,
-        jsonData: Data,
+        protobufData: Data,
         obfuscated: Bool,
-        assignmentLogger: AssignmentLogger?
+        assignmentLogger: AssignmentLogger?,
+        prewarmCache: Bool = false
     ) throws {
         self.sdkKey = sdkKey
-        self.lazyEvaluator = try IkigaJSONLazyEvaluator(jsonData: jsonData)
+        self.evaluator = try ProtobufEvaluator(protobufData: protobufData, prewarmCache: prewarmCache)
         self.assignmentLogger = assignmentLogger
         self.isObfuscated = obfuscated
     }
@@ -28,11 +30,12 @@ public class IkigaJSONLazyClient {
         subjectAttributes: SubjectAttributes,
         defaultValue: Bool
     ) -> Bool {
-        let evaluation = lazyEvaluator.evaluateFlag(
+        let evaluation = evaluator.evaluateFlag(
             flagKey: flagKey,
             subjectKey: subjectKey,
             subjectAttributes: subjectAttributes,
-            isConfigObfuscated: isObfuscated
+            isConfigObfuscated: isObfuscated,
+            expectedVariationType: .boolean
         )
 
         // Log the assignment if logger is available
@@ -66,11 +69,12 @@ public class IkigaJSONLazyClient {
         subjectAttributes: SubjectAttributes,
         defaultValue: String
     ) -> String {
-        let evaluation = lazyEvaluator.evaluateFlag(
+        let evaluation = evaluator.evaluateFlag(
             flagKey: flagKey,
             subjectKey: subjectKey,
             subjectAttributes: subjectAttributes,
-            isConfigObfuscated: isObfuscated
+            isConfigObfuscated: isObfuscated,
+            expectedVariationType: .string
         )
 
         // Log the assignment if logger is available
@@ -104,7 +108,7 @@ public class IkigaJSONLazyClient {
         subjectAttributes: SubjectAttributes,
         defaultValue: Int
     ) -> Int {
-        let evaluation = lazyEvaluator.evaluateFlag(
+        let evaluation = evaluator.evaluateFlag(
             flagKey: flagKey,
             subjectKey: subjectKey,
             subjectAttributes: subjectAttributes,
@@ -150,11 +154,12 @@ public class IkigaJSONLazyClient {
         subjectAttributes: SubjectAttributes,
         defaultValue: Double
     ) -> Double {
-        let evaluation = lazyEvaluator.evaluateFlag(
+        let evaluation = evaluator.evaluateFlag(
             flagKey: flagKey,
             subjectKey: subjectKey,
             subjectAttributes: subjectAttributes,
-            isConfigObfuscated: isObfuscated
+            isConfigObfuscated: isObfuscated,
+            expectedVariationType: .numeric
         )
 
         // Log the assignment if logger is available
@@ -188,11 +193,12 @@ public class IkigaJSONLazyClient {
         subjectAttributes: SubjectAttributes,
         defaultValue: String
     ) -> String {
-        let evaluation = lazyEvaluator.evaluateFlag(
+        let evaluation = evaluator.evaluateFlag(
             flagKey: flagKey,
             subjectKey: subjectKey,
             subjectAttributes: subjectAttributes,
-            isConfigObfuscated: isObfuscated
+            isConfigObfuscated: isObfuscated,
+            expectedVariationType: .json
         )
 
         // Log the assignment if logger is available
@@ -223,10 +229,10 @@ public class IkigaJSONLazyClient {
     // MARK: - Benchmark Support
 
     func getAllFlagKeys() -> [String] {
-        return lazyEvaluator.getAllFlagKeys()
+        return evaluator.getAllFlagKeys()
     }
 
     func getFlagVariationType(flagKey: String) -> UFC_VariationType? {
-        return lazyEvaluator.getFlagVariationType(flagKey: flagKey)
+        return evaluator.getFlagVariationType(flagKey: flagKey)
     }
 }
