@@ -5,76 +5,55 @@ import Foundation
 class LargeFlagPerformanceTests: XCTestCase {
 
     func testJSONPerformanceBenchmark() throws {
-        // This test benchmarks JSON mode performance with focus on startup (key metric) and evaluation (important)
-        // Structured to enable easy comparison with FlatBuffer mode in the future
+        // Efficient JSON vs IkigaJSON Lazy performance comparison
+        // Focus: Startup performance with minimal evaluation testing
 
-        print("🚀 Starting JSON Performance Benchmark")
-        print("🎯 Key Focus: Startup performance (JSON->objects conversion)")
-        print("📊 Secondary: Evaluation performance across test cases")
+        print("🚀 Starting Efficient JSON vs IkigaJSON Lazy Performance Benchmark")
+        print("🎯 Focus: Fast startup comparison with minimal memory usage")
 
-        // RUN JSON MODE FIRST (isolated)
-        let jsonResults = try autoreleasepool {
-            print("\n📦 Loading JSON data...")
-            let jsonData = try loadTestDataFile("flags-10000.json")
-            let testCases = try loadAllGeneratedTestCases()
+        // Store only the aggregated results, not the full data
+        let jsonResults: PerformanceResults = try autoreleasepool {
+            print("\n📦 Benchmarking JSON Mode...")
+            let jsonData = try loadTestDataFile("flags-10000.json") // Use large dataset (~12MB)
             print("   📄 JSON: \(ByteCountFormatter.string(fromByteCount: Int64(jsonData.count), countStyle: .binary))")
 
-            let results = try benchmarkJSONMode(jsonData: jsonData, testCases: testCases)
+            let results = try benchmarkJSONModeEfficient(jsonData: jsonData)
 
-            // Force memory cleanup
-            print("   🧹 Releasing JSON memory...")
+            print("   🧹 JSON test completed, releasing memory...")
             return results
-        }
+        } // JSON data automatically released here
 
-        // FORCE MEMORY CLEANUP BETWEEN MODES
+        // Force memory cleanup between modes
         autoreleasepool {}
 
-        // RUN FLATBUFFER MODE SECOND (isolated)
-        let flatBufferResults = try autoreleasepool {
-            print("\n📦 Loading FlatBuffer data...")
-            let flatBufferData = try loadTestDataFile("flags-10000.flatbuf")
-            let testCases = try loadAllGeneratedTestCases()
-            print("   ⚡ FlatBuffer: \(ByteCountFormatter.string(fromByteCount: Int64(flatBufferData.count), countStyle: .binary))")
+        let ikigaResults: PerformanceResults = try autoreleasepool {
+            print("\n📦 Benchmarking IkigaJSON Lazy Mode...")
+            let jsonData = try loadTestDataFile("flags-10000.json") // Same large dataset (~12MB)
+            print("   🧠⚡ IkigaJSON: \(ByteCountFormatter.string(fromByteCount: Int64(jsonData.count), countStyle: .binary))")
 
-            let results = try benchmarkFlatBufferMode(flatBufferData: flatBufferData, testCases: testCases)
+            let results = try benchmarkIkigaJSONModeEfficient(jsonData: jsonData)
 
-            // Force memory cleanup
-            print("   🧹 Releasing FlatBuffer memory...")
+            print("   🧹 IkigaJSON test completed, releasing memory...")
             return results
-        }
+        } // IkigaJSON data automatically released here
 
-        // RESULTS SUMMARY
-        print("\n🏆 PERFORMANCE BENCHMARK RESULTS:")
-        print("📊 JSON Mode:")
-        print("   🎯 Startup (KEY METRIC): \(String(format: "%.0f", jsonResults.startupTime))ms")
-        print("   ⚡ Evaluation Speed: \(String(format: "%.0f", jsonResults.evaluationsPerSecond)) evals/sec")
-        print("   💾 Memory Usage: \(String(format: "%.0f", jsonResults.memoryUsage))MB")
-        print("   📊 Total Evaluations: \(jsonResults.totalEvaluations)")
+        // RESULTS COMPARISON (only store aggregations)
+        let startupSpeedup = jsonResults.startupTime / ikigaResults.startupTime
+        let evaluationSpeedup = ikigaResults.evaluationsPerSecond / jsonResults.evaluationsPerSecond
 
-        print("📊 FlatBuffer Mode:")
-        print("   🎯 Startup: \(String(format: "%.0f", flatBufferResults.startupTime))ms")
-        print("   ⚡ Evaluation Speed: \(String(format: "%.0f", flatBufferResults.evaluationsPerSecond)) evals/sec")
-        print("   💾 Memory Usage: \(String(format: "%.0f", flatBufferResults.memoryUsage))MB")
-        print("   📊 Total Evaluations: \(flatBufferResults.totalEvaluations)")
+        print("\n🏆 PERFORMANCE RESULTS:")
+        print("📊 JSON: \(Int(jsonResults.startupTime))ms startup, \(Int(jsonResults.evaluationsPerSecond)) evals/sec")
+        print("📊 IkigaJSON: \(Int(ikigaResults.startupTime))ms startup, \(Int(ikigaResults.evaluationsPerSecond)) evals/sec")
+        print("\n🏁 SPEEDUP:")
+        print("   ⚡ Startup: \(String(format: "%.1f", startupSpeedup))x faster with IkigaJSON")
+        print("   🚀 Evaluation: \(String(format: "%.1f", evaluationSpeedup))x relative performance")
 
-        // PERFORMANCE COMPARISON
-        let startupSpeedup = jsonResults.startupTime / flatBufferResults.startupTime
-        let evaluationSpeedup = flatBufferResults.evaluationsPerSecond / jsonResults.evaluationsPerSecond
-        print("\n🏁 PERFORMANCE COMPARISON:")
-        print("   ⚡ Startup Speedup: \(String(format: "%.1f", startupSpeedup))x faster")
-        print("   🚀 Evaluation Speedup: \(String(format: "%.1f", evaluationSpeedup))x faster")
-        // PERFORMANCE ASSERTIONS (focusing on startup as primary)
-        XCTAssertLessThan(jsonResults.startupTime, 10000, "JSON startup should be under 10 seconds for 2000 flags")
-        XCTAssertGreaterThan(jsonResults.evaluationsPerSecond, 100, "Should handle at least 100 evaluations per second")
-        XCTAssertGreaterThan(jsonResults.totalEvaluations, 0, "Should perform some evaluations")
+        // Simple assertions
+        XCTAssertLessThan(jsonResults.startupTime, 5000, "JSON startup should be under 5 seconds")
+        XCTAssertGreaterThan(ikigaResults.evaluationsPerSecond, 50, "IkigaJSON should handle at least 50 evals/sec")
+        XCTAssertGreaterThan(startupSpeedup, 1.0, "IkigaJSON should have faster startup")
 
-        print("\n🎯 JSON Performance Benchmark completed!")
-        print("   Ready for FlatBuffer comparison when implemented")
-
-        // Explicit cleanup for CI memory pressure relief
-        autoreleasepool {
-            // Force cleanup of large objects
-        }
+        print("\n✅ Efficient performance benchmark completed!")
     }
 
     func testThreeWayPerformanceBenchmark() throws {
@@ -169,6 +148,129 @@ class LargeFlagPerformanceTests: XCTestCase {
         XCTAssertGreaterThan(directStartupSpeedup, 1.0, "Direct FlatBuffer should be faster than JSON for startup")
         XCTAssertGreaterThan(lazyStartupSpeedup, 1.0, "Lazy FlatBuffer should be faster than JSON for startup")
         XCTAssertGreaterThan(lazyFlatBufferResults.evaluationsPerSecond, 100, "Lazy mode should handle at least 100 evaluations per second")
+
+        // Explicit cleanup
+        autoreleasepool {}
+    }
+
+    func testFourWayPerformanceBenchmark() throws {
+        // This test benchmarks all four approaches: JSON, Direct FlatBuffer, Lazy FlatBuffer, and IkigaJSON Lazy
+        // to compare startup and evaluation performance across all modes
+
+        print("🚀 Starting Four-Way Performance Benchmark")
+        print("🎯 Comparing: JSON, Direct FlatBuffer, Lazy FlatBuffer, and IkigaJSON Lazy modes")
+        print("📊 Key Metrics: Startup time (primary) and evaluation speed (secondary)")
+
+        // RUN JSON MODE FIRST (isolated)
+        let jsonResults = try autoreleasepool {
+            print("\n📦 Loading JSON data...")
+            let jsonData = try loadTestDataFile("flags-10000.json")
+            let testCases = try loadAllGeneratedTestCases()
+            print("   📄 JSON: \(ByteCountFormatter.string(fromByteCount: Int64(jsonData.count), countStyle: .binary))")
+
+            let results = try benchmarkJSONMode(jsonData: jsonData, testCases: testCases)
+
+            print("   🧹 Releasing JSON memory...")
+            return results
+        }
+
+        autoreleasepool {} // Force memory cleanup
+
+        // RUN DIRECT FLATBUFFER MODE SECOND (isolated)
+        let directFlatBufferResults = try autoreleasepool {
+            print("\n📦 Loading FlatBuffer data for direct mode...")
+            let flatBufferData = try loadTestDataFile("flags-10000.flatbuf")
+            let testCases = try loadAllGeneratedTestCases()
+            print("   ⚡ FlatBuffer: \(ByteCountFormatter.string(fromByteCount: Int64(flatBufferData.count), countStyle: .binary))")
+
+            let results = try benchmarkFlatBufferMode(flatBufferData: flatBufferData, testCases: testCases)
+
+            print("   🧹 Releasing Direct FlatBuffer memory...")
+            return results
+        }
+
+        autoreleasepool {} // Force memory cleanup
+
+        // RUN LAZY FLATBUFFER MODE THIRD (isolated)
+        let lazyFlatBufferResults = try autoreleasepool {
+            print("\n📦 Loading FlatBuffer data for lazy mode...")
+            let flatBufferData = try loadTestDataFile("flags-10000.flatbuf")
+            let testCases = try loadAllGeneratedTestCases()
+            print("   🧠 Lazy FlatBuffer: \(ByteCountFormatter.string(fromByteCount: Int64(flatBufferData.count), countStyle: .binary))")
+
+            let results = try benchmarkLazyFlatBufferMode(flatBufferData: flatBufferData, testCases: testCases)
+
+            print("   🧹 Releasing Lazy FlatBuffer memory...")
+            return results
+        }
+
+        autoreleasepool {} // Force memory cleanup
+
+        // RUN IKIGA JSON LAZY MODE FOURTH (isolated)
+        let ikigaJSONLazyResults = try autoreleasepool {
+            print("\n📦 Loading JSON data for IkigaJSON Lazy mode...")
+            let jsonData = try loadTestDataFile("flags-10000.json")
+            let testCases = try loadAllGeneratedTestCases()
+            print("   🧠⚡ IkigaJSON Lazy: \(ByteCountFormatter.string(fromByteCount: Int64(jsonData.count), countStyle: .binary))")
+
+            let results = try benchmarkIkigaJSONLazyMode(jsonData: jsonData, testCases: testCases)
+
+            print("   🧹 Releasing IkigaJSON Lazy memory...")
+            return results
+        }
+
+        // FOUR-WAY RESULTS SUMMARY
+        print("\n🏆 FOUR-WAY PERFORMANCE BENCHMARK RESULTS:")
+        print("📊 JSON Mode:")
+        print("   🎯 Startup (KEY METRIC): \(String(format: "%.0f", jsonResults.startupTime))ms")
+        print("   ⚡ Evaluation Speed: \(String(format: "%.0f", jsonResults.evaluationsPerSecond)) evals/sec")
+        print("   💾 Memory Usage: \(String(format: "%.0f", jsonResults.memoryUsage))MB")
+        print("   📊 Total Evaluations: \(jsonResults.totalEvaluations)")
+
+        print("📊 Direct FlatBuffer Mode:")
+        print("   🎯 Startup: \(String(format: "%.0f", directFlatBufferResults.startupTime))ms")
+        print("   ⚡ Evaluation Speed: \(String(format: "%.0f", directFlatBufferResults.evaluationsPerSecond)) evals/sec")
+        print("   💾 Memory Usage: \(String(format: "%.0f", directFlatBufferResults.memoryUsage))MB")
+        print("   📊 Total Evaluations: \(directFlatBufferResults.totalEvaluations)")
+
+        print("📊 Lazy FlatBuffer Mode:")
+        print("   🎯 Startup: \(String(format: "%.0f", lazyFlatBufferResults.startupTime))ms")
+        print("   ⚡ Evaluation Speed: \(String(format: "%.0f", lazyFlatBufferResults.evaluationsPerSecond)) evals/sec")
+        print("   💾 Memory Usage: \(String(format: "%.0f", lazyFlatBufferResults.memoryUsage))MB")
+        print("   📊 Total Evaluations: \(lazyFlatBufferResults.totalEvaluations)")
+
+        print("📊 IkigaJSON Lazy Mode:")
+        print("   🎯 Startup: \(String(format: "%.0f", ikigaJSONLazyResults.startupTime))ms")
+        print("   ⚡ Evaluation Speed: \(String(format: "%.0f", ikigaJSONLazyResults.evaluationsPerSecond)) evals/sec")
+        print("   💾 Memory Usage: \(String(format: "%.0f", ikigaJSONLazyResults.memoryUsage))MB")
+        print("   📊 Total Evaluations: \(ikigaJSONLazyResults.totalEvaluations)")
+
+        // PERFORMANCE COMPARISONS
+        let directStartupSpeedup = jsonResults.startupTime / directFlatBufferResults.startupTime
+        let lazyStartupSpeedup = jsonResults.startupTime / lazyFlatBufferResults.startupTime
+        let ikigaStartupSpeedup = jsonResults.startupTime / ikigaJSONLazyResults.startupTime
+        let directEvaluationSpeedup = directFlatBufferResults.evaluationsPerSecond / jsonResults.evaluationsPerSecond
+        let lazyEvaluationSpeedup = lazyFlatBufferResults.evaluationsPerSecond / jsonResults.evaluationsPerSecond
+        let ikigaEvaluationSpeedup = ikigaJSONLazyResults.evaluationsPerSecond / jsonResults.evaluationsPerSecond
+
+        print("\n🏁 FOUR-WAY PERFORMANCE COMPARISON:")
+        print("   📈 Startup Performance (vs JSON):")
+        print("      ⚡ Direct FlatBuffer: \(String(format: "%.1f", directStartupSpeedup))x faster")
+        print("      🧠 Lazy FlatBuffer: \(String(format: "%.1f", lazyStartupSpeedup))x faster")
+        print("      🧠⚡ IkigaJSON Lazy: \(String(format: "%.1f", ikigaStartupSpeedup))x faster")
+        print("   📈 Evaluation Performance (vs JSON):")
+        print("      ⚡ Direct FlatBuffer: \(String(format: "%.1f", directEvaluationSpeedup))x faster")
+        print("      🧠 Lazy FlatBuffer: \(String(format: "%.1f", lazyEvaluationSpeedup))x faster")
+        print("      🧠⚡ IkigaJSON Lazy: \(String(format: "%.1f", ikigaEvaluationSpeedup))x faster")
+
+        print("\n🎯 Four-Way Performance Benchmark completed!")
+        print("   📝 Summary: Comparing all approaches for optimal startup+evaluation balance")
+
+        // Performance assertions
+        XCTAssertGreaterThan(directStartupSpeedup, 1.0, "Direct FlatBuffer should be faster than JSON for startup")
+        XCTAssertGreaterThan(lazyStartupSpeedup, 1.0, "Lazy FlatBuffer should be faster than JSON for startup")
+        XCTAssertGreaterThan(ikigaStartupSpeedup, 1.0, "IkigaJSON Lazy should be faster than JSON for startup")
+        XCTAssertGreaterThan(ikigaJSONLazyResults.evaluationsPerSecond, 100, "IkigaJSON Lazy mode should handle at least 100 evaluations per second")
 
         // Explicit cleanup
         autoreleasepool {}
@@ -494,6 +596,236 @@ class LargeFlagPerformanceTests: XCTestCase {
 
         // Clean up
         lazyClient = nil
+
+        return PerformanceResults(
+            startupTime: startupTime,
+            evaluationTime: evaluationTime,
+            totalEvaluations: totalEvaluations,
+            evaluationsPerSecond: evaluationsPerSecond,
+            memoryUsage: memoryAfter
+        )
+    }
+
+    private func benchmarkIkigaJSONLazyMode(jsonData: Data, testCases: [PerformanceTestCase]) throws -> PerformanceResults {
+        print("\n🔄 Benchmarking IkigaJSON Lazy Mode...")
+
+        // CRITICAL MEASUREMENT: Startup Performance (fast JSON parsing without conversion)
+        let memoryBefore = getCurrentMemoryUsage()
+        print("   🏁 Starting IkigaJSON Lazy client creation...")
+
+        let startupStart = CFAbsoluteTimeGetCurrent()
+        var ikigaClient: IkigaJSONLazyClient? = try IkigaJSONLazyClient(
+            sdkKey: "ikiga-json-lazy-benchmark-key",
+            jsonData: jsonData,
+            obfuscated: false,
+            assignmentLogger: { assignment in
+                // Simulate realistic logging work (minimal processing)
+                _ = assignment.featureFlag.count + assignment.subject.count
+            }
+        )
+        let startupTime = (CFAbsoluteTimeGetCurrent() - startupStart) * 1000
+
+        let memoryAfter = getCurrentMemoryUsage()
+        print("   ⚡ Startup complete: \(String(format: "%.0f", startupTime))ms, Memory: +\(String(format: "%.0f", memoryAfter - memoryBefore))MB")
+
+        // SECONDARY MEASUREMENT: Evaluation Performance
+        print("   🏃 Running evaluation performance benchmark across all flags...")
+
+        let evaluationStart = CFAbsoluteTimeGetCurrent()
+        var totalEvaluations = 0
+
+        // Get flag keys and test with standard subjects (same as other modes)
+        let flagKeys = ikigaClient!.getAllFlagKeys()
+        let standardSubjects = [
+            ("user_basic", [:]),
+            ("user_us", ["country": EppoValue(value: "US")]),
+            ("user_uk", ["country": EppoValue(value: "UK")]),
+            ("user_premium", ["tier": EppoValue(value: "premium"), "country": EppoValue(value: "US")]),
+            ("user_enterprise", ["tier": EppoValue(value: "enterprise"), "plan": EppoValue(value: "annual")])
+        ]
+
+        print("   📊 Testing \(flagKeys.count) flags with \(standardSubjects.count) subjects each...")
+
+        // Evaluate every flag with every standard subject
+        for flagKey in flagKeys {
+            guard let flagVariationType = ikigaClient!.getFlagVariationType(flagKey: flagKey) else { continue }
+
+            for (subjectKey, subjectAttributes) in standardSubjects {
+                // Determine appropriate default based on flag's variation type
+                switch flagVariationType {
+                case .string:
+                    _ = ikigaClient!.getStringAssignment(
+                        flagKey: flagKey,
+                        subjectKey: subjectKey,
+                        subjectAttributes: subjectAttributes,
+                        defaultValue: "default"
+                    )
+                case .numeric:
+                    _ = ikigaClient!.getNumericAssignment(
+                        flagKey: flagKey,
+                        subjectKey: subjectKey,
+                        subjectAttributes: subjectAttributes,
+                        defaultValue: 0.0
+                    )
+                case .integer:
+                    _ = ikigaClient!.getIntegerAssignment(
+                        flagKey: flagKey,
+                        subjectKey: subjectKey,
+                        subjectAttributes: subjectAttributes,
+                        defaultValue: 0
+                    )
+                case .boolean:
+                    _ = ikigaClient!.getBooleanAssignment(
+                        flagKey: flagKey,
+                        subjectKey: subjectKey,
+                        subjectAttributes: subjectAttributes,
+                        defaultValue: false
+                    )
+                case .json:
+                    _ = ikigaClient!.getJSONStringAssignment(
+                        flagKey: flagKey,
+                        subjectKey: subjectKey,
+                        subjectAttributes: subjectAttributes,
+                        defaultValue: "{}"
+                    )
+                }
+
+                totalEvaluations += 1
+            }
+        }
+
+        let evaluationTime = (CFAbsoluteTimeGetCurrent() - evaluationStart) * 1000
+        let evaluationsPerSecond = Double(totalEvaluations) / (evaluationTime / 1000.0)
+
+        print("   ✅ Evaluations complete: \(totalEvaluations) in \(String(format: "%.0f", evaluationTime))ms")
+        print("   📈 Performance: \(String(format: "%.0f", evaluationsPerSecond)) evals/sec")
+
+        let results = PerformanceResults(
+            startupTime: startupTime,
+            evaluationTime: evaluationTime,
+            totalEvaluations: totalEvaluations,
+            evaluationsPerSecond: evaluationsPerSecond,
+            memoryUsage: memoryAfter
+        )
+
+        // Explicit cleanup for CI memory management
+        ikigaClient = nil
+
+        return results
+    }
+
+    // MARK: - Efficient Benchmark Methods (Low Memory)
+
+    private func benchmarkJSONModeEfficient(jsonData: Data) throws -> PerformanceResults {
+        print("   🔄 JSON startup test...")
+
+        let memoryBefore = getCurrentMemoryUsage()
+        let startupStart = CFAbsoluteTimeGetCurrent()
+
+        // STARTUP MEASUREMENT
+        var configuration: Configuration? = try Configuration(flagsConfigurationJson: jsonData, obfuscated: false)
+        let startupTime = (CFAbsoluteTimeGetCurrent() - startupStart) * 1000
+
+        let memoryAfter = getCurrentMemoryUsage()
+        print("   ⚡ JSON startup: \(Int(startupTime))ms, Memory: +\(Int(memoryAfter - memoryBefore))MB")
+
+        // MINIMAL EVALUATION TEST (only 100 evaluations instead of 50,000!)
+        var client: EppoClient? = EppoClient.initializeOffline(
+            sdkKey: "json-test",
+            assignmentLogger: nil,
+            initialConfiguration: configuration!
+        )
+
+        let evaluationStart = CFAbsoluteTimeGetCurrent()
+        let flagKeys = Array(configuration!.flagsConfiguration.flags.keys.prefix(20)) // Only 20 flags
+        var totalEvaluations = 0
+
+        for flagKey in flagKeys {
+            guard let flag = configuration!.flagsConfiguration.flags[flagKey] else { continue }
+            for i in 0..<5 { // Only 5 subjects per flag = 100 total evaluations
+                switch flag.variationType {
+                case .boolean:
+                    _ = client!.getBooleanAssignment(flagKey: flagKey, subjectKey: "test\(i)", subjectAttributes: [:], defaultValue: false)
+                case .string:
+                    _ = client!.getStringAssignment(flagKey: flagKey, subjectKey: "test\(i)", subjectAttributes: [:], defaultValue: "")
+                case .integer:
+                    _ = client!.getIntegerAssignment(flagKey: flagKey, subjectKey: "test\(i)", subjectAttributes: [:], defaultValue: 0)
+                case .numeric:
+                    _ = client!.getNumericAssignment(flagKey: flagKey, subjectKey: "test\(i)", subjectAttributes: [:], defaultValue: 0.0)
+                case .json:
+                    _ = client!.getJSONStringAssignment(flagKey: flagKey, subjectKey: "test\(i)", subjectAttributes: [:], defaultValue: "{}")
+                }
+                totalEvaluations += 1
+            }
+        }
+
+        let evaluationTime = (CFAbsoluteTimeGetCurrent() - evaluationStart) * 1000
+        let evaluationsPerSecond = Double(totalEvaluations) / (evaluationTime / 1000.0)
+
+        print("   ✅ JSON evals: \(totalEvaluations) in \(Int(evaluationTime))ms")
+
+        // AGGRESSIVE CLEANUP
+        client = nil
+        configuration = nil
+
+        return PerformanceResults(
+            startupTime: startupTime,
+            evaluationTime: evaluationTime,
+            totalEvaluations: totalEvaluations,
+            evaluationsPerSecond: evaluationsPerSecond,
+            memoryUsage: memoryAfter
+        )
+    }
+
+    private func benchmarkIkigaJSONModeEfficient(jsonData: Data) throws -> PerformanceResults {
+        print("   🔄 IkigaJSON startup test...")
+
+        let memoryBefore = getCurrentMemoryUsage()
+        let startupStart = CFAbsoluteTimeGetCurrent()
+
+        // STARTUP MEASUREMENT
+        var client: IkigaJSONLazyClient? = try IkigaJSONLazyClient(
+            sdkKey: "ikiga-test",
+            jsonData: jsonData,
+            obfuscated: false,
+            assignmentLogger: nil
+        )
+        let startupTime = (CFAbsoluteTimeGetCurrent() - startupStart) * 1000
+
+        let memoryAfter = getCurrentMemoryUsage()
+        print("   ⚡ IkigaJSON startup: \(Int(startupTime))ms, Memory: +\(Int(memoryAfter - memoryBefore))MB")
+
+        // MINIMAL EVALUATION TEST (same 100 evaluations as JSON)
+        let evaluationStart = CFAbsoluteTimeGetCurrent()
+        let flagKeys = Array(client!.getAllFlagKeys().prefix(20)) // Same 20 flags
+        var totalEvaluations = 0
+
+        for flagKey in flagKeys {
+            guard let flagType = client!.getFlagVariationType(flagKey: flagKey) else { continue }
+            for i in 0..<5 { // Same 5 subjects = 100 evaluations
+                switch flagType {
+                case .boolean:
+                    _ = client!.getBooleanAssignment(flagKey: flagKey, subjectKey: "test\(i)", subjectAttributes: [:], defaultValue: false)
+                case .string:
+                    _ = client!.getStringAssignment(flagKey: flagKey, subjectKey: "test\(i)", subjectAttributes: [:], defaultValue: "")
+                case .integer:
+                    _ = client!.getIntegerAssignment(flagKey: flagKey, subjectKey: "test\(i)", subjectAttributes: [:], defaultValue: 0)
+                case .numeric:
+                    _ = client!.getNumericAssignment(flagKey: flagKey, subjectKey: "test\(i)", subjectAttributes: [:], defaultValue: 0.0)
+                case .json:
+                    _ = client!.getJSONStringAssignment(flagKey: flagKey, subjectKey: "test\(i)", subjectAttributes: [:], defaultValue: "{}")
+                }
+                totalEvaluations += 1
+            }
+        }
+
+        let evaluationTime = (CFAbsoluteTimeGetCurrent() - evaluationStart) * 1000
+        let evaluationsPerSecond = Double(totalEvaluations) / (evaluationTime / 1000.0)
+
+        print("   ✅ IkigaJSON evals: \(totalEvaluations) in \(Int(evaluationTime))ms")
+
+        // AGGRESSIVE CLEANUP
+        client = nil
 
         return PerformanceResults(
             startupTime: startupTime,

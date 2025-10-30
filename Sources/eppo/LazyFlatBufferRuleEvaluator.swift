@@ -59,12 +59,23 @@ public class LazyFlatBufferRuleEvaluator {
         }
 
         // Use the existing JSON evaluation logic with the hydrated UFC_Flag
-        return flagEvaluator.evaluateFlag(
+        let result = flagEvaluator.evaluateFlag(
             flag: ufcFlag,
             subjectKey: subjectKey,
             subjectAttributes: subjectAttributes,
             isConfigObfuscated: isConfigObfuscated
         )
+
+        if flagKey == "kill-switch" && subjectKey == "alice" {
+            print("DEBUG: kill-switch evaluation result for alice:")
+            print("  - flagEvaluationCode: \(result.flagEvaluationCode)")
+            print("  - flagEvaluationDescription: \(result.flagEvaluationDescription)")
+            print("  - variation: \(result.variation?.key ?? "nil")")
+            print("  - allocationKey: \(result.allocationKey ?? "nil")")
+            print("  - subject attributes: \(subjectAttributes)")
+        }
+
+        return result
     }
 
     // Get all flag keys for benchmark
@@ -249,7 +260,7 @@ public class LazyFlatBufferRuleEvaluator {
             ))
         }
 
-        return UFC_Flag(
+        let flag = UFC_Flag(
             key: key,
             enabled: enabled,
             variationType: variationType,
@@ -258,6 +269,25 @@ public class LazyFlatBufferRuleEvaluator {
             totalShards: Int(fbFlag.totalShards),
             entityId: fbFlag.entityId != 0 ? Int(fbFlag.entityId) : nil
         )
+
+        if key == "kill-switch" {
+            print("DEBUG: kill-switch flag structure:")
+            print("  - enabled: \(enabled)")
+            print("  - allocations count: \(allocations.count)")
+            for (i, allocation) in allocations.enumerated() {
+                print("  - allocation[\(i)]: key='\(allocation.key)', rules=\(allocation.rules?.count ?? 0), splits=\(allocation.splits.count)")
+                if let rules = allocation.rules {
+                    for (j, rule) in rules.enumerated() {
+                        print("    - rule[\(j)]: conditions=\(rule.conditions.count)")
+                        for (k, condition) in rule.conditions.enumerated() {
+                            print("      - condition[\(k)]: attr='\(condition.attribute)', op=\(condition.operator)")
+                        }
+                    }
+                }
+            }
+        }
+
+        return flag
     }
 
     private func convertRule(_ fbRule: Eppo_UFC_Rule, flagKey: String) -> UFC_Rule? {
@@ -300,13 +330,23 @@ public class LazyFlatBufferRuleEvaluator {
                 // Parse JSON array of strings
                 if let data = value.data(using: .utf8),
                    let array = try? JSONSerialization.jsonObject(with: data) as? [String] {
+                    if flagKey == "kill-switch" || flagKey == "empty_string_flag" || flagKey == "new-user-onboarding" {
+                        print("DEBUG: \(flagKey) ONE_OF operator \(operatorType) - attribute: '\(attribute)', raw value: '\(value)', parsed: \(array)")
+                    }
                     conditionValue = EppoValue(array: array)
                 } else {
+                    if flagKey == "kill-switch" || flagKey == "empty_string_flag" || flagKey == "new-user-onboarding" {
+                        print("DEBUG: \(flagKey) FAILED to parse ONE_OF - raw value: '\(value)'")
+                    }
                     conditionValue = EppoValue(array: [])
                 }
             case .gte, .gt, .lte, .lt:
                 // Numeric operators
-                conditionValue = EppoValue(value: Double(value) ?? 0.0)
+                let doubleValue = Double(value) ?? 0.0
+                if flagKey == "kill-switch" || flagKey == "empty_string_flag" || flagKey == "new-user-onboarding" {
+                    print("DEBUG: \(flagKey) comparison operator \(operatorType) - attribute: '\(attribute)', raw value: '\(value)', parsed: \(doubleValue)")
+                }
+                conditionValue = EppoValue(value: doubleValue)
             case .isNull:
                 // Parse boolean value to determine if checking for null (true) or not-null (false)
                 let expectNull = value.lowercased() == "true"
