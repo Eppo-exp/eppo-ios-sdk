@@ -15,9 +15,8 @@ public protocol SwiftStructEvaluatorProtocol: FlagEvaluatorProtocol {
     var isPrewarmed: Bool { get }
 
     // MARK: - Thread Safety
-
-    /// Lock mechanism for thread-safe cache access
-    var cacheLock: NSLock { get }
+    // Note: Thread safety is now handled by individual evaluator implementations
+    // using concurrent DispatchQueues with barrier writes for optimal performance
 
     // MARK: - Cache Management
 
@@ -36,9 +35,7 @@ public protocol SwiftStructEvaluatorProtocol: FlagEvaluatorProtocol {
 public extension SwiftStructEvaluatorProtocol {
 
     mutating func clearCaches() {
-        cacheLock.lock()
-        defer { cacheLock.unlock() }
-
+        // Clear the caches - thread safety is handled by individual implementations
         flagCache.removeAll()
         flagTypeCache.removeAll()
     }

@@ -4,68 +4,61 @@ import FlatBuffers
 public class SwiftStructFromFlatBufferEvaluator: SwiftStructEvaluatorProtocol {
     private let ufcRoot: Eppo_UFC_UniversalFlagConfig
     private let flagEvaluator: FlagEvaluator
-    public let isPrewarmed: Bool
+    private let sharedCache: SwiftStructFlagCache<Eppo_UFC_Flag>
 
-    // For prewarmed mode - all flags and types pre-cached
-    private var prewarmedFlags: [String: UFC_Flag]
-    private var prewarmedFlagTypeCache: [String: UFC_VariationType]
+    public var isPrewarmed: Bool { sharedCache.isPrewarmed }
 
-    // For lazy mode - flags and types loaded on-demand
-    public var flagCache: [String: UFC_Flag] = [:]
-    public var flagTypeCache: [String: UFC_VariationType] = [:]
-    public let cacheLock = NSLock()
-    private let cacheQueue = DispatchQueue(label: "com.eppo.swift-struct-flatbuffer-cache", attributes: .concurrent)
+    // Legacy protocol compliance properties (delegated to shared cache)
+    public var flagCache: [String: UFC_Flag] {
+        get { sharedCache.flagCache }
+        set { sharedCache.flagCache = newValue }
+    }
+    public var flagTypeCache: [String: UFC_VariationType] {
+        get { sharedCache.flagTypeCache }
+        set { sharedCache.flagTypeCache = newValue }
+    }
+    public let cacheLock = NSLock() // Keep for protocol compliance
 
     init(flatBufferData: Data, prewarmCache: Bool = false) throws {
         let buffer = ByteBuffer(data: flatBufferData)
         self.ufcRoot = Eppo_UFC_UniversalFlagConfig(buffer, o: Int32(buffer.read(def: UOffset.self, position: buffer.reader)) + Int32(buffer.reader))
-        self.isPrewarmed = prewarmCache
 
         // Create evaluator with MD5 sharder (same as JSON mode)
         self.flagEvaluator = FlagEvaluator(sharder: MD5Sharder())
 
-        if prewarmCache {
-            // Initialize empty caches
-            self.prewarmedFlags = [:]
-            self.prewarmedFlagTypeCache = [:]
+        // Get all flag keys for shared cache initialization
+        var allFlagKeys: [String] = []
+        let flagsCount = ufcRoot.flagsCount
+        for i in 0..<flagsCount {
+            if let flagEntry = ufcRoot.flags(at: i),
+               let flag = flagEntry.flag,
+               let key = flag.key {
+                allFlagKeys.append(key)
+            }
+        }
 
-            let flagsCount = ufcRoot.flagsCount
-            print("   🔄 Pre-converting \(flagsCount) FlatBuffer flags to UFC objects...")
-
-            for i in 0..<flagsCount {
-                if let flagEntry = ufcRoot.flags(at: i),
-                   let flag = flagEntry.flag,
-                   let key = flag.key {
-
-                    // Determine and cache the type
-                    let variationType: UFC_VariationType
-                    switch flag.variationType {
-                    case .boolean:
-                        variationType = .boolean
-                    case .integer:
-                        variationType = .integer
-                    case .numeric:
-                        variationType = .numeric
-                    case .string:
-                        variationType = .string
-                    case .json:
-                        variationType = .json
-                    }
-                    self.prewarmedFlagTypeCache[key] = variationType
-
-                    // Convert and cache the full flag
-                    if let ufcFlag = try? self.convertFlatBufferFlagToUFC(flag) {
-                        self.prewarmedFlags[key] = ufcFlag
-                    }
+        // Initialize shared cache with function-based converter
+        self.sharedCache = SwiftStructFlagCache(
+            flagKeys: allFlagKeys,
+            prewarmCache: prewarmCache,
+            findSourceFlag: { [ufcRoot] flagKey in
+                // O(log n) binary search using FlatBuffer's native indexed lookup
+                guard let flagEntry = ufcRoot.flagsBy(key: flagKey) else { return nil }
+                return flagEntry.flag
+            },
+            convertToUFCFlag: { sourceFlag in
+                return try Self.convertFlatBufferFlagToUFC(sourceFlag)
+            },
+            getVariationType: { sourceFlag in
+                switch sourceFlag.variationType {
+                case .boolean: return .boolean
+                case .integer: return .integer
+                case .numeric: return .numeric
+                case .string: return .string
+                case .json: return .json
                 }
             }
-
-            print("   ✅ Pre-converted \(prewarmedFlags.count) flags successfully")
-        } else {
-            // Lazy mode - no upfront scanning or conversion
-            self.prewarmedFlags = [:]
-            self.prewarmedFlagTypeCache = [:]
-        }
+        )
     }
 
     public func evaluateFlag(
@@ -75,18 +68,8 @@ public class SwiftStructFromFlatBufferEvaluator: SwiftStructEvaluatorProtocol {
         isConfigObfuscated: Bool,
         expectedVariationType: UFC_VariationType? = nil
     ) -> FlagEvaluation {
-        // Get flag using appropriate strategy
-        let ufcFlag: UFC_Flag?
-
-        if isPrewarmed {
-            // Prewarm mode - get pre-converted flag (NO synchronization - direct dictionary access)
-            ufcFlag = prewarmedFlags[flagKey]
-        } else {
-            // Lazy mode - get or load flag on-demand (WITH synchronization - concurrent queue access)
-            ufcFlag = getOrLoadFlag(flagKey: flagKey)
-        }
-
-        guard let flag = ufcFlag else {
+        // Get flag using shared cache (handles prewarmed vs lazy automatically)
+        guard let flag = sharedCache.getFlag(flagKey: flagKey) else {
             return FlagEvaluation.noneResult(
                 flagKey: flagKey,
                 subjectKey: subjectKey,
@@ -119,7 +102,7 @@ public class SwiftStructFromFlatBufferEvaluator: SwiftStructEvaluatorProtocol {
     // Get all flag keys for benchmark
     public func getAllFlagKeys() -> [String] {
         if isPrewarmed {
-            return Array(prewarmedFlags.keys)
+            return sharedCache.getAllFlagKeys()
         } else {
             // For lazy mode, scan all flags (only for benchmark purposes)
             var allKeys: [String] = []
@@ -137,86 +120,15 @@ public class SwiftStructFromFlatBufferEvaluator: SwiftStructEvaluatorProtocol {
 
     // Get flag variation type for benchmark
     public func getFlagVariationType(flagKey: String) -> UFC_VariationType? {
-        if isPrewarmed {
-            return prewarmedFlagTypeCache[flagKey]
-        } else {
-            // Concurrent read - check cache first
-            let cachedType = cacheQueue.sync {
-                return flagTypeCache[flagKey]
-            }
-
-            if let variationType = cachedType {
-                return variationType
-            }
-
-            // Barrier write - find and cache the type
-            return cacheQueue.sync(flags: .barrier) {
-                // Double-check after acquiring write lock
-                if let cachedType = flagTypeCache[flagKey] {
-                    return cachedType
-                }
-
-                // Find and cache the type
-                let flagsCount = ufcRoot.flagsCount
-                for i in 0..<flagsCount {
-                    if let flagEntry = ufcRoot.flags(at: i),
-                       let flag = flagEntry.flag,
-                       let key = flag.key, key == flagKey {
-                        let variationType: UFC_VariationType
-                        switch flag.variationType {
-                        case .boolean:
-                            variationType = .boolean
-                        case .integer:
-                            variationType = .integer
-                        case .numeric:
-                            variationType = .numeric
-                        case .string:
-                            variationType = .string
-                        case .json:
-                            variationType = .json
-                        }
-                        flagTypeCache[flagKey] = variationType
-                        return variationType
-                    }
-                }
-                return nil
-            }
-        }
+        return sharedCache.getFlagVariationType(flagKey: flagKey)
     }
 
 
     // MARK: - Private Methods
 
     public func getOrLoadFlag(flagKey: String) -> UFC_Flag? {
-        // Try to get from cache first (concurrent read)
-        let cachedFlag = cacheQueue.sync {
-            return flagCache[flagKey]
-        }
-
-        if let flag = cachedFlag {
-            return flag
-        }
-
-        // Not in cache, load it with a barrier write
-        return cacheQueue.sync(flags: .barrier) {
-            // Double-check after acquiring write lock
-            if let cachedFlag = flagCache[flagKey] {
-                return cachedFlag
-            }
-
-            // Load from FlatBuffer and convert to UFC_Flag
-            guard let fbFlag = findFlatBufferFlag(flagKey: flagKey) else {
-                return nil
-            }
-
-            guard let ufcFlag = try? convertFlatBufferFlagToUFC(fbFlag) else {
-                return nil
-            }
-
-            // Cache the converted flag
-            flagCache[flagKey] = ufcFlag
-            return ufcFlag
-        }
+        // Delegate to shared cache (handles all synchronization and caching logic)
+        return sharedCache.getFlag(flagKey: flagKey)
     }
 
     private func findFlatBufferFlag(flagKey: String) -> Eppo_UFC_Flag? {
@@ -227,7 +139,7 @@ public class SwiftStructFromFlatBufferEvaluator: SwiftStructEvaluatorProtocol {
         return flagEntry.flag
     }
 
-    private func convertFlatBufferFlagToUFC(_ fbFlag: Eppo_UFC_Flag) throws -> UFC_Flag {
+    private static func convertFlatBufferFlagToUFC(_ fbFlag: Eppo_UFC_Flag) throws -> UFC_Flag {
         // Extract basic properties
         guard let key = fbFlag.key else {
             throw NSError(domain: "SwiftStructFromFlatBufferEvaluatorError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Missing flag key"])
@@ -307,7 +219,7 @@ public class SwiftStructFromFlatBufferEvaluator: SwiftStructEvaluatorProtocol {
                 var rulesList: [UFC_Rule] = []
                 for j in 0..<rulesCount {
                     if let fbRule = fbAllocation.rules(at: j) {
-                        if let ufcRule = convertRule(fbRule, flagKey: key) {
+                        if let ufcRule = Self.convertRule(fbRule, flagKey: key) {
                             rulesList.append(ufcRule)
                         }
                     }
@@ -344,8 +256,8 @@ public class SwiftStructFromFlatBufferEvaluator: SwiftStructEvaluatorProtocol {
             }
 
             // Convert dates from UInt64 timestamps
-            let startAt = parseUInt64Timestamp(fbAllocation.startAt)
-            let endAt = parseUInt64Timestamp(fbAllocation.endAt)
+            let startAt = Self.parseUInt64Timestamp(fbAllocation.startAt)
+            let endAt = Self.parseUInt64Timestamp(fbAllocation.endAt)
 
             allocations.append(UFC_Allocation(
                 key: allocationKey,
@@ -387,7 +299,7 @@ public class SwiftStructFromFlatBufferEvaluator: SwiftStructEvaluatorProtocol {
         return flag
     }
 
-    private func convertRule(_ fbRule: Eppo_UFC_Rule, flagKey: String) -> UFC_Rule? {
+    private static func convertRule(_ fbRule: Eppo_UFC_Rule, flagKey: String) -> UFC_Rule? {
         // Convert conditions
         var conditions: [UFC_TargetingRuleCondition] = []
         let conditionsCount = fbRule.conditionsCount
@@ -479,7 +391,7 @@ public class SwiftStructFromFlatBufferEvaluator: SwiftStructEvaluatorProtocol {
         }()
     }
 
-    private func parseUInt64Timestamp(_ timestamp: UInt64) -> Date? {
+    private static func parseUInt64Timestamp(_ timestamp: UInt64) -> Date? {
         guard timestamp > 0 else { return nil }
 
         // Convert UInt64 timestamp to Date
@@ -501,37 +413,18 @@ public class SwiftStructFromFlatBufferEvaluator: SwiftStructEvaluatorProtocol {
     public func prewarmAllFlags() throws {
         guard !isPrewarmed else { return } // Already prewarmed during init
 
-        cacheQueue.async(flags: .barrier) {
-            let flagsCount = self.ufcRoot.flagsCount
-            print("   🔄 Pre-converting \(flagsCount) FlatBuffer flags to UFC objects...")
-
-            for i in 0..<flagsCount {
-                guard let flagEntry = self.ufcRoot.flags(at: i),
-                      let flag = flagEntry.flag,
-                      let key = flag.key else {
-                    continue
-                }
-
-                // Convert FlatBuffer flag to UFC_Flag
-                if let ufcFlag = try? self.convertFlatBufferFlagToUFC(flag) {
-                    self.flagCache[key] = ufcFlag
-                    // Also cache the type
-                    switch flag.variationType {
-                    case .boolean:
-                        self.flagTypeCache[key] = .boolean
-                    case .integer:
-                        self.flagTypeCache[key] = .integer
-                    case .numeric:
-                        self.flagTypeCache[key] = .numeric
-                    case .string:
-                        self.flagTypeCache[key] = .string
-                    case .json:
-                        self.flagTypeCache[key] = .json
-                    }
-                }
+        // Get all flag keys
+        var allFlagKeys: [String] = []
+        let flagsCount = ufcRoot.flagsCount
+        for i in 0..<flagsCount {
+            if let flagEntry = ufcRoot.flags(at: i),
+               let flag = flagEntry.flag,
+               let key = flag.key {
+                allFlagKeys.append(key)
             }
-
-            print("   ✅ Pre-converted \(self.flagCache.count) flags successfully")
         }
+
+        // Delegate to shared cache (handles all synchronization and conversion logic)
+        sharedCache.prewarmAllFlags(allFlagKeys: allFlagKeys)
     }
 }
