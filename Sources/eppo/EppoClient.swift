@@ -296,17 +296,30 @@ public class EppoClient {
     // the configuration cache but each invocation will execute a new network request with billing impact.
     public func load() async throws {
         debugLog("Starting configuration fetch from remote")
-        
-        let config = try await self.configurationRequester.fetchConfigurations()
-        
-        debugLog("Network fetch and parsing completed")
-        
-        debugLog("Starting configuration storage")
-        
-        self.configurationStore.setConfiguration(configuration: config)
-        notifyConfigurationChange(config)
-        
-        debugLog("Configuration storage and load completed")
+
+        if evaluatorType == .optimizedJSON {
+            // FAST PATH: Skip Configuration parsing entirely for maximum startup performance
+            let rawData = try await self.configurationRequester.fetchRawJSON()
+
+            debugLog("Network fetch completed - setting up OptimizedJSONEvaluator directly from raw JSON (fast path)")
+
+            // Initialize OptimizedJSONEvaluator with raw JSON data (assume obfuscated from network)
+            setupOptimizedJSONEvaluatorWithJSON(jsonData: rawData, obfuscated: true)
+
+            debugLog("OptimizedJSON fast startup path completed - Configuration parsing skipped for performance")
+        } else {
+            // Use standard Configuration parsing path
+            let config = try await self.configurationRequester.fetchConfigurations()
+
+            debugLog("Network fetch and parsing completed")
+
+            debugLog("Starting configuration storage")
+
+            self.configurationStore.setConfiguration(configuration: config)
+            notifyConfigurationChange(config)
+
+            debugLog("Configuration storage and load completed")
+        }
     }
 
     public static func resetSharedInstance() {
