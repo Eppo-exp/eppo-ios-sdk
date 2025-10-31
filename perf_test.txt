@@ -1,277 +1,282 @@
-Test Suite 'Selected tests' started at 2025-10-30 13:29:30.242.
-Test Suite 'EppoFlaggingPackageTests.xctest' started at 2025-10-30 13:29:30.243.
-Test Suite 'MultiwayLoadTest' started at 2025-10-30 13:29:30.243.
+Test Suite 'Selected tests' started at 2025-10-30 17:06:53.037.
+Test Suite 'EppoFlaggingPackageTests.xctest' started at 2025-10-30 17:06:53.037.
+Test Suite 'MultiwayLoadTest' started at 2025-10-30 17:06:53.037.
 Test Case '-[EppoFlaggingTests.MultiwayLoadTest testFlatBufferLazyEvaluatorPerformance]' started.
-2025-10-30 13:29:30.242 xctest[27842:18016406] 📦 5. Testing Swift Struct Evaluator (Lazy FlatBuffer)...
-2025-10-30 13:29:30.253 xctest[27842:18016406] 
+📦 5. Testing Swift Struct Evaluator (Lazy FlatBuffer)...
+
 ────────────────────────────────────────────────────────────────────────────────
-2025-10-30 13:29:30.253 xctest[27842:18016406] ⚡ SWIFT STRUCTS: FlatBuffer → Swift Objects Evaluator
+⚡ SWIFT STRUCTS: FlatBuffer → Swift Objects Evaluator
 📊 What's tested: FlatBuffer parsing → Swift struct conversion → evaluation
 🔬 Startup hypothesis: SLOW - FlatBuffer parsing + Swift struct conversion overhead
 🔬 Evaluation hypothesis: EXCELLENT - Fast Swift struct access patterns
 💾 Memory hypothesis: HIGH - All flags as Swift objects, most compact source format
 🎯 Use case: Most compact serialization with Swift struct benefits
 ✅ Benefits: Ultra-compact wire format, zero-copy parsing potential, type safety
-2025-10-30 13:29:30.253 xctest[27842:18016406] ────────────────────────────────────────────────────────────────────────────────
-2025-10-30 13:29:30.253 xctest[27842:18016406]    ⚡ Startup: 8ms (FlatBuffer parsed only - lazy swift struct conversion)
-2025-10-30 13:29:30.260 xctest[27842:18016406]    🔥 First iteration (warming up caches/parsing)...
-2025-10-30 13:29:30.262 xctest[27842:18016406]       -> 216 evals in 1ms = 155,278 evals/sec
-2025-10-30 13:29:30.262 xctest[27842:18016406]    💨 Iteration 2 (cached performance)...
-2025-10-30 13:29:30.263 xctest[27842:18016406]       -> 216 evals in 1ms = 166,156 evals/sec
-2025-10-30 13:29:30.263 xctest[27842:18016406]    💨 Iteration 3 (cached performance)...
-2025-10-30 13:29:30.264 xctest[27842:18016406]       -> 216 evals in 1ms = 165,776 evals/sec
-2025-10-30 13:29:30.264 xctest[27842:18016406]    🏁 Lazy FlatBuffer TOTAL: 59,761 evals/sec (648 evals in 10ms over 3 iterations)
-2025-10-30 13:29:30.264 xctest[27842:18016406]    ✅ Lazy FlatBuffer test completed: 8ms startup, 59,761 evals/sec
-Test Case '-[EppoFlaggingTests.MultiwayLoadTest testFlatBufferLazyEvaluatorPerformance]' passed (0.022 seconds).
+────────────────────────────────────────────────────────────────────────────────
+   ⚡ Startup: 8ms (FlatBuffer parsed only - lazy swift struct conversion)
+   🔥 First iteration (warming up caches/parsing)...
+      -> 216 evals in 1ms = 146,135 evals/sec
+   💨 Iteration 2 (cached performance)...
+      -> 216 evals in 1ms = 160,946 evals/sec
+   💨 Iteration 3 (cached performance)...
+      -> 216 evals in 1ms = 163,267 evals/sec
+   🏁 Lazy FlatBuffer TOTAL: 53,749 evals/sec (648 evals in 12ms over 3 iterations)
+   ✅ Lazy FlatBuffer test completed: 8ms startup, 53,749 evals/sec
+Test Case '-[EppoFlaggingTests.MultiwayLoadTest testFlatBufferLazyEvaluatorPerformance]' passed (0.024 seconds).
 Test Case '-[EppoFlaggingTests.MultiwayLoadTest testFlatBufferPrewarmedEvaluatorPerformance]' started.
-2025-10-30 13:29:30.265 xctest[27842:18016406] 📦 6. Testing Swift Struct Evaluator (FlatBuffer init)...
-2025-10-30 13:29:30.265 xctest[27842:18016406]    🔄 Pre-converting flags to UFC objects...
-2025-10-30 13:29:30.780 xctest[27842:18016406]    ✅ Pre-converted flags successfully
-2025-10-30 13:29:30.780 xctest[27842:18016406] 
+📦 6. Testing Swift Struct Evaluator (FlatBuffer init)...
+   🔄 Pre-converting flags to UFC objects...
+   ✅ Pre-converted flags successfully
+
 ────────────────────────────────────────────────────────────────────────────────
-2025-10-30 13:29:30.780 xctest[27842:18016406] ⚡ SWIFT STRUCTS: FlatBuffer → Swift Objects Evaluator
+⚡ SWIFT STRUCTS: FlatBuffer → Swift Objects Evaluator
 📊 What's tested: FlatBuffer parsing → Swift struct conversion → evaluation
 🔬 Startup hypothesis: SLOW - FlatBuffer parsing + Swift struct conversion overhead
 🔬 Evaluation hypothesis: EXCELLENT - Fast Swift struct access patterns
 💾 Memory hypothesis: HIGH - All flags as Swift objects, most compact source format
 🎯 Use case: Most compact serialization with Swift struct benefits
 ✅ Benefits: Ultra-compact wire format, zero-copy parsing potential, type safety
-2025-10-30 13:29:30.780 xctest[27842:18016406] ────────────────────────────────────────────────────────────────────────────────
-2025-10-30 13:29:30.780 xctest[27842:18016406]    ⚡ Startup: 514ms (swift structs populated from FlatBuffer)
-2025-10-30 13:29:30.783 xctest[27842:18016406]    🔥 First iteration (warming up caches/parsing)...
-2025-10-30 13:29:30.783 xctest[27842:18016406]       -> 216 evals in 0ms = 1,830,241 evals/sec
-2025-10-30 13:29:30.783 xctest[27842:18016406]    💨 Iteration 2 (cached performance)...
-2025-10-30 13:29:30.783 xctest[27842:18016406]       -> 216 evals in 0ms = 1,980,261 evals/sec
-2025-10-30 13:29:30.783 xctest[27842:18016406]    💨 Iteration 3 (cached performance)...
-2025-10-30 13:29:30.783 xctest[27842:18016406]       -> 216 evals in 0ms = 1,877,657 evals/sec
-2025-10-30 13:29:30.783 xctest[27842:18016406]    🏁 FlatBuffer init TOTAL: 185,833 evals/sec (648 evals in 3ms over 3 iterations)
-2025-10-30 13:29:30.783 xctest[27842:18016406]    ✅ FlatBuffer init test completed: 514ms startup, 185,833 evals/sec
-Test Case '-[EppoFlaggingTests.MultiwayLoadTest testFlatBufferPrewarmedEvaluatorPerformance]' passed (0.530 seconds).
-Test Case '-[EppoFlaggingTests.MultiwayLoadTest testJSONEvaluatorPerformance]' started.
-2025-10-30 13:29:30.795 xctest[27842:18016406] 📦 1. Testing Swift Struct Evaluator (JSON init)...
-2025-10-30 13:29:32.933 xctest[27842:18016406] 
 ────────────────────────────────────────────────────────────────────────────────
-2025-10-30 13:29:32.933 xctest[27842:18016406] 🏛️  BASELINE: Traditional JSON Configuration Evaluator
+   ⚡ Startup: 519ms (swift structs populated from FlatBuffer)
+   🔥 First iteration (warming up caches/parsing)...
+      -> 216 evals in 0ms = 1,911,328 evals/sec
+   💨 Iteration 2 (cached performance)...
+      -> 216 evals in 0ms = 1,999,933 evals/sec
+   💨 Iteration 3 (cached performance)...
+      -> 216 evals in 0ms = 1,982,428 evals/sec
+   🏁 FlatBuffer init TOTAL: 185,674 evals/sec (648 evals in 3ms over 3 iterations)
+   ✅ FlatBuffer init test completed: 519ms startup, 185,674 evals/sec
+Test Case '-[EppoFlaggingTests.MultiwayLoadTest testFlatBufferPrewarmedEvaluatorPerformance]' passed (0.535 seconds).
+Test Case '-[EppoFlaggingTests.MultiwayLoadTest testJSONEvaluatorPerformance]' started.
+📦 1. Testing Swift Struct Evaluator (JSON init)...
+
+────────────────────────────────────────────────────────────────────────────────
+🏛️  BASELINE: Traditional JSON Configuration Evaluator
 📊 What's tested: JSON parsing → Swift struct conversion → evaluation
 🔬 Startup hypothesis: SLOWEST - Full JSON parsing and object creation overhead
 🔬 Evaluation hypothesis: GOOD - Optimized Swift struct access patterns
 💾 Memory hypothesis: HIGH - All flags converted to Swift objects in memory
 🎯 Use case: Traditional approach, good for comparison baseline
 ✅ Benefits: Mature, well-tested, human-readable config format
-2025-10-30 13:29:32.933 xctest[27842:18016406] ────────────────────────────────────────────────────────────────────────────────
-2025-10-30 13:29:32.933 xctest[27842:18016406]    ⚡ Startup: 2,126ms (swift structs populated from JSON - 10000 flags)
-2025-10-30 13:29:32.936 xctest[27842:18016406]    🔥 First iteration (warming up caches/parsing)...
-2025-10-30 13:29:32.936 xctest[27842:18016406]       -> 216 evals in 0ms = 540,071 evals/sec
-2025-10-30 13:29:32.936 xctest[27842:18016406]    💨 Iteration 2 (cached performance)...
-2025-10-30 13:29:32.937 xctest[27842:18016406]       -> 216 evals in 0ms = 585,440 evals/sec
-2025-10-30 13:29:32.937 xctest[27842:18016406]    💨 Iteration 3 (cached performance)...
-2025-10-30 13:29:32.937 xctest[27842:18016406]       -> 216 evals in 0ms = 606,608 evals/sec
-2025-10-30 13:29:32.937 xctest[27842:18016406]    🏁 JSON TOTAL: 150,806 evals/sec (648 evals in 4ms over 3 iterations)
-2025-10-30 13:29:32.937 xctest[27842:18016406]    ✅ JSON test completed: 2,126ms startup, 150,806 evals/sec
-Test Case '-[EppoFlaggingTests.MultiwayLoadTest testJSONEvaluatorPerformance]' passed (2.163 seconds).
+────────────────────────────────────────────────────────────────────────────────
+   ⚡ Startup: 2,137ms (swift structs populated from JSON - 10000 flags)
+   🔥 First iteration (warming up caches/parsing)...
+      -> 216 evals in 0ms = 488,656 evals/sec
+   💨 Iteration 2 (cached performance)...
+      -> 216 evals in 0ms = 536,076 evals/sec
+   💨 Iteration 3 (cached performance)...
+      -> 216 evals in 0ms = 534,653 evals/sec
+   🏁 JSON TOTAL: 128,061 evals/sec (648 evals in 5ms over 3 iterations)
+   ✅ JSON test completed: 2,137ms startup, 128,061 evals/sec
+Test Case '-[EppoFlaggingTests.MultiwayLoadTest testJSONEvaluatorPerformance]' passed (2.177 seconds).
 Test Case '-[EppoFlaggingTests.MultiwayLoadTest testNativeFlatBufferNoIndexEvaluatorPerformance]' started.
-2025-10-30 13:29:32.958 xctest[27842:18016406] 📦 9. Testing Native FlatBuffer Evaluator (No Index)...
-2025-10-30 13:29:32.959 xctest[27842:18016406] 
+📦 9. Testing Native FlatBuffer Evaluator (BLOCKING - Parse FlatBuffer Only)...
+   ⏳ BLOCKING until FlatBuffer parsing completes...
+   ✅ BLOCKED - FlatBuffer parsed and ready, O(log n) flag lookup
+
 ────────────────────────────────────────────────────────────────────────────────
-2025-10-30 13:29:32.959 xctest[27842:18016406] 🚀 NATIVE: Direct FlatBuffer Binary Evaluator (NO SWIFT STRUCTS)
+🚀 NATIVE: Direct FlatBuffer Binary Evaluator (NO SWIFT STRUCTS)
 📊 What's tested: Direct FlatBuffer binary evaluation with optional O(1) indexing
 🔬 Startup hypothesis: FASTEST - Zero-copy access, optional index building
 🔬 Evaluation hypothesis: FASTEST - O(1) lookup with index, zero allocations
 💾 Memory hypothesis: LOWEST - Raw binary format, absolute minimal allocation
 🎯 Use case: Performance-critical applications, maximum throughput required
 ✅ Benefits: Ultimate performance potential, zero-copy access, optional O(1) vs O(log n) trade-off
-2025-10-30 13:29:32.959 xctest[27842:18016406] ────────────────────────────────────────────────────────────────────────────────
-2025-10-30 13:29:32.959 xctest[27842:18016406]    ⚡ Startup: 0ms (Native FlatBuffer evaluation - NO SWIFT STRUCTS, O(log n) lookup)
-2025-10-30 13:29:32.963 xctest[27842:18016406]    🔥 First iteration (warming up caches/parsing)...
-2025-10-30 13:29:32.964 xctest[27842:18016406]       -> 216 evals in 1ms = 174,897 evals/sec
-2025-10-30 13:29:32.964 xctest[27842:18016406]    💨 Iteration 2 (cached performance)...
-2025-10-30 13:29:32.965 xctest[27842:18016406]       -> 216 evals in 1ms = 181,520 evals/sec
-2025-10-30 13:29:32.965 xctest[27842:18016406]    💨 Iteration 3 (cached performance)...
-2025-10-30 13:29:32.966 xctest[27842:18016406]       -> 216 evals in 1ms = 181,067 evals/sec
-2025-10-30 13:29:32.966 xctest[27842:18016406]    🏁 Native FB No Index TOTAL: 86,433 evals/sec (648 evals in 7ms over 3 iterations)
-2025-10-30 13:29:32.966 xctest[27842:18016406]    ✅ Native FB No Index test completed: 0ms startup, 86,433 evals/sec
-Test Case '-[EppoFlaggingTests.MultiwayLoadTest testNativeFlatBufferNoIndexEvaluatorPerformance]' passed (0.009 seconds).
+────────────────────────────────────────────────────────────────────────────────
+   ⚡ Startup: 0ms (BLOCKING - FlatBuffer parsed, ready for O(log n) evaluation)
+   🔥 First iteration (warming up caches/parsing)...
+      -> 216 evals in 1ms = 181,502 evals/sec
+   💨 Iteration 2 (cached performance)...
+      -> 216 evals in 1ms = 179,702 evals/sec
+   💨 Iteration 3 (cached performance)...
+      -> 216 evals in 1ms = 188,979 evals/sec
+   🏁 Native FB No Index TOTAL: 90,895 evals/sec (648 evals in 7ms over 3 iterations)
+   ✅ Native FB No Index test completed: 0ms startup, 90,895 evals/sec
+Test Case '-[EppoFlaggingTests.MultiwayLoadTest testNativeFlatBufferNoIndexEvaluatorPerformance]' passed (0.008 seconds).
 Test Case '-[EppoFlaggingTests.MultiwayLoadTest testNativeFlatBufferWithIndexEvaluatorPerformance]' started.
-2025-10-30 13:29:32.967 xctest[27842:18016406] 📦 10. Testing Native FlatBuffer Evaluator (With Index)...
-2025-10-30 13:29:32.977 xctest[27842:18016406] 
+📦 10. Testing Native FlatBuffer Evaluator (BLOCKING - Parse + Build O(1) Index)...
+   ⏳ BLOCKING until FlatBuffer parsing AND O(1) index building completes...
+   ✅ BLOCKED - FlatBuffer parsed + O(1) index built, ready for fastest evaluation
+
 ────────────────────────────────────────────────────────────────────────────────
-2025-10-30 13:29:32.977 xctest[27842:18016406] 🚀 NATIVE: Direct FlatBuffer Binary Evaluator (NO SWIFT STRUCTS)
+🚀 NATIVE: Direct FlatBuffer Binary Evaluator (NO SWIFT STRUCTS)
 📊 What's tested: Direct FlatBuffer binary evaluation with optional O(1) indexing
 🔬 Startup hypothesis: FASTEST - Zero-copy access, optional index building
 🔬 Evaluation hypothesis: FASTEST - O(1) lookup with index, zero allocations
 💾 Memory hypothesis: LOWEST - Raw binary format, absolute minimal allocation
 🎯 Use case: Performance-critical applications, maximum throughput required
 ✅ Benefits: Ultimate performance potential, zero-copy access, optional O(1) vs O(log n) trade-off
-2025-10-30 13:29:32.977 xctest[27842:18016406] ────────────────────────────────────────────────────────────────────────────────
-2025-10-30 13:29:32.977 xctest[27842:18016406]    ⚡ Startup: 9ms (Native FlatBuffer with O(1) index - NO SWIFT STRUCTS)
-2025-10-30 13:29:32.981 xctest[27842:18016406]    🔥 First iteration (warming up caches/parsing)...
-2025-10-30 13:29:32.981 xctest[27842:18016406]       -> 216 evals in 0ms = 1,490,081 evals/sec
-2025-10-30 13:29:32.981 xctest[27842:18016406]    💨 Iteration 2 (cached performance)...
-2025-10-30 13:29:32.981 xctest[27842:18016406]       -> 216 evals in 0ms = 1,612,045 evals/sec
-2025-10-30 13:29:32.981 xctest[27842:18016406]    💨 Iteration 3 (cached performance)...
-2025-10-30 13:29:32.981 xctest[27842:18016406]       -> 216 evals in 0ms = 1,623,601 evals/sec
-2025-10-30 13:29:32.981 xctest[27842:18016406]    🏁 Native FB With Index TOTAL: 163,100 evals/sec (648 evals in 3ms over 3 iterations)
-2025-10-30 13:29:32.981 xctest[27842:18016406]    ✅ Native FB With Index test completed: 9ms startup, 163,100 evals/sec
-Test Case '-[EppoFlaggingTests.MultiwayLoadTest testNativeFlatBufferWithIndexEvaluatorPerformance]' passed (0.015 seconds).
+────────────────────────────────────────────────────────────────────────────────
+   ⚡ Startup: 9ms (BLOCKING - FlatBuffer parsed + O(1) index built, ready for ultra-fast evaluation)
+   🔥 First iteration (warming up caches/parsing)...
+      -> 216 evals in 0ms = 1,449,551 evals/sec
+   💨 Iteration 2 (cached performance)...
+      -> 216 evals in 0ms = 1,531,647 evals/sec
+   💨 Iteration 3 (cached performance)...
+      -> 216 evals in 0ms = 1,635,324 evals/sec
+   🏁 Native FB With Index TOTAL: 161,674 evals/sec (648 evals in 4ms over 3 iterations)
+   ✅ Native FB With Index test completed: 9ms startup, 161,674 evals/sec
+Test Case '-[EppoFlaggingTests.MultiwayLoadTest testNativeFlatBufferWithIndexEvaluatorPerformance]' passed (0.014 seconds).
 Test Case '-[EppoFlaggingTests.MultiwayLoadTest testNativeProtobufLazyEvaluatorPerformance]' started.
-2025-10-30 13:29:32.981 xctest[27842:18016406] 📦 7. Testing Native Protobuf Evaluator (Lazy)...
-2025-10-30 13:29:32.983 xctest[27842:18016406] 
+📦 7. Testing Native Protobuf Evaluator (LAZY - Parse on First Access)...
+
 ────────────────────────────────────────────────────────────────────────────────
-2025-10-30 13:29:32.983 xctest[27842:18016406] 🔥 NATIVE: Direct Protobuf Binary Evaluator (NO SWIFT STRUCTS)
+🔥 NATIVE: Direct Protobuf Binary Evaluator (NO SWIFT STRUCTS)
 📊 What's tested: Direct protobuf binary evaluation without object conversion
 🔬 Startup hypothesis: VERY FAST - No Swift struct creation, binary ready
 🔬 Evaluation hypothesis: GOOD - Direct binary access, no object overhead
 💾 Memory hypothesis: LOW - Raw binary format, minimal memory allocation
 🎯 Use case: Memory-constrained environments, ultra-fast startup required
 ✅ Benefits: Minimal memory footprint, lightning startup, no GC pressure
-2025-10-30 13:29:32.983 xctest[27842:18016406] ────────────────────────────────────────────────────────────────────────────────
-2025-10-30 13:29:32.983 xctest[27842:18016406]    ⚡ Startup: 0ms (Native protobuf evaluation - NO SWIFT STRUCTS)
-2025-10-30 13:29:32.986 xctest[27842:18016406]    🔥 First iteration (warming up caches/parsing)...
-2025-10-30 13:29:33.787 xctest[27842:18016406]       -> 216 evals in 800ms = 269 evals/sec
-2025-10-30 13:29:33.787 xctest[27842:18016406]    💨 Iteration 2 (cached performance)...
-2025-10-30 13:29:33.787 xctest[27842:18016406]       -> 216 evals in 0ms = 1,531,647 evals/sec
-2025-10-30 13:29:33.787 xctest[27842:18016406]    💨 Iteration 3 (cached performance)...
-2025-10-30 13:29:33.787 xctest[27842:18016406]       -> 216 evals in 0ms = 1,895,334 evals/sec
-2025-10-30 13:29:33.787 xctest[27842:18016406]    🏁 Native PB Lazy TOTAL: 806 evals/sec (648 evals in 803ms over 3 iterations)
-2025-10-30 13:29:33.787 xctest[27842:18016406]    ✅ Native PB Lazy test completed: 0ms startup, 806 evals/sec
-Test Case '-[EppoFlaggingTests.MultiwayLoadTest testNativeProtobufLazyEvaluatorPerformance]' passed (0.819 seconds).
+────────────────────────────────────────────────────────────────────────────────
+   ⚡ Startup: 0ms (LAZY - protobuf parsing deferred until first evaluation)
+   🔥 First iteration (warming up caches/parsing)...
+      -> 216 evals in 793ms = 272 evals/sec
+   💨 Iteration 2 (cached performance)...
+      -> 216 evals in 0ms = 1,488,857 evals/sec
+   💨 Iteration 3 (cached performance)...
+      -> 216 evals in 0ms = 1,458,888 evals/sec
+   🏁 Native PB Lazy TOTAL: 812 evals/sec (648 evals in 797ms over 3 iterations)
+   ✅ Native PB Lazy test completed: 0ms startup, 812 evals/sec
+Test Case '-[EppoFlaggingTests.MultiwayLoadTest testNativeProtobufLazyEvaluatorPerformance]' passed (0.810 seconds).
 Test Case '-[EppoFlaggingTests.MultiwayLoadTest testNativeProtobufPrewarmedEvaluatorPerformance]' started.
-2025-10-30 13:29:33.800 xctest[27842:18016406] 📦 8. Testing Native Protobuf Evaluator (Prewarmed)...
-2025-10-30 13:29:33.801 xctest[27842:18016406]    🔄 Pre-parsed protobuf config...
-2025-10-30 13:29:34.574 xctest[27842:18016406] 
+📦 8. Testing Native Protobuf Evaluator (BLOCKING - Parse All Upfront)...
+   ⏳ BLOCKING until all protobuf parsing completes...
+   ✅ BLOCKED - all flags parsed and ready for evaluation
+
 ────────────────────────────────────────────────────────────────────────────────
-2025-10-30 13:29:34.574 xctest[27842:18016406] 🔥 NATIVE: Direct Protobuf Binary Evaluator (NO SWIFT STRUCTS)
+🔥 NATIVE: Direct Protobuf Binary Evaluator (NO SWIFT STRUCTS)
 📊 What's tested: Direct protobuf binary evaluation without object conversion
 🔬 Startup hypothesis: VERY FAST - No Swift struct creation, binary ready
 🔬 Evaluation hypothesis: GOOD - Direct binary access, no object overhead
 💾 Memory hypothesis: LOW - Raw binary format, minimal memory allocation
 🎯 Use case: Memory-constrained environments, ultra-fast startup required
 ✅ Benefits: Minimal memory footprint, lightning startup, no GC pressure
-2025-10-30 13:29:34.574 xctest[27842:18016406] ────────────────────────────────────────────────────────────────────────────────
-2025-10-30 13:29:34.574 xctest[27842:18016406]    ⚡ Startup: 772ms (Native protobuf prewarmed cache - NO SWIFT STRUCTS)
-2025-10-30 13:29:34.578 xctest[27842:18016406]    🔥 First iteration (warming up caches/parsing)...
-2025-10-30 13:29:34.578 xctest[27842:18016406]       -> 216 evals in 0ms = 1,412,267 evals/sec
-2025-10-30 13:29:34.578 xctest[27842:18016406]    💨 Iteration 2 (cached performance)...
-2025-10-30 13:29:34.578 xctest[27842:18016406]       -> 216 evals in 0ms = 1,479,134 evals/sec
-2025-10-30 13:29:34.578 xctest[27842:18016406]    💨 Iteration 3 (cached performance)...
-2025-10-30 13:29:34.578 xctest[27842:18016406]       -> 216 evals in 0ms = 1,480,342 evals/sec
-2025-10-30 13:29:34.578 xctest[27842:18016406]    🏁 Native PB Prewarmed TOTAL: 153,771 evals/sec (648 evals in 4ms over 3 iterations)
-2025-10-30 13:29:34.578 xctest[27842:18016406]    ✅ Native PB Prewarmed test completed: 772ms startup, 153,771 evals/sec
-Test Case '-[EppoFlaggingTests.MultiwayLoadTest testNativeProtobufPrewarmedEvaluatorPerformance]' passed (0.790 seconds).
+────────────────────────────────────────────────────────────────────────────────
+   ⚡ Startup: 810ms (BLOCKING - protobuf fully parsed upfront, objects ready)
+   🔥 First iteration (warming up caches/parsing)...
+      -> 216 evals in 0ms = 1,333,288 evals/sec
+   💨 Iteration 2 (cached performance)...
+      -> 216 evals in 0ms = 1,469,537 evals/sec
+   💨 Iteration 3 (cached performance)...
+      -> 216 evals in 0ms = 1,469,537 evals/sec
+   🏁 Native PB Prewarmed TOTAL: 138,938 evals/sec (648 evals in 4ms over 3 iterations)
+   ✅ Native PB Prewarmed test completed: 810ms startup, 138,938 evals/sec
+Test Case '-[EppoFlaggingTests.MultiwayLoadTest testNativeProtobufPrewarmedEvaluatorPerformance]' passed (0.828 seconds).
 Test Case '-[EppoFlaggingTests.MultiwayLoadTest testProtobufLazyEvaluatorPerformance]' started.
-2025-10-30 13:29:34.590 xctest[27842:18016406] 📦 3. Testing Swift Struct Evaluator (Lazy PB)...
-2025-10-30 13:29:35.322 xctest[27842:18016406] 
+📦 3. Testing Swift Struct Evaluator (Lazy PB)...
+
 ────────────────────────────────────────────────────────────────────────────────
-2025-10-30 13:29:35.322 xctest[27842:18016406] 📦 SWIFT STRUCTS: Protobuf → Swift Objects Evaluator
+📦 SWIFT STRUCTS: Protobuf → Swift Objects Evaluator
 📊 What's tested: Protobuf parsing → Swift struct conversion → evaluation
 🔬 Startup hypothesis: SLOW - Protobuf parsing + Swift struct conversion overhead
 🔬 Evaluation hypothesis: EXCELLENT - Fast Swift struct access patterns
 💾 Memory hypothesis: HIGH - All flags as Swift objects, more compact source than JSON
 🎯 Use case: Balanced approach with better serialization than JSON
 ✅ Benefits: Compact wire format, type safety, should be faster than JSON startup
-2025-10-30 13:29:35.322 xctest[27842:18016406] ────────────────────────────────────────────────────────────────────────────────
-2025-10-30 13:29:35.322 xctest[27842:18016406]    ⚡ Startup: 730ms (protobuf parsed only - lazy swift struct conversion)
-2025-10-30 13:29:35.325 xctest[27842:18016406]    🔥 First iteration (warming up caches/parsing)...
-2025-10-30 13:29:35.325 xctest[27842:18016406]       -> 216 evals in 0ms = 850,276 evals/sec
-2025-10-30 13:29:35.325 xctest[27842:18016406]    💨 Iteration 2 (cached performance)...
-2025-10-30 13:29:35.325 xctest[27842:18016406]       -> 216 evals in 0ms = 926,823 evals/sec
-2025-10-30 13:29:35.325 xctest[27842:18016406]    💨 Iteration 3 (cached performance)...
-2025-10-30 13:29:35.326 xctest[27842:18016406]       -> 216 evals in 0ms = 923,046 evals/sec
-2025-10-30 13:29:35.326 xctest[27842:18016406]    🏁 Lazy PB TOTAL: 169,103 evals/sec (648 evals in 3ms over 3 iterations)
-2025-10-30 13:29:35.326 xctest[27842:18016406]    ✅ Lazy PB test completed: 730ms startup, 169,103 evals/sec
-Test Case '-[EppoFlaggingTests.MultiwayLoadTest testProtobufLazyEvaluatorPerformance]' passed (0.747 seconds).
+────────────────────────────────────────────────────────────────────────────────
+   ⚡ Startup: 731ms (protobuf parsed only - lazy swift struct conversion)
+   🔥 First iteration (warming up caches/parsing)...
+      -> 216 evals in 0ms = 877,877 evals/sec
+   💨 Iteration 2 (cached performance)...
+      -> 216 evals in 0ms = 938,828 evals/sec
+   💨 Iteration 3 (cached performance)...
+      -> 216 evals in 0ms = 896,112 evals/sec
+   🏁 Lazy PB TOTAL: 160,395 evals/sec (648 evals in 4ms over 3 iterations)
+   ✅ Lazy PB test completed: 731ms startup, 160,395 evals/sec
+Test Case '-[EppoFlaggingTests.MultiwayLoadTest testProtobufLazyEvaluatorPerformance]' passed (0.748 seconds).
 Test Case '-[EppoFlaggingTests.MultiwayLoadTest testProtobufPrewarmedEvaluatorPerformance]' started.
-2025-10-30 13:29:35.338 xctest[27842:18016406] 📦 4. Testing Swift Struct Evaluator (Protobuf init)...
-2025-10-30 13:29:35.338 xctest[27842:18016406]    🔄 Pre-converting flags to UFC objects...
-2025-10-30 13:29:36.149 xctest[27842:18016406]    ✅ Pre-converted flags successfully
-2025-10-30 13:29:36.149 xctest[27842:18016406] 
+📦 4. Testing Swift Struct Evaluator (Protobuf init)...
+   🔄 Pre-converting flags to UFC objects...
+   ✅ Pre-converted flags successfully
+
 ────────────────────────────────────────────────────────────────────────────────
-2025-10-30 13:29:36.149 xctest[27842:18016406] 📦 SWIFT STRUCTS: Protobuf → Swift Objects Evaluator
+📦 SWIFT STRUCTS: Protobuf → Swift Objects Evaluator
 📊 What's tested: Protobuf parsing → Swift struct conversion → evaluation
 🔬 Startup hypothesis: SLOW - Protobuf parsing + Swift struct conversion overhead
 🔬 Evaluation hypothesis: EXCELLENT - Fast Swift struct access patterns
 💾 Memory hypothesis: HIGH - All flags as Swift objects, more compact source than JSON
 🎯 Use case: Balanced approach with better serialization than JSON
 ✅ Benefits: Compact wire format, type safety, should be faster than JSON startup
-2025-10-30 13:29:36.149 xctest[27842:18016406] ────────────────────────────────────────────────────────────────────────────────
-2025-10-30 13:29:36.149 xctest[27842:18016406]    ⚡ Startup: 810ms (swift structs populated from protobuf)
-2025-10-30 13:29:36.152 xctest[27842:18016406]    🔥 First iteration (warming up caches/parsing)...
-2025-10-30 13:29:36.152 xctest[27842:18016406]       -> 216 evals in 0ms = 1,965,227 evals/sec
-2025-10-30 13:29:36.152 xctest[27842:18016406]    💨 Iteration 2 (cached performance)...
-2025-10-30 13:29:36.152 xctest[27842:18016406]       -> 216 evals in 0ms = 2,139,243 evals/sec
-2025-10-30 13:29:36.152 xctest[27842:18016406]    💨 Iteration 3 (cached performance)...
-2025-10-30 13:29:36.152 xctest[27842:18016406]       -> 216 evals in 0ms = 2,183,059 evals/sec
-2025-10-30 13:29:36.152 xctest[27842:18016406]    🏁 Protobuf init TOTAL: 192,738 evals/sec (648 evals in 3ms over 3 iterations)
-2025-10-30 13:29:36.152 xctest[27842:18016406]    ✅ Protobuf init test completed: 810ms startup, 192,738 evals/sec
-Test Case '-[EppoFlaggingTests.MultiwayLoadTest testProtobufPrewarmedEvaluatorPerformance]' passed (0.834 seconds).
+────────────────────────────────────────────────────────────────────────────────
+   ⚡ Startup: 819ms (swift structs populated from protobuf)
+   🔥 First iteration (warming up caches/parsing)...
+      -> 216 evals in 0ms = 1,742,249 evals/sec
+   💨 Iteration 2 (cached performance)...
+      -> 216 evals in 0ms = 1,911,328 evals/sec
+   💨 Iteration 3 (cached performance)...
+      -> 216 evals in 0ms = 1,895,334 evals/sec
+   🏁 Protobuf init TOTAL: 141,576 evals/sec (648 evals in 4ms over 3 iterations)
+   ✅ Protobuf init test completed: 819ms startup, 141,576 evals/sec
+Test Case '-[EppoFlaggingTests.MultiwayLoadTest testProtobufPrewarmedEvaluatorPerformance]' passed (0.847 seconds).
 Test Case '-[EppoFlaggingTests.MultiwayLoadTest testZZZPerformanceComparison]' started.
-2025-10-30 13:29:36.172 xctest[27842:18016406] 
+
 ============================================================
-2025-10-30 13:29:36.172 xctest[27842:18016406] 🏆 CROSS-EVALUATOR PERFORMANCE COMPARISON
-2025-10-30 13:29:36.172 xctest[27842:18016406] ============================================================
-2025-10-30 13:29:36.172 xctest[27842:18016406] 📊 Results Summary:
-2025-10-30 13:29:36.172 xctest[27842:18016406]    • FlatBuffer init: 514ms startup, 185,833 evals/sec
-2025-10-30 13:29:36.172 xctest[27842:18016406]    • JSON: 2,126ms startup, 150,806 evals/sec
-2025-10-30 13:29:36.172 xctest[27842:18016406]    • Lazy FlatBuffer: 8ms startup, 59,761 evals/sec
-2025-10-30 13:29:36.172 xctest[27842:18016406]    • Lazy PB: 730ms startup, 169,103 evals/sec
-2025-10-30 13:29:36.172 xctest[27842:18016406]    • Native FB No Index: 0ms startup, 86,433 evals/sec
-2025-10-30 13:29:36.172 xctest[27842:18016406]    • Native FB With Index: 9ms startup, 163,100 evals/sec
-2025-10-30 13:29:36.172 xctest[27842:18016406]    • Native PB Lazy: 0ms startup, 806 evals/sec
-2025-10-30 13:29:36.172 xctest[27842:18016406]    • Native PB Prewarmed: 772ms startup, 153,771 evals/sec
-2025-10-30 13:29:36.172 xctest[27842:18016406]    • Protobuf init: 810ms startup, 192,738 evals/sec
-2025-10-30 13:29:36.172 xctest[27842:18016406] 
+🏆 CROSS-EVALUATOR PERFORMANCE COMPARISON
+============================================================
+📊 Results Summary:
+   • FlatBuffer init: 519ms startup, 185,674 evals/sec
+   • JSON: 2,137ms startup, 128,061 evals/sec
+   • Lazy FlatBuffer: 8ms startup, 53,749 evals/sec
+   • Lazy PB: 731ms startup, 160,395 evals/sec
+   • Native FB No Index: 0ms startup, 90,895 evals/sec
+   • Native FB With Index: 9ms startup, 161,674 evals/sec
+   • Native PB Lazy: 0ms startup, 812 evals/sec
+   • Native PB Prewarmed: 810ms startup, 138,938 evals/sec
+   • Protobuf init: 819ms startup, 141,576 evals/sec
+
 ⚡ STARTUP SPEED RANKINGS:
-2025-10-30 13:29:36.173 xctest[27842:18016406]    1. Native PB Lazy: 0ms
-2025-10-30 13:29:36.173 xctest[27842:18016406]    2. Native FB No Index: 0ms
-2025-10-30 13:29:36.173 xctest[27842:18016406]    3. Lazy FlatBuffer: 8ms
-2025-10-30 13:29:36.173 xctest[27842:18016406]    4. Native FB With Index: 9ms
-2025-10-30 13:29:36.173 xctest[27842:18016406]    5. FlatBuffer init: 514ms
-2025-10-30 13:29:36.173 xctest[27842:18016406]    6. Lazy PB: 730ms
-2025-10-30 13:29:36.173 xctest[27842:18016406]    7. Native PB Prewarmed: 772ms
-2025-10-30 13:29:36.173 xctest[27842:18016406]    8. Protobuf init: 810ms
-2025-10-30 13:29:36.173 xctest[27842:18016406]    9. JSON: 2,126ms
-2025-10-30 13:29:36.173 xctest[27842:18016406] 
+   1. Native PB Lazy: 0ms
+   2. Native FB No Index: 0ms
+   3. Lazy FlatBuffer: 8ms
+   4. Native FB With Index: 9ms
+   5. FlatBuffer init: 519ms
+   6. Lazy PB: 731ms
+   7. Native PB Prewarmed: 810ms
+   8. Protobuf init: 819ms
+   9. JSON: 2,137ms
+
 🚀 EVALUATION SPEED RANKINGS:
-2025-10-30 13:29:36.173 xctest[27842:18016406]    1. Protobuf init: 192,738 evals/sec
-2025-10-30 13:29:36.173 xctest[27842:18016406]    2. FlatBuffer init: 185,833 evals/sec
-2025-10-30 13:29:36.173 xctest[27842:18016406]    3. Lazy PB: 169,103 evals/sec
-2025-10-30 13:29:36.173 xctest[27842:18016406]    4. Native FB With Index: 163,100 evals/sec
-2025-10-30 13:29:36.173 xctest[27842:18016406]    5. Native PB Prewarmed: 153,771 evals/sec
-2025-10-30 13:29:36.173 xctest[27842:18016406]    6. JSON: 150,806 evals/sec
-2025-10-30 13:29:36.173 xctest[27842:18016406]    7. Native FB No Index: 86,433 evals/sec
-2025-10-30 13:29:36.173 xctest[27842:18016406]    8. Lazy FlatBuffer: 59,761 evals/sec
-2025-10-30 13:29:36.173 xctest[27842:18016406]    9. Native PB Lazy: 806 evals/sec
-2025-10-30 13:29:36.173 xctest[27842:18016406] 
+   1. FlatBuffer init: 185,674 evals/sec
+   2. Native FB With Index: 161,674 evals/sec
+   3. Lazy PB: 160,395 evals/sec
+   4. Protobuf init: 141,576 evals/sec
+   5. Native PB Prewarmed: 138,938 evals/sec
+   6. JSON: 128,061 evals/sec
+   7. Native FB No Index: 90,895 evals/sec
+   8. Lazy FlatBuffer: 53,749 evals/sec
+   9. Native PB Lazy: 812 evals/sec
+
 📈 SPEEDUP vs JSON BASELINE:
-2025-10-30 13:29:36.173 xctest[27842:18016406]    • Protobuf init: 2.6x startup, 1.3x evaluation
-2025-10-30 13:29:36.173 xctest[27842:18016406]    • FlatBuffer init: 4.1x startup, 1.2x evaluation
-2025-10-30 13:29:36.173 xctest[27842:18016406]    • Lazy PB: 2.9x startup, 1.1x evaluation
-2025-10-30 13:29:36.173 xctest[27842:18016406]    • Native FB With Index: 220.4x startup, 1.1x evaluation
-2025-10-30 13:29:36.173 xctest[27842:18016406]    • Native PB Prewarmed: 2.8x startup, 1.0x evaluation
-2025-10-30 13:29:36.173 xctest[27842:18016406]    • JSON: 1.0x startup, 1.0x evaluation
-2025-10-30 13:29:36.173 xctest[27842:18016406]    • Native FB No Index: 212370.6x startup, 0.6x evaluation
-2025-10-30 13:29:36.173 xctest[27842:18016406]    • Lazy FlatBuffer: 260.5x startup, 0.4x evaluation
-2025-10-30 13:29:36.173 xctest[27842:18016406]    • Native PB Lazy: 262340.1x startup, 0.0x evaluation
-2025-10-30 13:29:36.173 xctest[27842:18016406] 
+   • FlatBuffer init: 4.1x startup, 1.4x evaluation
+   • Native FB With Index: 223.4x startup, 1.3x evaluation
+   • Lazy PB: 2.9x startup, 1.3x evaluation
+   • Protobuf init: 2.6x startup, 1.1x evaluation
+   • Native PB Prewarmed: 2.6x startup, 1.1x evaluation
+   • JSON: 1.0x startup, 1.0x evaluation
+   • Native FB No Index: 213489.6x startup, 0.7x evaluation
+   • Lazy FlatBuffer: 250.1x startup, 0.4x evaluation
+   • Native PB Lazy: 351629.9x startup, 0.0x evaluation
+
 🥊 NATIVE vs SWIFT STRUCT AVERAGES:
-2025-10-30 13:29:36.173 xctest[27842:18016406]    Native Avg: 195ms startup, 101,027 evals/sec
-2025-10-30 13:29:36.173 xctest[27842:18016406]    Swift Avg:  838ms startup, 151,648 evals/sec
-2025-10-30 13:29:36.173 xctest[27842:18016406]    Native wins by: 4.3x startup, 0.7x evaluation
-2025-10-30 13:29:36.173 xctest[27842:18016406] 
+   Native Avg: 205ms startup, 98,080 evals/sec
+   Swift Avg:  843ms startup, 133,891 evals/sec
+   Native wins by: 4.1x startup, 0.7x evaluation
+
 📦 FLATBUFFER INDEX ANALYSIS:
-2025-10-30 13:29:36.173 xctest[27842:18016406]    Index Build Cost: +9ms
-2025-10-30 13:29:36.173 xctest[27842:18016406]    Index Speed Gain: 1.9x faster evaluation
-2025-10-30 13:29:36.173 xctest[27842:18016406]    Trade-off: Pay 9ms once for 1.9x ongoing performance
-2025-10-30 13:29:36.173 xctest[27842:18016406] 
+   Index Build Cost: +9ms
+   Index Speed Gain: 1.8x faster evaluation
+   Trade-off: Pay 9ms once for 1.8x ongoing performance
+
 ✅ Performance comparison completed!
-2025-10-30 13:29:36.173 xctest[27842:18016406] 💾 Memory benefit: Each test ran in isolation with automatic cleanup between tests
+💾 Memory benefit: Each test ran in isolation with automatic cleanup between tests
 Test Case '-[EppoFlaggingTests.MultiwayLoadTest testZZZPerformanceComparison]' passed (0.001 seconds).
-Test Suite 'MultiwayLoadTest' passed at 2025-10-30 13:29:36.174.
-	 Executed 10 tests, with 0 failures (0 unexpected) in 5.930 (5.931) seconds
-Test Suite 'EppoFlaggingPackageTests.xctest' passed at 2025-10-30 13:29:36.174.
-	 Executed 10 tests, with 0 failures (0 unexpected) in 5.930 (5.931) seconds
-Test Suite 'Selected tests' passed at 2025-10-30 13:29:36.174.
-	 Executed 10 tests, with 0 failures (0 unexpected) in 5.930 (5.932) seconds
+Test Suite 'MultiwayLoadTest' passed at 2025-10-30 17:06:59.032.
+	 Executed 10 tests, with 0 failures (0 unexpected) in 5.993 (5.994) seconds
+Test Suite 'EppoFlaggingPackageTests.xctest' passed at 2025-10-30 17:06:59.032.
+	 Executed 10 tests, with 0 failures (0 unexpected) in 5.993 (5.994) seconds
+Test Suite 'Selected tests' passed at 2025-10-30 17:06:59.032.
+	 Executed 10 tests, with 0 failures (0 unexpected) in 5.993 (5.995) seconds
    🔄 Pre-converting 10000 flags to UFC objects...
    ✅ Pre-converted 10000 flags successfully
    📚 Building FlatBuffer flag index for 10000 flags...

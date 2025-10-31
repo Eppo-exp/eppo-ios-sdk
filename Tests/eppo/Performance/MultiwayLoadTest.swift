@@ -89,6 +89,21 @@ extension NativeFlatBufferClient: AssignmentClient {
     }
 }
 
+// Extend AaronClaudeClient to conform to the protocol
+extension AaronClaudeClient: AssignmentClient {
+    func getPerformanceDescription() -> String {
+        return """
+        🧠 AARON CLAUDE: Optimized JSON→EppoValue Parser (Foundation-Only)
+        📊 What's tested: Direct JSON parsing with EppoValue optimization → evaluation
+        🔬 Startup hypothesis: FAST - Avoids expensive try-catch chains in EppoValue creation
+        🔬 Evaluation hypothesis: EXCELLENT - Pre-computed EppoValue types, no runtime inference
+        💾 Memory hypothesis: MEDIUM - Optimized structures with pre-processed values
+        🎯 Use case: JSON performance optimization without changing serialization format
+        ✅ Benefits: Foundation-only parsing, direct EppoValue creation, pre-analyzed types
+        """
+    }
+}
+
 // COMMENTED OUT: JsonOffsetIndexClient protocol extension - test is disabled
 /*
 // Extend JsonOffsetIndexClient to conform to the protocol
@@ -158,6 +173,27 @@ final class MultiwayLoadTest: XCTestCase {
                 let startupTime = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
                 let flagCount = configuration.flagsConfiguration.flags.count
                 return (client, startupTime, "swift structs populated from JSON - \(flagCount) flags")
+            }
+        )
+    }
+
+    func testAaronClaudeEvaluatorPerformance() throws {
+        NSLog("🧠 2. Testing Aaron Claude Optimized JSON Evaluator...")
+        try testEvaluatorPerformance(
+            evaluatorName: "Aaron Claude",
+            setupBlock: {
+                let jsonData = try self.loadJSONData()
+                NSLog("   🧠 Starting optimized JSON parsing with EppoValue improvements...")
+                let startTime = CFAbsoluteTimeGetCurrent()
+                let client = try AaronClaudeClient(
+                    sdkKey: "aaron-claude-test-key",
+                    jsonData: jsonData,
+                    obfuscated: false,
+                    assignmentLogger: nil
+                )
+                let startupTime = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
+                NSLog("   ✅ Aaron Claude parsing completed with Foundation-only optimizations")
+                return (client, startupTime, "Foundation-only JSON parsing with pre-computed EppoValue types")
             }
         )
     }
