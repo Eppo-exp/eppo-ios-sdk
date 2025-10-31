@@ -102,29 +102,28 @@ public class OptimizedJSONEvaluator {
 
     // MARK: - Properties
 
-    /// Raw JSON data for lazy parsing (fast startup optimization)
+    /// Raw JSON data for reference
     private let rawJSONData: Data
-    /// Lazily parsed flag configurations optimized for fast evaluation
-    private var flagsConfiguration: [String: OptimizedFlag] = [:]
-    /// Base JSON structure (parsed once, cached)
-    private var baseJSON: [String: Any]?
+    /// Pre-parsed flag configurations optimized for fast evaluation
+    private let flagsConfiguration: [String: OptimizedFlag]
     private let isConfigObfuscated: Bool
     private let sharder: Sharder
-    private let parseLock = NSLock() // Thread safety for lazy parsing
 
     // MARK: - Initialization
 
     public init(jsonData: Data, obfuscated: Bool = false) throws {
-        NSLog("🚀 OptimizedJSONEvaluator: Fast startup initialization...")
+        NSLog("🚀 OptimizedJSONEvaluator: Fast upfront parsing initialization...")
         let startTime = CFAbsoluteTimeGetCurrent()
 
         self.rawJSONData = jsonData
         self.isConfigObfuscated = obfuscated
         self.sharder = MD5Sharder()
 
-        // Fast startup: just store data, parse lazily during evaluation
+        // UPFRONT PARSING: Parse all flags immediately but efficiently
+        self.flagsConfiguration = try Self.parseOptimizedJSON(data: jsonData)
+
         let initTime = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
-        NSLog("🚀 OptimizedJSONEvaluator: Fast startup complete in %.2fms (lazy parsing enabled)", initTime)
+        NSLog("🚀 OptimizedJSONEvaluator: Fast upfront parsing complete in %.2fms (%d flags parsed)", initTime, flagsConfiguration.count)
     }
 
     // MARK: - JSON Parsing with Optimizations
@@ -170,55 +169,6 @@ public class OptimizedJSONEvaluator {
         return optimizedFlags
     }
 
-    // MARK: - Lazy Parsing for Fast Startup
-
-    /// Get flag from cache or parse it on-demand (thread-safe)
-    private func getOrParseFlag(flagKeyForLookup: String, originalFlagKey: String) -> OptimizedFlag? {
-        // Check cache first (fast path)
-        if let cachedFlag = flagsConfiguration[flagKeyForLookup] {
-            return cachedFlag
-        }
-
-        // Parse on-demand (slow path, but only for first access)
-        return parseLock.withLock {
-            // Double-check cache after acquiring lock
-            if let cachedFlag = flagsConfiguration[flagKeyForLookup] {
-                return cachedFlag
-            }
-
-            // Parse the specific flag lazily
-            do {
-                let parsedFlag = try parseSpecificFlag(flagKeyForLookup: flagKeyForLookup)
-                flagsConfiguration[flagKeyForLookup] = parsedFlag
-                return parsedFlag
-            } catch {
-                // Flag not found or parse error
-                return nil
-            }
-        }
-    }
-
-    /// Parse a specific flag from the base JSON structure
-    private func parseSpecificFlag(flagKeyForLookup: String) throws -> OptimizedFlag {
-        // Lazy load base JSON if not already parsed
-        if baseJSON == nil {
-            guard let json = try JSONSerialization.jsonObject(with: rawJSONData) as? [String: Any],
-                  let flags = json["flags"] as? [String: Any] else {
-                throw NSError(domain: "OptimizedJSONEvaluator", code: 1,
-                             userInfo: [NSLocalizedDescriptionKey: "Invalid JSON structure"])
-            }
-            baseJSON = flags
-        }
-
-        guard let flags = baseJSON,
-              let flagValue = flags[flagKeyForLookup] as? [String: Any] else {
-            throw NSError(domain: "OptimizedJSONEvaluator", code: 2,
-                         userInfo: [NSLocalizedDescriptionKey: "Flag not found: \(flagKeyForLookup)"])
-        }
-
-        // Parse this specific flag (same logic as before, but for one flag)
-        return try Self.parseOptimizedFlag(flagKey: flagKeyForLookup, flagData: flagValue)
-    }
 
     /// Parse a single flag from JSON data
     private static func parseOptimizedFlag(flagKey: String, flagData: [String: Any]) throws -> OptimizedFlag {
@@ -521,8 +471,8 @@ public class OptimizedJSONEvaluator {
         // Handle obfuscated flag key lookup (critical fix!)
         let flagKeyForLookup = isConfigObfuscated ? getMD5Hex(flagKey) : flagKey
 
-        // Lazy load flag if not already cached
-        guard let optimizedFlag = getOrParseFlag(flagKeyForLookup: flagKeyForLookup, originalFlagKey: flagKey) else {
+        // Direct lookup from pre-parsed flags
+        guard let optimizedFlag = flagsConfiguration[flagKeyForLookup] else {
             return FlagEvaluation.noneResult(
                 flagKey: flagKey,
                 subjectKey: subjectKey,

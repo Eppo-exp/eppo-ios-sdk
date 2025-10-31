@@ -166,6 +166,58 @@ public class EppoClient {
         }
     }
 
+    /// Initialize client with raw JSON data (optimized path for fast startup)
+    ///
+    /// This method provides optimal performance for OptimizedJSON evaluator by bypassing
+    /// expensive Configuration parsing and enabling direct lazy loading from raw JSON.
+    public static func initializeOfflineWithRawJSON(
+        sdkKey: String,
+        jsonData: Data,
+        obfuscated: Bool = false,
+        host: String? = nil,
+        assignmentLogger: AssignmentLogger? = nil,
+        assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
+        withPersistentCache: Bool = true,
+        evaluatorType: EvaluatorType = .optimizedJSON,
+        configurationChangeCallback: ConfigurationChangeCallback? = nil,
+        debugCallback: ((String, Double, Double) -> Void)? = nil
+    ) -> EppoClient {
+        return sharedLock.withLock {
+            if let instance = sharedInstance {
+                return instance
+            } else {
+                let instance = EppoClient(
+                    sdkKey: sdkKey,
+                    host: host,
+                    assignmentLogger: assignmentLogger,
+                    assignmentCache: assignmentCache,
+                    initialConfiguration: nil, // No Configuration parsing for fast startup!
+                    withPersistentCache: withPersistentCache,
+                    evaluatorType: evaluatorType,
+                    debugCallback: debugCallback
+                )
+
+                // Initialize evaluator based on type
+                if evaluatorType == .optimizedJSON {
+                    // Fast path: Initialize OptimizedJSONEvaluator directly with raw JSON
+                    instance.setupOptimizedJSONEvaluatorWithJSON(jsonData: jsonData, obfuscated: obfuscated)
+                } else {
+                    // Standard path: Parse Configuration for standard evaluator
+                    if let configuration = try? Configuration(flagsConfigurationJson: jsonData, obfuscated: obfuscated) {
+                        instance.configurationStore.setConfiguration(configuration: configuration)
+                    }
+                }
+
+                if let callback = configurationChangeCallback {
+                    instance.onConfigurationChange(callback)
+                }
+
+                sharedInstance = instance
+                return instance
+            }
+        }
+    }
+
     public static func initialize(
         sdkKey: String,
         host: String? = nil,

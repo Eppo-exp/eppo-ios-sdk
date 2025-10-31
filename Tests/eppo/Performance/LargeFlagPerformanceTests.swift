@@ -113,13 +113,13 @@ final class LargeFlagPerformanceTests: XCTestCase {
         NSLog("   🏁 Starting OptimizedJSON evaluator creation...")
         let startupStartTime = CFAbsoluteTimeGetCurrent()
 
-        // Create OptimizedJSON evaluator using the new API
+        // Create OptimizedJSON evaluator using direct JSON (fast path)
         EppoClient.resetSharedInstance()
 
-        let configuration = try Configuration(flagsConfigurationJson: jsonData, obfuscated: false)
-        let client = EppoClient.initializeOffline(
+        let client = EppoClient.initializeOfflineWithRawJSON(
             sdkKey: "optimized-performance-test",
-            initialConfiguration: configuration,
+            jsonData: jsonData,
+            obfuscated: false,
             evaluatorType: .optimizedJSON
         )
 
