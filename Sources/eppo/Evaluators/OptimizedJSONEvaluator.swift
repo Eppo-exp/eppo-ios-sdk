@@ -102,8 +102,6 @@ public class OptimizedJSONEvaluator {
 
     // MARK: - Properties
 
-    /// Raw JSON data for reference
-    private let rawJSONData: Data
     /// Pre-parsed flag configurations optimized for fast evaluation
     private let flagsConfiguration: [String: OptimizedFlag]
     private let isConfigObfuscated: Bool
@@ -115,12 +113,12 @@ public class OptimizedJSONEvaluator {
         NSLog("🚀 OptimizedJSONEvaluator: Fast upfront parsing initialization...")
         let startTime = CFAbsoluteTimeGetCurrent()
 
-        self.rawJSONData = jsonData
         self.isConfigObfuscated = obfuscated
         self.sharder = MD5Sharder()
 
         // UPFRONT PARSING: Parse all flags immediately but efficiently
         self.flagsConfiguration = try Self.parseOptimizedJSON(data: jsonData)
+        // JSON data is no longer needed after parsing - saves memory!
 
         let initTime = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
         NSLog("🚀 OptimizedJSONEvaluator: Fast upfront parsing complete in %.2fms (%d flags parsed)", initTime, flagsConfiguration.count)
