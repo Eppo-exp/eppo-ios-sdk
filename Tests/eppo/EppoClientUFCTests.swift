@@ -284,25 +284,25 @@ final class EppoClientUFCTests: XCTestCase {
                         if let expectedValue = expected.variationValue?.value {
                             switch expectedValue {
                             case let double as Double:
-                                if let actualDouble = try? actual.variationValue?.getDoubleValue() {
+                                if let actualDouble = actual.variationValue?.doubleValue {
                                     XCTAssertEqual(actualDouble, double)
                                 } else {
                                     XCTFail("Failed to get actual double value")
                                 }
                             case let int as Int:
-                                if let actualDouble = try? actual.variationValue?.getDoubleValue() {
+                                if let actualDouble = actual.variationValue?.doubleValue {
                                     XCTAssertEqual(Int(actualDouble), int)
                                 } else {
                                     XCTFail("Failed to get actual double value for Int comparison")
                                 }
                             case let string as String:
-                                if let actualString = try? actual.variationValue?.getStringValue() {
+                                if let actualString = actual.variationValue?.stringValue {
                                     XCTAssertEqual(actualString, string)
                                 } else {
                                     XCTFail("Failed to get actual string value")
                                 }
                             case let bool as Bool:
-                                if let actualBool = try? actual.variationValue?.getBoolValue() {
+                                if let actualBool = actual.variationValue?.boolValue {
                                     XCTAssertEqual(actualBool, bool)
                                 } else {
                                     XCTFail("Failed to get actual bool value")
@@ -347,18 +347,14 @@ final class EppoClientUFCTests: XCTestCase {
                     if let expectedValue = expected.variationValue?.value, expectedCode != "ASSIGNMENT_ERROR" {
                         switch expectedValue {
                         case let string as String:
-                            XCTAssertEqual(try actual.variationValue?.getStringValue(), string)
+                            XCTAssertEqual(actual.variationValue?.stringValue, string)
                         case let int as Int:
-                            XCTAssertEqual(Int(try actual.variationValue?.getDoubleValue() ?? 0), int)
+                            XCTAssertEqual(Int(actual.variationValue?.doubleValue ?? 0), int)
                         case let double as Double:
-                            XCTAssertEqual(try actual.variationValue?.getDoubleValue(), double)
+                            XCTAssertEqual(actual.variationValue?.doubleValue, double)
                         case let bool as Bool:
-                            do {
-                                let actualBool = try actual.variationValue?.getBoolValue()
-                                XCTAssertEqual(actualBool, bool, "Boolean mismatch in flag '\(testCase.flag)' for subject '\(subject.subjectKey)'")
-                            } catch {
-                                XCTFail("Failed to get boolean value in flag '\(testCase.flag)' for subject '\(subject.subjectKey)': \(error)")
-                            }
+                            let actualBool = actual.variationValue?.boolValue
+                            XCTAssertEqual(actualBool, bool, "Boolean mismatch in flag '\(testCase.flag)' for subject '\(subject.subjectKey)'")
                         default:
                             break
                         }
@@ -410,20 +406,16 @@ final class EppoClientUFCTests: XCTestCase {
                             let expectedValue = expectedCondition.value.value
                             switch expectedValue {
                             case let string as String:
-                                XCTAssertEqual(try actualCondition.value.getStringValue(), string)
+                                XCTAssertEqual(actualCondition.value.stringValue, string)
                             case let int as Int:
-                                XCTAssertEqual(Int(try actualCondition.value.getDoubleValue()), int)
+                                XCTAssertEqual(Int(actualCondition.value.doubleValue ?? 0), int)
                             case let double as Double:
-                                XCTAssertEqual(try actualCondition.value.getDoubleValue(), double)
+                                XCTAssertEqual(actualCondition.value.doubleValue, double)
                             case let bool as Bool:
-                                do {
-                                    let actualBool = try actualCondition.value.getBoolValue()
-                                    XCTAssertEqual(actualBool, bool, "Boolean mismatch in flag '\(testCase.flag)' for subject '\(subject.subjectKey)' in condition for attribute '\(expectedCondition.attribute)'")
-                                } catch {
-                                    XCTFail("Failed to get boolean value in flag '\(testCase.flag)' for subject '\(subject.subjectKey)' in condition for attribute '\(expectedCondition.attribute)': \(error)")
-                                }
+                                let actualBool = actualCondition.value.boolValue
+                                XCTAssertEqual(actualBool, bool, "Boolean mismatch in flag '\(testCase.flag)' for subject '\(subject.subjectKey)' in condition for attribute '\(expectedCondition.attribute)'")
                             case let array as [String]:
-                                XCTAssertEqual(try actualCondition.value.getStringArrayValue(), array)
+                                XCTAssertEqual(actualCondition.value.stringArrayValue, array)
                             default:
                                 break
                             }

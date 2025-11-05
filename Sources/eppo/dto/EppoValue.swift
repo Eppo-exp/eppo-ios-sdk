@@ -1,7 +1,18 @@
 import Foundation
 import CryptoKit
 
-public enum EppoValueType {
+// Copy-on-Write wrapper for string arrays to improve memory efficiency
+@usableFromInline
+internal final class StringArrayStorage {
+    @usableFromInline var array: [String]
+
+    @usableFromInline
+    init(_ array: [String]) {
+        self.array = array
+    }
+}
+
+public enum EppoValueType: Codable {
     case Numeric
     case String
     case Boolean
@@ -9,12 +20,42 @@ public enum EppoValueType {
     case ArrayOfStrings
 }
 
-public class EppoValue: Codable, Equatable {
-    private var type: EppoValueType = EppoValueType.Null
-    private var boolValue: Bool?
-    private var doubleValue: Double?
-    private var stringValue: String?
-    private var stringArrayValue: [String]?
+@frozen public struct EppoValue: Codable, Equatable {
+    @usableFromInline internal let type: EppoValueType
+    @usableFromInline internal let _boolValue: Bool?
+    @usableFromInline internal let _doubleValue: Double?
+    @usableFromInline internal let _stringValue: String?
+    @usableFromInline internal let _stringArrayStorage: StringArrayStorage?
+
+    // Computed property to access the array through COW wrapper
+    @usableFromInline internal var _stringArrayValue: [String]? {
+        return _stringArrayStorage?.array
+    }
+
+    // MARK: - Fast Non-Throwing Value Access
+    /// Fast access to boolean value without throwing - returns nil if not a boolean type
+    @inlinable public var boolValue: Bool? {
+        guard type == .Boolean else { return nil }
+        return _boolValue
+    }
+
+    /// Fast access to double value without throwing - returns nil if not a numeric type
+    @inlinable public var doubleValue: Double? {
+        guard type == .Numeric else { return nil }
+        return _doubleValue
+    }
+
+    /// Fast access to string value without throwing - returns nil if not a string type
+    @inlinable public var stringValue: String? {
+        guard type == .String else { return nil }
+        return _stringValue
+    }
+
+    /// Fast access to string array value without throwing - returns nil if not an array type
+    @inlinable public var stringArrayValue: [String]? {
+        guard type == .ArrayOfStrings else { return nil }
+        return _stringArrayValue
+    }
 
     enum Errors: Error {
         case valueNotSet
@@ -25,15 +66,15 @@ public class EppoValue: Codable, Equatable {
 
         switch lhs.type {
         case .Boolean:
-            return lhs.boolValue == rhs.boolValue
+            return lhs._boolValue == rhs._boolValue
         case .Numeric:
-            return lhs.doubleValue == rhs.doubleValue
+            return lhs._doubleValue == rhs._doubleValue
         case .String:
-            return lhs.stringValue == rhs.stringValue
+            return lhs._stringValue == rhs._stringValue
         case .ArrayOfStrings:
             // Convert arrays to sets and compare, ignoring order and duplicates
-            let lhsSet = Set(lhs.stringArrayValue ?? [])
-            let rhsSet = Set(rhs.stringArrayValue ?? [])
+            let lhsSet = Set(lhs._stringArrayValue ?? [])
+            let rhsSet = Set(rhs._stringArrayValue ?? [])
             return lhsSet == rhsSet
         case .Null:
             return true // Both are null
@@ -42,54 +83,125 @@ public class EppoValue: Codable, Equatable {
 
     public init() {
         self.type = .Null
+        self._boolValue = nil
+        self._doubleValue = nil
+        self._stringValue = nil
+        self._stringArrayStorage = nil
     }
 
     public init(value: Bool) {
-        self.type = EppoValueType.Boolean
-        self.boolValue = value
+        self.type = .Boolean
+        self._boolValue = value
+        self._doubleValue = nil
+        self._stringValue = nil
+        self._stringArrayStorage = nil
     }
 
     public init(value: Double) {
-        self.type = EppoValueType.Numeric
-        self.doubleValue = value
+        self.type = .Numeric
+        self._boolValue = nil
+        self._doubleValue = value
+        self._stringValue = nil
+        self._stringArrayStorage = nil
     }
 
     public init(value: Int) {
-        self.type = EppoValueType.Numeric
-        self.doubleValue = Double(value)
+        self.type = .Numeric
+        self._boolValue = nil
+        self._doubleValue = Double(value)
+        self._stringValue = nil
+        self._stringArrayStorage = nil
     }
 
     public init(value: String) {
-        self.type = EppoValueType.String
-        self.stringValue = value
+        self.type = .String
+        self._boolValue = nil
+        self._doubleValue = nil
+        self._stringValue = value
+        self._stringArrayStorage = nil
     }
 
     public init(array: [String]) {
-        self.type = EppoValueType.ArrayOfStrings
-        self.stringArrayValue = array
+        self.type = .ArrayOfStrings
+        self._boolValue = nil
+        self._doubleValue = nil
+        self._stringValue = nil
+        self._stringArrayStorage = StringArrayStorage(array)
     }
 
-    required public init(from decoder: Decoder) throws {
+    // Standard Decodable conformance
+    public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
 
-        if let array = try? container.decode([String].self) {
-            self.type = .ArrayOfStrings
-            self.stringArrayValue = array
+        // Check String first; most common case, especially with obfuscated values
+        if let stringValue = try? container.decode(String.self) {
+            self.type = .String
+            self._boolValue = nil
+            self._doubleValue = nil
+            self._stringValue = stringValue
+            self._stringArrayStorage = nil
         } else if let doubleValue = try? container.decode(Double.self) {
             self.type = .Numeric
-            self.doubleValue = doubleValue
+            self._boolValue = nil
+            self._doubleValue = doubleValue
+            self._stringValue = nil
+            self._stringArrayStorage = nil
         } else if let boolValue = try? container.decode(Bool.self) {
             self.type = .Boolean
-            self.boolValue = boolValue
-        } else if let stringValue = try? container.decode(String.self) {
-            self.type = .String
-            self.stringValue = stringValue
+            self._boolValue = boolValue
+            self._doubleValue = nil
+            self._stringValue = nil
+            self._stringArrayStorage = nil
+        } else if let array = try? container.decode([String].self) {
+            self.type = .ArrayOfStrings
+            self._boolValue = nil
+            self._doubleValue = nil
+            self._stringValue = nil
+            self._stringArrayStorage = StringArrayStorage(array)
         } else {
             self.type = .Null
-            self.boolValue = nil
-            self.doubleValue = nil
-            self.stringValue = nil
-            self.stringArrayValue = nil
+            self._boolValue = nil
+            self._doubleValue = nil
+            self._stringValue = nil
+            self._stringArrayStorage = nil
+        }
+    }
+
+    // Custom initializer with variationType support for obfuscation - optimized for strings
+    internal init(from decoder: Decoder, variationType: UFC_VariationType) throws {
+        let container = try decoder.singleValueContainer()
+
+        // Check String FIRST - obfuscated values are always base64-encoded strings
+        if let stringValue = try? container.decode(String.self) {
+            self.type = .String
+            self._boolValue = nil
+            self._doubleValue = nil
+            self._stringValue = stringValue
+            self._stringArrayStorage = nil
+        } else if let doubleValue = try? container.decode(Double.self) {
+            self.type = .Numeric
+            self._boolValue = nil
+            self._doubleValue = doubleValue
+            self._stringValue = nil
+            self._stringArrayStorage = nil
+        } else if let boolValue = try? container.decode(Bool.self) {
+            self.type = .Boolean
+            self._boolValue = boolValue
+            self._doubleValue = nil
+            self._stringValue = nil
+            self._stringArrayStorage = nil
+        } else if let array = try? container.decode([String].self) {
+            self.type = .ArrayOfStrings
+            self._boolValue = nil
+            self._doubleValue = nil
+            self._stringValue = nil
+            self._stringArrayStorage = StringArrayStorage(array)
+        } else {
+            self.type = .Null
+            self._boolValue = nil
+            self._doubleValue = nil
+            self._stringValue = nil
+            self._stringArrayStorage = nil
         }
     }
 
@@ -117,6 +229,46 @@ public class EppoValue: Codable, Equatable {
         return EppoValue()
     }
 
+
+    internal static func valueOf(_ value: Any, variationType: UFC_VariationType) -> EppoValue {
+        switch variationType {
+        case .boolean:
+            if let boolVal = value as? Bool {
+                return EppoValue(value: boolVal)
+            }
+            if let stringVal = value as? String {
+                return EppoValue(value: stringVal.lowercased() == "true")
+            }
+            if let intVal = value as? Int {
+                return EppoValue(value: intVal != 0)
+            }
+            if let doubleVal = value as? Double {
+                return EppoValue(value: doubleVal != 0.0)
+            }
+        case .integer, .numeric:
+            if let doubleVal = value as? Double {
+                return EppoValue(value: doubleVal)
+            }
+            if let intVal = value as? Int {
+                return EppoValue(value: intVal)
+            }
+            if let stringVal = value as? String, let doubleVal = Double(stringVal) {
+                return EppoValue(value: doubleVal)
+            }
+        case .string, .json:
+            if let stringVal = value as? String {
+                return EppoValue(value: stringVal)
+            }
+            if let arrayVal = value as? [String] {
+                return EppoValue(array: arrayVal)
+            }
+            // Convert other types to string representation
+            return EppoValue(value: String(describing: value))
+        }
+        // Fallback to null if conversion fails
+        return EppoValue.nullValue()
+    }
+
     public func isNull() -> Bool {
         return self.type == EppoValueType.Null
     }
@@ -133,43 +285,15 @@ public class EppoValue: Codable, Equatable {
         return self.type == EppoValueType.String
     }
 
-    public func getBoolValue() throws -> Bool {
-        guard let value = self.boolValue else {
-            throw Errors.valueNotSet
-        }
-        return value
-    }
-
-    public func getDoubleValue() throws -> Double {
-        guard let value = self.doubleValue else {
-            throw Errors.valueNotSet
-        }
-        return value
-    }
-
-    public func getStringArrayValue() throws -> [String] {
-        guard let value = self.stringArrayValue else {
-            throw Errors.valueNotSet
-        }
-
-        return value
-    }
-
-    public func getStringValue() throws -> String {
-        guard let value = self.stringValue else {
-            throw Errors.valueNotSet
-        }
-
-        return value
-    }
 
     public func toEppoString() throws -> String {
         switch self.type {
         case .Boolean:
-            return try self.getBoolValue() ? "true" : "false"
+            guard let value = self.boolValue else { throw Errors.valueNotSet }
+            return value ? "true" : "false"
 
         case .Numeric:
-            let doubleValue = try self.getDoubleValue()
+            guard let doubleValue = self.doubleValue else { throw Errors.valueNotSet }
             if floor(doubleValue) == doubleValue {
                 return String(format: "%.0f", doubleValue)
             } else {
@@ -177,14 +301,25 @@ public class EppoValue: Codable, Equatable {
             }
 
         case .String:
-            return try self.getStringValue()
+            guard let value = self.stringValue else { throw Errors.valueNotSet }
+            return value
 
         case .ArrayOfStrings:
-            let arrayValue = try self.getStringArrayValue()
+            guard let arrayValue = self.stringArrayValue else { throw Errors.valueNotSet }
             return arrayValue.joined(separator: ", ")
 
         default:
             throw Errors.valueNotSet
+        }
+    }
+
+    /// Returns MD5 hashed string representation of the value - useful for privacy-preserving logging
+    public func toHashedString() -> String {
+        do {
+            let stringRepresentation = try self.toEppoString()
+            return getMD5Hex(stringRepresentation)
+        } catch {
+            return getMD5Hex("null")
         }
     }
 }
@@ -193,13 +328,13 @@ extension EppoValue {
         var container = encoder.singleValueContainer()
         switch self.type {
         case .Boolean:
-            try container.encode(boolValue!)
+            try container.encode(_boolValue!)
         case .Numeric:
-            try container.encode(doubleValue!)
+            try container.encode(_doubleValue!)
         case .String:
-            try container.encode(stringValue!)
+            try container.encode(_stringValue!)
         case .ArrayOfStrings:
-            try container.encode(stringArrayValue!)
+            try container.encode(_stringArrayStorage!.array)
         case .Null:
             try container.encodeNil()
         }
