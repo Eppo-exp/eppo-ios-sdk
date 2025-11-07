@@ -32,6 +32,7 @@ final class ConfigurationStoreTests: XCTestCase {
                     "testFlag": emptyFlagConfig
                 ]
             ),
+            flagsConfigurationProtobuf: nil,
             obfuscated: false,
             fetchedAt: now,
             publishedAt: now

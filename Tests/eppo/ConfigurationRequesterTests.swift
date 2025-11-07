@@ -8,7 +8,7 @@ class ConfigurationRequesterTests: XCTestCase {
     override func setUp() {
         super.setUp()
         httpClientMock = EppoHttpClientMock()
-        configurationRequester = ConfigurationRequester(httpClient: httpClientMock)
+        configurationRequester = ConfigurationRequester(httpClient: httpClientMock, requestProtobuf: false)
     }
 
     override func tearDown() {

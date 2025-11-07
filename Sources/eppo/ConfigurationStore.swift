@@ -112,13 +112,25 @@ class ConfigurationStore {
         Self.persistenceQueue.async { [weak self] in
             self?.debugLogger?("Starting persistent storage write")
             do {
-                let data = try JSONEncoder().encode(configuration)
-                self?.debugLogger?("Encoded configuration data: \(data.count) bytes")
-                try data.write(to: cacheFileURL, options: .atomic)
-                self?.debugLogger?("Persistent storage write completed")
+                if configuration.isJsonFormat() {
+                    // For JSON configurations, use the toJsonString method
+                    let jsonString = try configuration.toJsonString()
+                    let data = jsonString.data(using: .utf8)!
+                    self?.debugLogger?("Encoded JSON configuration data: \(data.count) bytes")
+                    try data.write(to: cacheFileURL, options: .atomic)
+                    self?.debugLogger?("Persistent storage write completed")
+                } else if configuration.isProtobufFormat() {
+                    // For protobuf configurations, save as protobuf data
+                    let data = try configuration.toProtobufData()
+                    self?.debugLogger?("Encoded protobuf configuration data: \(data.count) bytes")
+                    try data.write(to: cacheFileURL, options: .atomic)
+                    self?.debugLogger?("Persistent storage write completed")
+                } else {
+                    self?.debugLogger?("No valid configuration format to persist")
+                }
             } catch {
                 print("Error saving configuration to disk: \(error)")
-                self?.debugLogger?("Persistent storage write failed")
+                self?.debugLogger?("Persistent storage write failed: \(error)")
             }
         }
     }
@@ -133,9 +145,20 @@ class ConfigurationStore {
         do {
             let data = try Data(contentsOf: cacheFileURL)
             debugLogger?("Loaded configuration data from disk: \(data.count) bytes")
-            let config = try JSONDecoder().decode(Configuration.self, from: data)
-            debugLogger?("Persistent storage read completed")
-            return config
+
+            // Try to load as JSON first
+            if let jsonString = String(data: data, encoding: .utf8),
+               jsonString.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("{") {
+                // This looks like JSON
+                let config = try Configuration(flagsConfigurationJson: data, obfuscated: false)
+                debugLogger?("Persistent storage read completed (JSON format)")
+                return config
+            } else {
+                // Try to load as protobuf
+                let config = try Configuration(flagsConfigurationProtobuf: data, obfuscated: false)
+                debugLogger?("Persistent storage read completed (protobuf format)")
+                return config
+            }
         } catch {
             print("No configuration found on disk or error decoding: \(error)")
             debugLogger?("Persistent storage read failed - no cached config")

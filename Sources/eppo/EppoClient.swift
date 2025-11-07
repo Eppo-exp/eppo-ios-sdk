@@ -57,6 +57,7 @@ public class EppoClient {
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
         initialConfiguration: Configuration?,
         withPersistentCache: Bool = true,
+        withProtoBuffers: Bool = false,
         debugCallback: ((String, Double, Double) -> Void)? = nil
     ) {
         self.sdkKey = SDKKey(sdkKey)
@@ -70,7 +71,7 @@ public class EppoClient {
         self.host = endpoints.baseURL
 
         let httpClient = NetworkEppoHttpClient(baseURL: self.host, sdkKey: self.sdkKey.token, sdkName: sdkName, sdkVersion: sdkVersion)
-        self.configurationRequester = ConfigurationRequester(httpClient: httpClient)
+        self.configurationRequester = ConfigurationRequester(httpClient: httpClient, requestProtobuf: withProtoBuffers)
 
         self.configurationStore = ConfigurationStore(withPersistentCache: withPersistentCache)
         if let configuration = initialConfiguration {

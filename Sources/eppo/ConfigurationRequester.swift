@@ -1,13 +1,16 @@
 import Foundation
 
-let UFC_CONFIG_URL = "/flag-config/v1/config"
+let UFC_JSON_CONFIG_URL = "/flag-config/v1/config"
+let UFC_PB_CONFIG_URL = "/flag-config/v1/config-pb"
 
 class ConfigurationRequester {
     private let httpClient: EppoHttpClient
+    private let requestProtobuf: Bool
     private var debugLogger: ((String) -> Void)?
 
-    public init(httpClient: EppoHttpClient) {
+    public init(httpClient: EppoHttpClient, requestProtobuf: Bool) {
         self.httpClient = httpClient
+        self.requestProtobuf = requestProtobuf
         self.debugLogger = nil
     }
     
@@ -19,7 +22,8 @@ class ConfigurationRequester {
         let networkStartTime = Date()
         debugLogger?("Starting network request to fetch configuration")
         
-        let (data, response) = try await httpClient.get(UFC_CONFIG_URL)
+        let configUrl = requestProtobuf ? UFC_PB_CONFIG_URL : UFC_JSON_CONFIG_URL
+        let (data, response) = try await httpClient.get(configUrl)
         
         let networkCompleteTime = Date()
         let networkDuration = networkCompleteTime.timeIntervalSince(networkStartTime)
@@ -34,10 +38,17 @@ class ConfigurationRequester {
         
         debugLogger?("Starting JSON parsing and configuration creation (parsing \(data.count) bytes)")
         
-        let configuration = try Configuration(flagsConfigurationJson: data, obfuscated: true)
-        
-        debugLogger?("JSON parsing completed")
-        
-        return configuration
+        if requestProtobuf {
+            debugLogger?("Starting protobuf parsing and configuration creation (parsing \(data.count) bytes)")
+            // protobuf API does not support obfuscated data yet
+            let configuration = try Configuration(flagsConfigurationProtobuf: data, obfuscated: false)
+            debugLogger?("Protobuf parsing completed")
+            return configuration
+        } else {
+            debugLogger?("Starting JSON parsing and configuration creation (parsing \(data.count) bytes)")
+            let configuration = try Configuration(flagsConfigurationJson: data, obfuscated: true)
+            debugLogger?("JSON parsing completed")
+            return configuration
+        }
     }
 }
