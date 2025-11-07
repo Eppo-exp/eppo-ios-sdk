@@ -1,5 +1,7 @@
 import Foundation
 
+// TODO: Refactor this so its more generic between
+// the JSON and pb structs.
 public struct FlagEvaluation {
     let flagKey: String
     let subjectKey: String
