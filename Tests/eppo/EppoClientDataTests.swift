@@ -1,147 +1,167 @@
-import XCTest
-
 import Foundation
 import OHHTTPStubs
 import OHHTTPStubsSwift
+import XCTest
 
 @testable import EppoFlagging
 
 struct TestSubject: Decodable {
-    let subjectKey: String
-    let subjectAttributes: SubjectAttributes
-    let assignment: EppoValue
+  let subjectKey: String
+  let subjectAttributes: SubjectAttributes
+  let assignment: EppoValue
+}
+
+enum PayloadType: String, Decodable {
+  case json
+  case pb
 }
 
 struct AssignmentTestCase: Decodable {
-    var flag: String = ""
-    var variationType: UFC_VariationType
-    var defaultValue: EppoValue
-    var subjects: [TestSubject]
+  var flag: String = ""
+  var variationType: UFC_VariationType
+  var defaultValue: EppoValue
+  var subjects: [TestSubject]
 }
 
 final class EppoClientDataTests: XCTestCase {
-    var loggerSpy: AssignmentLoggerSpy!
-    var eppoClient: EppoClient!
+  var loggerSpy: AssignmentLoggerSpy!
+  var eppoClient: EppoClient!
 
-    func testAllObfuscatedAssignments() async throws {
-        try await testAssignments(obfuscated: true)
-    }
+  func testAllObfuscatedAssignments() async throws {
+    try await testAssignments(payloadType: PayloadType.json, obfuscated: true)
+  }
 
-    func testAllNotObfuscatedAssignments() async throws {
-        try await testAssignments(obfuscated: false)
-    }
+  func testAllNotObfuscatedAssignments() async throws {
+    try await testAssignments(payloadType: PayloadType.json, obfuscated: false)
+  }
 
-    func setUpTestsWithFile(resourceName: String, obfuscated: Bool) throws {
-        let fileURL = Bundle.module.url(
-            forResource: resourceName,
-            withExtension: ""
-        )!
-        let testJSON = try! Data(contentsOf: fileURL)
+  func testAllPbNotObfuscatedAssignments() async throws {
+    try await testAssignments(payloadType: PayloadType.pb, obfuscated: false)
+  }
 
-        loggerSpy = AssignmentLoggerSpy()
+  func setUpTestsWithFile(resourceName: String, payloadType: PayloadType, obfuscated: Bool) throws {
+    let fileURL = Bundle.module.url(
+      forResource: resourceName,
+      withExtension: ""
+    )!
+    let testData = try! Data(contentsOf: fileURL)
 
-        EppoClient.resetSharedInstance()
+    loggerSpy = AssignmentLoggerSpy()
 
-        eppoClient = EppoClient.initializeOffline(
-          sdkKey: "mock-api-key",
-          assignmentLogger: loggerSpy.logger,
-          initialConfiguration:
-            try Configuration.init(flagsConfigurationJson: testJSON, obfuscated: obfuscated)
-        )
-    }
+    EppoClient.resetSharedInstance()
 
-    func testAssignments(obfuscated: Bool) async throws {
-        let resourceSuffix = obfuscated ? "-obfuscated" : ""
+    let configuration =
+      payloadType == .json
+      ? try Configuration.init(flagsConfigurationJson: testData, obfuscated: obfuscated)
+      : try Configuration.init(flagsConfigurationProtobuf: testData, obfuscated: obfuscated)
 
-        try setUpTestsWithFile(
-          resourceName: "Resources/test-data/ufc/flags-v1\(resourceSuffix).json",
-          obfuscated: obfuscated
-        )
+    eppoClient = EppoClient.initializeOffline(
+      sdkKey: "mock-api-key",
+      assignmentLogger: loggerSpy.logger,
+      initialConfiguration: configuration,
+      experimentalPbRequest: payloadType == .pb
+    )
+  }
 
-        let testFiles = Bundle.module.urls(
-            forResourcesWithExtension: ".json",
-            subdirectory: "Resources/test-data/ufc/tests"
-        )!
+  func testAssignments(payloadType: PayloadType, obfuscated: Bool) async throws {
+    let resourceSuffix = obfuscated ? "-obfuscated" : ""
+    let resourceExtension = payloadType == .json ? "json" : "pb"
 
-        for testFile in testFiles {
-            let caseData = try! Data(contentsOf: testFile)
-            let testCase = try JSONDecoder().decode(AssignmentTestCase.self, from: caseData)
+    try setUpTestsWithFile(
+      resourceName: "Resources/test-data/ufc/flags-v1\(resourceSuffix).\(resourceExtension)",
+      payloadType: payloadType,
+      obfuscated: obfuscated
+    )
 
-            testCase.subjects.forEach { subject in
-                switch testCase.variationType {
-                case UFC_VariationType.boolean:
-                    let assignment = try? eppoClient.getBooleanAssignment(
-                        flagKey: testCase.flag,
-                        subjectKey: subject.subjectKey,
-                        subjectAttributes: subject.subjectAttributes,
-                        defaultValue: testCase.defaultValue.getBoolValue()
-                    )
-                    let expectedAssignment = try? subject.assignment.getBoolValue()
-                    XCTAssertEqual(
-                        assignment,
-                        expectedAssignment,
-                        assertMessage(testCase: testCase, subjectKey: subject.subjectKey, obfuscated: obfuscated)
-                    )
-                case UFC_VariationType.json:
-                    let assignment = try? eppoClient.getJSONStringAssignment(
-                        flagKey: testCase.flag,
-                        subjectKey: subject.subjectKey,
-                        subjectAttributes: subject.subjectAttributes,
-                        defaultValue: testCase.defaultValue.getStringValue()
-                    )
-                    let expectedAssignment = try? subject.assignment.getStringValue()
-                    XCTAssertEqual(
-                        assignment,
-                        expectedAssignment,
-                        assertMessage(testCase: testCase, subjectKey: subject.subjectKey, obfuscated: obfuscated)
-                    )
-                case UFC_VariationType.integer:
-                    let assignment = try? eppoClient.getIntegerAssignment(
-                        flagKey: testCase.flag,
-                        subjectKey: subject.subjectKey,
-                        subjectAttributes: subject.subjectAttributes,
-                        defaultValue: Int(testCase.defaultValue.getDoubleValue())
-                    )
-                    let expectedAssignment = try? Int(subject.assignment.getDoubleValue())
-                    XCTAssertEqual(
-                        assignment,
-                        expectedAssignment,
-                        assertMessage(testCase: testCase, subjectKey: subject.subjectKey, obfuscated: obfuscated)
-                    )
-                case UFC_VariationType.numeric:
-                    let assignment = try? eppoClient.getNumericAssignment(
-                        flagKey: testCase.flag,
-                        subjectKey: subject.subjectKey,
-                        subjectAttributes: subject.subjectAttributes,
-                        defaultValue: testCase.defaultValue.getDoubleValue()
-                    )
-                    let expectedAssignment = try? subject.assignment.getDoubleValue()
-                    XCTAssertEqual(
-                        assignment,
-                        expectedAssignment,
-                        assertMessage(testCase: testCase, subjectKey: subject.subjectKey, obfuscated: obfuscated)
-                    )
-                case UFC_VariationType.string:
-                    let assignment = try? eppoClient.getStringAssignment(
-                        flagKey: testCase.flag,
-                        subjectKey: subject.subjectKey,
-                        subjectAttributes: subject.subjectAttributes,
-                        defaultValue: testCase.defaultValue.getStringValue()
-                    )
-                    let expectedAssignment = try? subject.assignment.getStringValue()
-                    XCTAssertEqual(
-                        assignment,
-                        expectedAssignment,
-                        assertMessage(testCase: testCase, subjectKey: subject.subjectKey, obfuscated: obfuscated)
-                    )
-                }
-            }
+    let testFiles = Bundle.module.urls(
+      forResourcesWithExtension: ".json",
+      subdirectory: "Resources/test-data/ufc/tests"
+    )!
+
+    for testFile in testFiles {
+      let caseData = try! Data(contentsOf: testFile)
+      let testCase = try JSONDecoder().decode(AssignmentTestCase.self, from: caseData)
+
+      testCase.subjects.forEach { subject in
+        switch testCase.variationType {
+        case UFC_VariationType.boolean:
+          let assignment = try? eppoClient.getBooleanAssignment(
+            flagKey: testCase.flag,
+            subjectKey: subject.subjectKey,
+            subjectAttributes: subject.subjectAttributes,
+            defaultValue: testCase.defaultValue.getBoolValue()
+          )
+          let expectedAssignment = try? subject.assignment.getBoolValue()
+          XCTAssertEqual(
+            assignment,
+            expectedAssignment,
+            assertMessage(
+              testCase: testCase, subjectKey: subject.subjectKey, obfuscated: obfuscated)
+          )
+        case UFC_VariationType.json:
+          let assignment = try? eppoClient.getJSONStringAssignment(
+            flagKey: testCase.flag,
+            subjectKey: subject.subjectKey,
+            subjectAttributes: subject.subjectAttributes,
+            defaultValue: testCase.defaultValue.getStringValue()
+          )
+          let expectedAssignment = try? subject.assignment.getStringValue()
+          XCTAssertEqual(
+            assignment,
+            expectedAssignment,
+            assertMessage(
+              testCase: testCase, subjectKey: subject.subjectKey, obfuscated: obfuscated)
+          )
+        case UFC_VariationType.integer:
+          let assignment = try? eppoClient.getIntegerAssignment(
+            flagKey: testCase.flag,
+            subjectKey: subject.subjectKey,
+            subjectAttributes: subject.subjectAttributes,
+            defaultValue: Int(testCase.defaultValue.getDoubleValue())
+          )
+          let expectedAssignment = try? Int(subject.assignment.getDoubleValue())
+          XCTAssertEqual(
+            assignment,
+            expectedAssignment,
+            assertMessage(
+              testCase: testCase, subjectKey: subject.subjectKey, obfuscated: obfuscated)
+          )
+        case UFC_VariationType.numeric:
+          let assignment = try? eppoClient.getNumericAssignment(
+            flagKey: testCase.flag,
+            subjectKey: subject.subjectKey,
+            subjectAttributes: subject.subjectAttributes,
+            defaultValue: testCase.defaultValue.getDoubleValue()
+          )
+          let expectedAssignment = try? subject.assignment.getDoubleValue()
+          XCTAssertEqual(
+            assignment,
+            expectedAssignment,
+            assertMessage(
+              testCase: testCase, subjectKey: subject.subjectKey, obfuscated: obfuscated)
+          )
+        case UFC_VariationType.string:
+          let assignment = try? eppoClient.getStringAssignment(
+            flagKey: testCase.flag,
+            subjectKey: subject.subjectKey,
+            subjectAttributes: subject.subjectAttributes,
+            defaultValue: testCase.defaultValue.getStringValue()
+          )
+          let expectedAssignment = try? subject.assignment.getStringValue()
+          XCTAssertEqual(
+            assignment,
+            expectedAssignment,
+            assertMessage(
+              testCase: testCase, subjectKey: subject.subjectKey, obfuscated: obfuscated)
+          )
         }
-
-        XCTAssertGreaterThan(testFiles.count, 0)
+      }
     }
 
-    func assertMessage(testCase: AssignmentTestCase, subjectKey: String, obfuscated: Bool) -> String {
-        return "FlagKey: \(testCase.flag), SubjectKey: \(subjectKey), Obfuscated: \(obfuscated)"
-    }
+    XCTAssertGreaterThan(testFiles.count, 0)
+  }
+
+  func assertMessage(testCase: AssignmentTestCase, subjectKey: String, obfuscated: Bool) -> String {
+    return "FlagKey: \(testCase.flag), SubjectKey: \(subjectKey), Obfuscated: \(obfuscated)"
+  }
 }

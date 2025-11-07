@@ -34,7 +34,7 @@ public class EppoClient {
   private static var sharedInstance: EppoClient?
   private static let initializerQueue = DispatchQueue(label: "cloud.eppo.client.initializer")
 
-  private var flagEvaluator: FlagEvaluator = FlagEvaluator(sharder: MD5Sharder())
+  private let flagEvaluator: FlagEvaluatorProtocol
 
   private(set) var sdkKey: SDKKey
   private(set) var host: String
@@ -57,9 +57,12 @@ public class EppoClient {
     assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
     initialConfiguration: Configuration?,
     withPersistentCache: Bool = true,
-    withProtoBuffers: Bool = false,
+    experimentalPbRequest: Bool = false,
     debugCallback: ((String, Double, Double) -> Void)? = nil
   ) {
+    let sharder = MD5Sharder()
+    self.flagEvaluator = initialConfiguration?.isProtobufFormat() ?? false ? FlagEvaluatorPb(sharder: sharder) : FlagEvaluator(sharder: sharder)
+
     self.sdkKey = SDKKey(sdkKey)
     self.assignmentLogger = assignmentLogger
     self.assignmentCache = assignmentCache
@@ -73,7 +76,7 @@ public class EppoClient {
     let httpClient = NetworkEppoHttpClient(
       baseURL: self.host, sdkKey: self.sdkKey.token, sdkName: sdkName, sdkVersion: sdkVersion)
     self.configurationRequester = ConfigurationRequester(
-      httpClient: httpClient, requestProtobuf: withProtoBuffers)
+      httpClient: httpClient, requestProtobuf: experimentalPbRequest)
 
     self.configurationStore = ConfigurationStore(withPersistentCache: withPersistentCache)
     if let configuration = initialConfiguration {
@@ -103,6 +106,7 @@ public class EppoClient {
     initialConfiguration: Configuration?,
     withPersistentCache: Bool = true,
     configurationChangeCallback: ConfigurationChangeCallback? = nil,
+    experimentalPbRequest: Bool = false,
     debugCallback: ((String, Double, Double) -> Void)? = nil
   ) -> EppoClient {
     return sharedLock.withLock {
@@ -116,6 +120,7 @@ public class EppoClient {
           assignmentCache: assignmentCache,
           initialConfiguration: initialConfiguration,
           withPersistentCache: withPersistentCache,
+          experimentalPbRequest: experimentalPbRequest,
           debugCallback: debugCallback
         )
 
@@ -141,6 +146,7 @@ public class EppoClient {
       / PollerConstants.DEFAULT_JITTER_INTERVAL_RATIO,
     withPersistentCache: Bool = true,
     configurationChangeCallback: ConfigurationChangeCallback? = nil,
+    experimentalPbRequest: Bool = false,
     debugCallback: ((String, Double, Double) -> Void)? = nil
   ) async throws -> EppoClient {
     let instance = Self.initializeOffline(
@@ -150,7 +156,7 @@ public class EppoClient {
       assignmentCache: assignmentCache,
       initialConfiguration: initialConfiguration,
       withPersistentCache: withPersistentCache,
-      configurationChangeCallback: configurationChangeCallback,
+      configurationChangeCallback: configurationChangeCallback, experimentalPbRequest: experimentalPbRequest,
       debugCallback: debugCallback
     )
 
@@ -405,48 +411,61 @@ public class EppoClient {
 
     let flagKeyForLookup = configuration.obfuscated ? getMD5Hex(flagKey) : flagKey
 
-    guard let flagConfig = configuration.getFlag(flagKey: flagKeyForLookup) else {
-      return FlagEvaluation.noneResult(
-        flagKey: flagKey,
-        subjectKey: subjectKey,
-        subjectAttributes: subjectAttributes,
-        flagEvaluationCode: .flagUnrecognizedOrDisabled,
-        flagEvaluationDescription: "Unrecognized or disabled flag: \(flagKey)",
-        entityId: nil
-      )
-    }
+    // Use the single configured evaluator
 
-    if flagConfig.variationType != expectedVariationType {
-      // Get all allocations from the flag config
-      let allAllocations = flagConfig.allocations.enumerated().map { index, allocation in
-        AllocationEvaluation(
-          key: allocation.key,
-          allocationEvaluationCode: .unevaluated,
-          orderPosition: index + 1
+    // Check variation type before evaluation
+    let actualVariationType: UFC_VariationType
+    if configuration.isProtobufFormat() {
+      guard let flagConfigPb = configuration.getProtobufFlag(flagKey: flagKeyForLookup) else {
+        return FlagEvaluation.noneResult(
+          flagKey: flagKey,
+          subjectKey: subjectKey,
+          subjectAttributes: subjectAttributes,
+          flagEvaluationCode: .flagUnrecognizedOrDisabled,
+          flagEvaluationDescription: "Unrecognized or disabled flag: \(flagKey)",
+          entityId: nil
         )
       }
+      actualVariationType = convertProtobufVariationTypeToUFC(flagConfigPb.variationType)
+    } else {
+      guard let flagConfig = configuration.getFlag(flagKey: flagKeyForLookup) else {
+        return FlagEvaluation.noneResult(
+          flagKey: flagKey,
+          subjectKey: subjectKey,
+          subjectAttributes: subjectAttributes,
+          flagEvaluationCode: .flagUnrecognizedOrDisabled,
+          flagEvaluationDescription: "Unrecognized or disabled flag: \(flagKey)",
+          entityId: nil
+        )
+      }
+      actualVariationType = flagConfig.variationType
+    }
 
+    // Check for type mismatch
+    if actualVariationType != expectedVariationType {
       return FlagEvaluation.noneResult(
         flagKey: flagKey,
         subjectKey: subjectKey,
         subjectAttributes: subjectAttributes,
         flagEvaluationCode: .typeMismatch,
         flagEvaluationDescription:
-          "Variation value does not have the correct type. Found \(flagConfig.variationType.rawValue.uppercased()), but expected \(expectedVariationType.rawValue.uppercased()) for flag \(flagKey)",
+          "Variation value does not have the correct type. Found \(actualVariationType.rawValue.uppercased()), but expected \(expectedVariationType.rawValue.uppercased()) for flag \(flagKey)",
         unmatchedAllocations: [],
-        unevaluatedAllocations: allAllocations,
-        entityId: flagConfig.entityId
+        unevaluatedAllocations: [],
+        entityId: nil
       )
     }
 
+    // Use the protocol method to evaluate the flag
     let flagEvaluation = flagEvaluator.evaluateFlag(
-      flag: flagConfig,
+      configuration: configuration,
+      flagKey: flagKey,
       subjectKey: subjectKey,
       subjectAttributes: subjectAttributes,
       isConfigObfuscated: configuration.obfuscated
     )
 
-    // Optionally log assignment
+    // Optionally log assignment (same logic for both formats)
     if flagEvaluation.doLog && flagEvaluation.flagEvaluationCode != .assignmentError {
       if let assignmentLogger = self.assignmentLogger {
         let allocationKey = flagEvaluation.allocationKey ?? "__eppo_no_allocation"
@@ -491,6 +510,27 @@ public class EppoClient {
 
     return flagEvaluation
   }
+
+  // Helper function to convert protobuf variation type to UFC type
+  private func convertProtobufVariationTypeToUFC(_ pbType: Ufc_ExperimentVariationValueType)
+    -> UFC_VariationType
+  {
+    switch pbType {
+    case .boolean:
+      return .boolean
+    case .integer:
+      return .integer
+    case .numeric:
+      return .numeric
+    case .string:
+      return .string
+    case .json:
+      return .json
+    default:
+      return .string
+    }
+  }
+
 
   public struct AssignmentDetails<T> {
     public let variation: T?
