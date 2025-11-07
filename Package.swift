@@ -19,7 +19,8 @@ let package = Package(
         // Dependencies declare other packages that this package depends on.
         // .package(url: /* package url */, from: "1.0.0"),
         .package(url: "https://github.com/ddddxxx/Semver", from: "0.2.1"),
-        .package(url: "https://github.com/AliSoftware/OHHTTPStubs", .upToNextMajor(from: "9.0.0"))
+        .package(url: "https://github.com/AliSoftware/OHHTTPStubs", .upToNextMajor(from: "9.0.0")),
+        .package(url: "https://github.com/apple/swift-protobuf", .upToNextMajor(from: "1.33.0"))
 
     ],
     targets: [
