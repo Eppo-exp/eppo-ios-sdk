@@ -61,7 +61,9 @@ public class EppoClient {
     debugCallback: ((String, Double, Double) -> Void)? = nil
   ) {
     let sharder = MD5Sharder()
-    self.flagEvaluator = initialConfiguration?.isProtobufFormat() ?? false ? FlagEvaluatorPb(sharder: sharder) : FlagEvaluator(sharder: sharder)
+    self.flagEvaluator =
+      initialConfiguration?.isProtobufFormat() ?? false
+      ? FlagEvaluatorPb(sharder: sharder) : FlagEvaluator(sharder: sharder)
 
     self.sdkKey = SDKKey(sdkKey)
     self.assignmentLogger = assignmentLogger
@@ -156,7 +158,8 @@ public class EppoClient {
       assignmentCache: assignmentCache,
       initialConfiguration: initialConfiguration,
       withPersistentCache: withPersistentCache,
-      configurationChangeCallback: configurationChangeCallback, experimentalPbRequest: experimentalPbRequest,
+      configurationChangeCallback: configurationChangeCallback,
+      experimentalPbRequest: experimentalPbRequest,
       debugCallback: debugCallback
     )
 
@@ -554,7 +557,6 @@ public class EppoClient {
       return .string
     }
   }
-
 
   public struct AssignmentDetails<T> {
     public let variation: T?
