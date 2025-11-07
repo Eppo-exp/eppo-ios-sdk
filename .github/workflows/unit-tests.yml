@@ -2,7 +2,7 @@ name: Swift
 
 env:
   SDK_BRANCH_NAME: ${{ inputs.sdk_branch  || github.head_ref || github.ref_name }}
-  TEST_DATA_BRANCH_NAME: ${{ inputs.test_data_branch || 'main' }}
+  TEST_DATA_BRANCH_NAME: lr/add-protobuf-converter
 
 on:
   push:
