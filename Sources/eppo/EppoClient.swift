@@ -61,8 +61,7 @@ public class EppoClient {
     debugCallback: ((String, Double, Double) -> Void)? = nil
   ) {
     let sharder = MD5Sharder()
-    self.flagEvaluator =
-      initialConfiguration?.isProtobufFormat() ?? false
+    self.flagEvaluator = experimentalPbRequest
       ? FlagEvaluatorPb(sharder: sharder) : FlagEvaluator(sharder: sharder)
 
     self.sdkKey = SDKKey(sdkKey)
@@ -553,7 +552,9 @@ public class EppoClient {
       return .string
     case .json:
       return .json
-    default:
+    case .variationValueTypeUnspecified:
+      return .string
+    case .UNRECOGNIZED(_):
       return .string
     }
   }
