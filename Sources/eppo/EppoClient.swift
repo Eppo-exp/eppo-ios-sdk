@@ -443,6 +443,30 @@ public class EppoClient {
 
     // Check for type mismatch
     if actualVariationType != expectedVariationType {
+      // Get allocations for unevaluated list
+      var unevaluatedAllocations: [AllocationEvaluation] = []
+      if configuration.isProtobufFormat() {
+        if let flagConfigPb = configuration.getProtobufFlag(flagKey: flagKeyForLookup) {
+          unevaluatedAllocations = flagConfigPb.allocations.enumerated().map { index, allocation in
+            AllocationEvaluation(
+              key: allocation.key,
+              allocationEvaluationCode: .unevaluated,
+              orderPosition: index + 1
+            )
+          }
+        }
+      } else {
+        if let flagConfig = configuration.getFlag(flagKey: flagKeyForLookup) {
+          unevaluatedAllocations = flagConfig.allocations.enumerated().map { index, allocation in
+            AllocationEvaluation(
+              key: allocation.key,
+              allocationEvaluationCode: .unevaluated,
+              orderPosition: index + 1
+            )
+          }
+        }
+      }
+
       return FlagEvaluation.noneResult(
         flagKey: flagKey,
         subjectKey: subjectKey,
@@ -451,7 +475,7 @@ public class EppoClient {
         flagEvaluationDescription:
           "Variation value does not have the correct type. Found \(actualVariationType.rawValue.uppercased()), but expected \(expectedVariationType.rawValue.uppercased()) for flag \(flagKey)",
         unmatchedAllocations: [],
-        unevaluatedAllocations: [],
+        unevaluatedAllocations: unevaluatedAllocations,
         entityId: nil
       )
     }
