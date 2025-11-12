@@ -40,7 +40,7 @@ public class EppoClient {
     private(set) var host: String
     private(set) var assignmentLogger: AssignmentLogger?
     private(set) var assignmentCache: AssignmentCache?
-    private(set) var configurationStore: ConfigurationStore
+    public private(set) var configurationStore: ConfigurationStore
     private var configurationRequester: ConfigurationRequester
     private var poller: Poller?
     private var configurationChangeCallback: ConfigurationChangeCallback?
