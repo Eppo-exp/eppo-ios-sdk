@@ -35,7 +35,7 @@ final class PollerTests: XCTestCase {
         poller.stop()
 
         // Give it some time to execute multiple polls
-        try await Task.sleep(nanoseconds: 500_000_000)  // 100ms
+        try await Task.sleep(nanoseconds: 500_000_000)  // 500ms
 
         // Counts should remain the same after stopping
         XCTAssertEqual(
@@ -70,7 +70,7 @@ final class PollerTests: XCTestCase {
         try await poller.start()
 
         // Give it some time to execute multiple polls
-        try await Task.sleep(nanoseconds: 500_000_000)  // 100ms
+        try await Task.sleep(nanoseconds: 500_000_000)  // 500ms
 
         // Stop the poller
         poller.stop()
