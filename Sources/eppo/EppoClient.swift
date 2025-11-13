@@ -57,6 +57,7 @@ public class EppoClient {
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
         initialConfiguration: Configuration?,
         withPersistentCache: Bool = true,
+        loadInitialConfigurationImmediately: Bool = false,
         debugCallback: ((String, Double, Double) -> Void)? = nil
     ) {
         self.sdkKey = SDKKey(sdkKey)
@@ -73,9 +74,18 @@ public class EppoClient {
         self.configurationRequester = ConfigurationRequester(httpClient: httpClient)
 
         self.configurationStore = ConfigurationStore(withPersistentCache: withPersistentCache)
-        if let configuration = initialConfiguration {
-            self.configurationStore.setConfiguration(configuration: configuration)
-            // Note: Callbacks will be registered after init, so initial config callback will be triggered during loadIfNeeded
+        if loadInitialConfigurationImmediately {
+            configurationStore.loadInitialConfiguration()
+            // cache miss?
+            if configurationStore.getConfiguration() == nil,
+            let initialConfiguration {
+                configurationStore.setConfiguration(configuration: initialConfiguration)
+            }
+        } else { //immediate cache load disabled
+            if let configuration = initialConfiguration {
+                self.configurationStore.setConfiguration(configuration: configuration)
+                // Note: Callbacks will be registered after init, so initial config callback will be triggered during loadIfNeeded
+            }
         }
         
         // Set up debug logging for ConfigurationRequester and ConfigurationStore after all properties are initialized
@@ -113,6 +123,7 @@ public class EppoClient {
                   assignmentCache: assignmentCache,
                   initialConfiguration: initialConfiguration,
                   withPersistentCache: withPersistentCache,
+                  loadInitialConfigurationImmediately: true,
                   debugCallback: debugCallback
                 )
                 
