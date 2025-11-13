@@ -115,9 +115,10 @@ final class PollerTests: XCTestCase {
 
         // Execute retries one by one and verify exponential backoff behavior
         for attempt in 1...7 {
-            XCTAssertTrue(
-                mockTimer.hasPendingCallbacks,
-                "Should have a pending callback for attempt \(attempt)"
+            XCTAssertEqual(
+                mockTimer.pendingCallbackCount,
+                1,
+                "Should have exactly 1 pending callback for attempt \(attempt)"
             )
 
             // Execute the next scheduled retry
@@ -142,8 +143,9 @@ final class PollerTests: XCTestCase {
         }
 
         // After max retries (7), polling should stop - no more callbacks should be scheduled
-        XCTAssertFalse(
-            mockTimer.hasPendingCallbacks,
+        XCTAssertEqual(
+            mockTimer.pendingCallbackCount,
+            0,
             "Should not have any more pending callbacks after max retries"
         )
         XCTAssertEqual(

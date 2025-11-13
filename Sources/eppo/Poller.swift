@@ -127,7 +127,7 @@ class MockTimer: TimerType {
 
     // Execute specific callback at index (for more control)
     func executeCallback(at index: Int) async {
-        guard isRunning && index < scheduledCallbacks.count else { return }
+        guard isRunning && index < pendingCallbackCount else { return }
         let callback = scheduledCallbacks.remove(at: index)
         await callback.callback()
     }
