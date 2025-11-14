@@ -59,7 +59,7 @@ final class EppoClientAssignmentDetailsTests: XCTestCase {
         XCTAssertNil(result.action)
         XCTAssertEqual(result.evaluationDetails.environmentName, "Test")
         XCTAssertEqual(result.evaluationDetails.variationKey, "three")
-        XCTAssertEqual(try result.evaluationDetails.variationValue?.getDoubleValue(), 3)
+        XCTAssertEqual(result.evaluationDetails.variationValue?.doubleValue, 3)
         XCTAssertNil(result.evaluationDetails.banditKey)
         XCTAssertNil(result.evaluationDetails.banditAction)
         XCTAssertEqual(result.evaluationDetails.flagEvaluationCode, .match)
@@ -86,7 +86,7 @@ final class EppoClientAssignmentDetailsTests: XCTestCase {
         let condition = matchedRule.conditions[0]
         XCTAssertEqual(condition.attribute, "country")
         XCTAssertEqual(condition.operator, .oneOf)
-        XCTAssertEqual(try condition.value.getStringArrayValue(), ["US", "Canada", "Mexico"])
+        XCTAssertEqual(condition.value.stringArrayValue, ["US", "Canada", "Mexico"])
 
         // Test matched allocation
         guard let matchedAllocation = result.evaluationDetails.matchedAllocation else {
@@ -125,7 +125,7 @@ final class EppoClientAssignmentDetailsTests: XCTestCase {
         XCTAssertNil(result.action)
         XCTAssertEqual(result.evaluationDetails.environmentName, "Test")
         XCTAssertEqual(result.evaluationDetails.variationKey, "two")
-        XCTAssertEqual(try result.evaluationDetails.variationValue?.getDoubleValue(), 2)
+        XCTAssertEqual(result.evaluationDetails.variationValue?.doubleValue, 2)
         XCTAssertNil(result.evaluationDetails.banditKey)
         XCTAssertNil(result.evaluationDetails.banditAction)
         XCTAssertEqual(result.evaluationDetails.flagEvaluationCode, .match)
@@ -177,7 +177,7 @@ final class EppoClientAssignmentDetailsTests: XCTestCase {
             "Supplied attributes match rules defined in allocation \"experiment\" and alice belongs to the range of traffic assigned to \"control\"."
         )
         XCTAssertEqual(result.evaluationDetails.variationKey, "control")
-        XCTAssertEqual(try result.evaluationDetails.variationValue?.getStringValue(), "control")
+        XCTAssertEqual(result.evaluationDetails.variationValue?.stringValue, "control")
         XCTAssertNil(result.evaluationDetails.banditKey)
         XCTAssertNil(result.evaluationDetails.banditAction)
 
@@ -190,7 +190,7 @@ final class EppoClientAssignmentDetailsTests: XCTestCase {
         let condition = matchedRule.conditions[0]
         XCTAssertEqual(condition.attribute, "country")
         XCTAssertEqual(condition.operator, .notOneOf)
-        XCTAssertEqual(try condition.value.getStringArrayValue(), ["US", "Canada", "Mexico"])
+        XCTAssertEqual(condition.value.stringArrayValue, ["US", "Canada", "Mexico"])
 
         // Test matched allocation
         guard let matchedAllocation = result.evaluationDetails.matchedAllocation else {
@@ -286,7 +286,7 @@ final class EppoClientAssignmentDetailsTests: XCTestCase {
         XCTAssertEqual(result.evaluationDetails.environmentName, "Test")
         XCTAssertEqual(result.evaluationDetails.flagEvaluationCode, .match)
         XCTAssertEqual(result.evaluationDetails.variationKey, "pi")
-        XCTAssertEqual(try result.evaluationDetails.variationValue?.getDoubleValue(), 3.1415926)
+        XCTAssertEqual(result.evaluationDetails.variationValue?.doubleValue, 3.1415926)
         XCTAssertNil(result.evaluationDetails.banditKey)
         XCTAssertNil(result.evaluationDetails.banditAction)
     }
@@ -308,7 +308,7 @@ final class EppoClientAssignmentDetailsTests: XCTestCase {
         XCTAssertEqual(result.evaluationDetails.environmentName, "Test")
         XCTAssertEqual(result.evaluationDetails.flagEvaluationCode, .match)
         XCTAssertEqual(result.evaluationDetails.variationKey, "on")
-        XCTAssertEqual(try result.evaluationDetails.variationValue?.getBoolValue(), true)
+        XCTAssertEqual(result.evaluationDetails.variationValue?.boolValue, true)
         XCTAssertNil(result.evaluationDetails.banditKey)
         XCTAssertNil(result.evaluationDetails.banditAction)
     }
@@ -343,7 +343,7 @@ final class EppoClientAssignmentDetailsTests: XCTestCase {
         XCTAssertEqual(result.evaluationDetails.environmentName, "Test")
         XCTAssertEqual(result.evaluationDetails.flagEvaluationCode, .match)
         XCTAssertEqual(result.evaluationDetails.variationKey, "one")
-        XCTAssertEqual(normalizeJSON(try result.evaluationDetails.variationValue?.getStringValue() ?? ""), normalizeJSON("{\"integer\":1,\"string\":\"one\",\"float\":1.0}"))
+        XCTAssertEqual(normalizeJSON(result.evaluationDetails.variationValue?.stringValue ?? ""), normalizeJSON("{\"integer\":1,\"string\":\"one\",\"float\":1.0}"))
         XCTAssertNil(result.evaluationDetails.banditKey)
         XCTAssertNil(result.evaluationDetails.banditAction)
 

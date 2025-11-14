@@ -1,5 +1,30 @@
 import Foundation
 
+/*
+ DESIGN NOTE: Obfuscation Strategy & Performance Optimization
+
+ This SDK implements a decode-on-demand strategy for obfuscated flag configurations to optimize
+ for fast startup times, which is critical for mobile applications.
+
+ CURRENT APPROACH: Decode-on-Demand (Every Evaluation)
+ =====================================================
+
+ Obfuscated flag values are stored as base64-encoded strings and decoded during each flag evaluation:
+
+ Configuration Load:  JSON → EppoValue(stringValue: "dHJ1ZQ==") [FAST - no decoding]
+ Flag Evaluation:     base64Decode("dHJ1ZQ==") → "true" → Bool(true) [SLOWER - decode every time]
+
+ Pros:
+ • ⚡ Extremely fast startup - no upfront decoding cost
+ • 💾 Minimal memory usage - unused flags never decoded
+ • 🔒 Secure - sensitive values only decoded when needed
+
+ Cons:
+ • 🐌 Slower flag evaluation - decode + parse on every access
+ • 🔄 Redundant work - same values decoded repeatedly
+ • ⚙️ CPU overhead - base64 + string parsing in hot path
+*/
+
 public struct ConfigDetails {
     public let configFetchedAt: String
     public let configPublishedAt: String
