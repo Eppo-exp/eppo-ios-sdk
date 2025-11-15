@@ -22,7 +22,14 @@ public struct Configuration: Codable {
     }
 
     public init(flagsConfigurationJson: Data, obfuscated: Bool) throws {
+        NSLog("🏗️  Configuration: Standard upfront parsing initialization...")
+        let startTime = CFAbsoluteTimeGetCurrent()
+
         let flagsConfiguration = try UniversalFlagConfig.decodeFromJSON(from: flagsConfigurationJson)
+
+        let initTime = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
+        NSLog("🏗️  Configuration: Standard upfront parsing complete in %.2fms (%d flags parsed)", initTime, flagsConfiguration.flags.count)
+
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         let now = formatter.string(from: Date())
