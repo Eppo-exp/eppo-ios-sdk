@@ -3,72 +3,75 @@ import XCTest
 @testable import EppoFlagging
 
 final class ConfigurationStoreTests: XCTestCase {
-    var configurationStore: ConfigurationStore!
-    var configuration: Configuration!
+  var configurationStore: ConfigurationStore!
+  var configuration: Configuration!
 
-    let emptyFlagConfig = UFC_Flag(
-        key: "empty",
-        enabled: false,
-        variationType: UFC_VariationType.string,
-        variations: [:],
-        allocations: [],
-        totalShards: 0,
-        entityId: nil
+  let emptyFlagConfig = UFC_Flag(
+    key: "empty",
+    enabled: false,
+    variationType: UFC_VariationType.string,
+    variations: [:],
+    allocations: [],
+    totalShards: 0,
+    entityId: nil
+  )
+
+  override func setUpWithError() throws {
+    try super.setUpWithError()
+    // Create a new instance for each test
+    ConfigurationStore.clearPersistentCache()
+    configurationStore = ConfigurationStore()
+
+    let now = ISO8601DateFormatter().string(from: Date())
+    configuration = Configuration(
+      flagsConfiguration: UniversalFlagConfig(
+        createdAt: Date(),
+        format: "SERVER",
+        environment: Environment(name: "Test"),
+        flags: [
+          "testFlag": emptyFlagConfig
+        ]
+      ),
+      flagsConfigurationProtobuf: nil,
+      obfuscated: false,
+      fetchedAt: now,
+      publishedAt: now
     )
+  }
 
-    override func setUpWithError() throws {
-        try super.setUpWithError()
-        // Create a new instance for each test
-        ConfigurationStore.clearPersistentCache()
-        configurationStore = ConfigurationStore()
+  override func tearDownWithError() throws {
+    try super.tearDownWithError()
 
-        let now = ISO8601DateFormatter().string(from: Date())
-        configuration = Configuration(
-            flagsConfiguration: UniversalFlagConfig(
-                createdAt: Date(),
-                format: "SERVER",
-                environment: Environment(name: "Test"),
-                flags: [
-                    "testFlag": emptyFlagConfig
-                ]
-            ),
-            obfuscated: false,
-            fetchedAt: now,
-            publishedAt: now
-        )
-    }
+    // Release the reference to ensure it's deallocated
+    configurationStore = nil
+  }
 
-    override func tearDownWithError() throws {
-        try super.tearDownWithError()
+  func testClearPersistentCache() throws {
+    configurationStore.setConfiguration(configuration: configuration)
+    XCTAssertNotNil(configurationStore.getConfiguration(), "Configuration should be set")
 
-        // Release the reference to ensure it's deallocated
-        configurationStore = nil
-    }
+    ConfigurationStore.clearPersistentCache()
+    XCTAssertNotNil(
+      configurationStore.getConfiguration(), "Configuration should not be nil after clearing cache")
+  }
 
-    func testClearPersistentCache() throws {
-        configurationStore.setConfiguration(configuration: configuration)
-        XCTAssertNotNil(configurationStore.getConfiguration(), "Configuration should be set")
+  func testSetAndGetConfiguration() throws {
+    configurationStore.setConfiguration(configuration: configuration)
 
-        ConfigurationStore.clearPersistentCache()
-        XCTAssertNotNil(configurationStore.getConfiguration(), "Configuration should not be nil after clearing cache")
-    }
+    XCTAssertEqual(
+      configurationStore.getConfiguration()?.getFlag(flagKey: "testFlag")?.enabled,
+      emptyFlagConfig.enabled)
+  }
 
-    func testSetAndGetConfiguration() throws {
-        configurationStore.setConfiguration(configuration: configuration)
+  func testIsInitialized() async throws {
+    XCTAssertNil(
+      configurationStore.getConfiguration(),
+      "Store should not be initialized before fetching configurations")
 
-        XCTAssertEqual(
-            configurationStore.getConfiguration()?.getFlag(flagKey: "testFlag")?.enabled, emptyFlagConfig.enabled)
-    }
+    configurationStore.setConfiguration(configuration: configuration)
 
-    func testIsInitialized() async throws {
-        XCTAssertNil(
-            configurationStore.getConfiguration(),
-            "Store should not be initialized before fetching configurations")
-
-        configurationStore.setConfiguration(configuration: configuration)
-
-        XCTAssertNotNil(
-            configurationStore.getConfiguration(),
-            "Store should be initialized after fetching configurations")
-    }
+    XCTAssertNotNil(
+      configurationStore.getConfiguration(),
+      "Store should be initialized after fetching configurations")
+  }
 }

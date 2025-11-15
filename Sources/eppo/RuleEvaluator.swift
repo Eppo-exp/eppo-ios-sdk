@@ -14,7 +14,7 @@ class Compare {
     }
 }
 
-public class FlagEvaluator {
+public class FlagEvaluator: FlagEvaluatorProtocol {
     let sharder: Sharder
 
     init(sharder: Sharder) {
@@ -322,6 +322,37 @@ public class FlagEvaluator {
             unmatchedAllocations: unmatchedAllocations,
             unevaluatedAllocations: unevaluatedAllocations,
             entityId: flag.entityId
+        )
+    }
+
+    // MARK: - FlagEvaluatorProtocol Implementation
+
+    /// Protocol method that extracts the flag from configuration and delegates to the existing evaluateFlag method
+    func evaluateFlag(
+        configuration: Configuration,
+        flagKey: String,
+        subjectKey: String,
+        subjectAttributes: SubjectAttributes,
+        isConfigObfuscated: Bool
+    ) -> FlagEvaluation {
+        let flagKeyForLookup = isConfigObfuscated ? getMD5Hex(flagKey) : flagKey
+
+        guard let flagConfig = configuration.getFlag(flagKey: flagKeyForLookup) else {
+            return FlagEvaluation.noneResult(
+                flagKey: flagKey,
+                subjectKey: subjectKey,
+                subjectAttributes: subjectAttributes,
+                flagEvaluationCode: .flagUnrecognizedOrDisabled,
+                flagEvaluationDescription: "Unrecognized or disabled flag: \(flagKey)",
+                entityId: nil
+            )
+        }
+
+        return evaluateFlag(
+            flag: flagConfig,
+            subjectKey: subjectKey,
+            subjectAttributes: subjectAttributes,
+            isConfigObfuscated: isConfigObfuscated
         )
     }
 
