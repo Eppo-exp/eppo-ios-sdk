@@ -36,7 +36,7 @@ test:
 testDataDir := Tests/eppo/Resources/test-data/
 tempDir := ${testDataDir}temp/
 gitDataDir := ${tempDir}sdk-test-data/
-branchName := main
+branchName := lr/very-large-flag
 githubRepoLink := https://github.com/Eppo-exp/sdk-test-data.git
 .PHONY: test-data
 test-data:
