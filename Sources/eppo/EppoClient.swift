@@ -104,6 +104,7 @@ public class EppoClient {
     ) -> EppoClient {
         return sharedLock.withLock {
             // Check if there's an existing instance and if the SDK key has changed
+            // This behavior is now consistent with online initialization
             if let instance = sharedInstance {
                 if instance.sdkKey.token == sdkKey {
                     // Same SDK key, return existing instance

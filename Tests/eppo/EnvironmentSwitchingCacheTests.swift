@@ -185,14 +185,14 @@ final class EnvironmentSwitchingCacheTests: XCTestCase {
         // tries to initialize offline with a different SDK key without explicitly resetting
 
         // Initialize offline with a different SDK key (different environment)
-        // This should create a new client instance and clear the cache, but currently doesn't
+        // This should create a new client instance and clear the cache
         let client2 = EppoClient.initializeOffline(
             sdkKey: "second-sdk-key",
             assignmentLogger: loggerSpy.logger,
             initialConfiguration: configuration
         )
 
-        // Make the same assignment - this should be logged again since we're in a different environment
+        // Make the same assignment - this should be logged again since we're using a different SDK key
         // and the assignment cache should have been cleared
         _ = client2.getNumericAssignment(
             flagKey: "numeric_flag",
@@ -200,13 +200,13 @@ final class EnvironmentSwitchingCacheTests: XCTestCase {
             defaultValue: 0
         )
 
-        // The assignment should be logged again because we switched environments
-        // This assertion will currently fail, demonstrating the bug exists in offline mode too
+        // The assignment should be logged again because we switched SDK keys
         XCTAssertEqual(loggerSpy.logCount, 2, "Assignment should be logged again when switching SDK keys in offline mode")
     }
 
     func testAssignmentCachePersistsWhenReInitializingWithSameSDKKeyOffline() throws {
-        // Test that when reinitializing offline with the SAME SDK key, the assignment cache persists (correct behavior)
+        // Test that when reinitializing offline with the SAME SDK key, the assignment cache persists
+        // This behavior is now consistent with online initialization
 
         // Create configuration from test data (same format as ConfigurationTests)
         let testJsonString = """
@@ -254,7 +254,7 @@ final class EnvironmentSwitchingCacheTests: XCTestCase {
             obfuscated: false
         )
 
-        // Initialize offline with SDK key
+        // Initialize offline
         let client1 = EppoClient.initializeOffline(
             sdkKey: "same-sdk-key",
             assignmentLogger: loggerSpy.logger,
@@ -271,21 +271,21 @@ final class EnvironmentSwitchingCacheTests: XCTestCase {
         // Verify the assignment was logged
         XCTAssertEqual(loggerSpy.logCount, 1, "First assignment should be logged")
 
-        // Reinitialize offline with the SAME SDK key - cache should persist
+        // Reinitialize offline with the SAME SDK key - cache should persist (consistent with online behavior)
         let client2 = EppoClient.initializeOffline(
             sdkKey: "same-sdk-key",
             assignmentLogger: loggerSpy.logger,
             initialConfiguration: configuration
         )
 
-        // Make the same assignment - this should NOT be logged again since it's the same environment
+        // Make the same assignment - this should NOT be logged again since it's the same SDK key
         _ = client2.getNumericAssignment(
             flagKey: "numeric_flag",
             subjectKey: "test-subject",
             defaultValue: 0
         )
 
-        // This should pass - no additional logging since we're using the same environment
-        XCTAssertEqual(loggerSpy.logCount, 1, "Same assignment with same SDK key should not be logged again due to cache in offline mode")
+        // This should pass - no additional logging since we're using the same SDK key
+        XCTAssertEqual(loggerSpy.logCount, 1, "Same assignment with same SDK key should not be logged again due to cache (consistent offline/online behavior)")
     }
 }
