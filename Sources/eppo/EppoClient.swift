@@ -103,26 +103,36 @@ public class EppoClient {
         debugCallback: ((String, Double, Double) -> Void)? = nil
     ) -> EppoClient {
         return sharedLock.withLock {
+            // Check if there's an existing instance and if the SDK key has changed
+            // This behavior is now consistent with online initialization
             if let instance = sharedInstance {
-                return instance
-            } else {
-                let instance = EppoClient(
-                  sdkKey: sdkKey,
-                  host: host,
-                  assignmentLogger: assignmentLogger,
-                  assignmentCache: assignmentCache,
-                  initialConfiguration: initialConfiguration,
-                  withPersistentCache: withPersistentCache,
-                  debugCallback: debugCallback
-                )
-                
-                if let callback = configurationChangeCallback {
-                    instance.onConfigurationChange(callback)
+                if instance.sdkKey.token == sdkKey {
+                    // Same SDK key, return existing instance
+                    return instance
+                } else {
+                    // Different SDK key, reset the shared instance to create a new one
+                    // This ensures the assignment cache is cleared when switching environments
+                    sharedInstance = nil
                 }
-                
-                sharedInstance = instance
-                return instance
             }
+
+            // Create new instance (either no existing instance or SDK key changed)
+            let instance = EppoClient(
+              sdkKey: sdkKey,
+              host: host,
+              assignmentLogger: assignmentLogger,
+              assignmentCache: assignmentCache,
+              initialConfiguration: initialConfiguration,
+              withPersistentCache: withPersistentCache,
+              debugCallback: debugCallback
+            )
+
+            if let callback = configurationChangeCallback {
+                instance.onConfigurationChange(callback)
+            }
+
+            sharedInstance = instance
+            return instance
         }
     }
 
