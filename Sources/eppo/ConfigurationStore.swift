@@ -13,6 +13,7 @@ class ConfigurationStore {
     private var debugLogger: ((String) -> Void)?
 
     private let cacheFileURL: URL?
+    private let sdkKey: String?
     // This is a serial (non-concurrent) queue, so writers don't fight
     // each other and last writer wins.
     //
@@ -22,9 +23,10 @@ class ConfigurationStore {
       label: "cloud.eppo.configurationStorePersistence", qos: .background)
 
     // Initialize with the disk-based path for storage
-    public init(withPersistentCache: Bool = true) {
+    public init(withPersistentCache: Bool = true, sdkKey: String? = nil) {
+        self.sdkKey = sdkKey
         self.cacheFileURL = if withPersistentCache {
-            Self.findCacheFileURL()
+            Self.findCacheFileURL(sdkKey: sdkKey)
         } else {
             nil
         }
@@ -44,7 +46,7 @@ class ConfigurationStore {
         self.debugLogger = logger
     }
 
-    private static func findCacheFileURL() -> URL? {
+    private static func findCacheFileURL(sdkKey: String? = nil) -> URL? {
         guard let cacheDirectoryURL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)
           .first?
           .appendingPathComponent("eppo", isDirectory: true) else {
@@ -65,8 +67,19 @@ class ConfigurationStore {
             return nil
         }
 
+        // Make the cache file SDK-key specific to prevent configuration crossover between environments
+        let fileName: String
+        if let sdkKey = sdkKey {
+            // Use a hash of the SDK key to create a unique but deterministic filename
+            let sdkKeyHash = sdkKey.hash
+            fileName = "eppo-configuration-\(abs(sdkKeyHash)).json"
+        } else {
+            // Fallback to original filename for backward compatibility
+            fileName = "eppo-configuration.json"
+        }
+
         return cacheDirectoryURL
-          .appendingPathComponent("eppo-configuration.json", isDirectory: false)
+          .appendingPathComponent(fileName, isDirectory: false)
     }
 
     // Get the configuration for a given flag key in a thread-safe manner.
@@ -89,8 +102,8 @@ class ConfigurationStore {
         }
     }
 
-    public static func clearPersistentCache() {
-        guard let cacheFileURL = Self.findCacheFileURL() else {
+    public static func clearPersistentCache(sdkKey: String? = nil) {
+        guard let cacheFileURL = Self.findCacheFileURL(sdkKey: sdkKey) else {
             return
         }
 

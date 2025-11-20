@@ -72,7 +72,7 @@ public class EppoClient {
         let httpClient = NetworkEppoHttpClient(baseURL: self.host, sdkKey: self.sdkKey.token, sdkName: sdkName, sdkVersion: sdkVersion)
         self.configurationRequester = ConfigurationRequester(httpClient: httpClient)
 
-        self.configurationStore = ConfigurationStore(withPersistentCache: withPersistentCache)
+        self.configurationStore = ConfigurationStore(withPersistentCache: withPersistentCache, sdkKey: self.sdkKey.token)
         if let configuration = initialConfiguration {
             self.configurationStore.setConfiguration(configuration: configuration)
             // Note: Callbacks will be registered after init, so initial config callback will be triggered during loadIfNeeded
@@ -103,26 +103,35 @@ public class EppoClient {
         debugCallback: ((String, Double, Double) -> Void)? = nil
     ) -> EppoClient {
         return sharedLock.withLock {
+            // Check if there's an existing instance and if the SDK key has changed
             if let instance = sharedInstance {
-                return instance
-            } else {
-                let instance = EppoClient(
-                  sdkKey: sdkKey,
-                  host: host,
-                  assignmentLogger: assignmentLogger,
-                  assignmentCache: assignmentCache,
-                  initialConfiguration: initialConfiguration,
-                  withPersistentCache: withPersistentCache,
-                  debugCallback: debugCallback
-                )
-                
-                if let callback = configurationChangeCallback {
-                    instance.onConfigurationChange(callback)
+                if instance.sdkKey.token == sdkKey {
+                    // Same SDK key, return existing instance with its configuration cache
+                    return instance
+                } else {
+                    // Different SDK key, reset the shared instance to create a new one
+                    // This ensures each SDK key (environment) has its own configuration cache
+                    sharedInstance = nil
                 }
-                
-                sharedInstance = instance
-                return instance
             }
+
+            // Create new instance (either no existing instance or SDK key changed)
+            let instance = EppoClient(
+              sdkKey: sdkKey,
+              host: host,
+              assignmentLogger: assignmentLogger,
+              assignmentCache: assignmentCache,
+              initialConfiguration: initialConfiguration,
+              withPersistentCache: withPersistentCache,
+              debugCallback: debugCallback
+            )
+
+            if let callback = configurationChangeCallback {
+                instance.onConfigurationChange(callback)
+            }
+
+            sharedInstance = instance
+            return instance
         }
     }
 
