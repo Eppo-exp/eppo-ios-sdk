@@ -20,7 +20,7 @@ class PrecomputedConfigurationTests: XCTestCase {
                 variationKey: "variation-2",
                 variationType: .BOOLEAN,
                 variationValue: .valueOf(true),
-                extraLogging: ["key": "value"],
+                extraLogging: ["holdoutKey": "experiment-holdout", "holdoutVariation": "status_quo"],
                 doLog: false
             )
         ]
@@ -115,7 +115,7 @@ class PrecomputedConfigurationTests: XCTestCase {
                     "variationKey": "variation-124",
                     "variationType": "BOOLEAN",
                     "variationValue": true,
-                    "extraLogging": {"experiment": "exp-1"},
+                    "extraLogging": {"holdoutKey": "feature-rollout", "holdoutVariation": "all_shipped"},
                     "doLog": false
                 }
             }
@@ -280,7 +280,7 @@ class PrecomputedConfigurationTests: XCTestCase {
                 variationKey: "variation-\(i)",
                 variationType: .STRING,
                 variationValue: .valueOf("value-\(i)"),
-                extraLogging: ["index": "\(i)"],
+                extraLogging: i % 10 == 0 ? ["holdoutKey": "holdout-\(i)", "holdoutVariation": "status_quo"] : [:],
                 doLog: i % 2 == 0
             )
         }
@@ -310,10 +310,8 @@ class PrecomputedConfigurationTests: XCTestCase {
                     "variationType": "STRING",
                     "variationValue": "test",
                     "extraLogging": {
-                        "experiment_id": "exp-123",
-                        "cohort": "control",
-                        "timestamp": "2024-01-01T00:00:00Z",
-                        "nested_data": "some_value"
+                        "holdoutKey": "experiment-123-holdout",
+                        "holdoutVariation": "status_quo"
                     },
                     "doLog": true
                 }
@@ -327,8 +325,8 @@ class PrecomputedConfigurationTests: XCTestCase {
         
         let flag = config.flags["test-flag"]
         XCTAssertNotNil(flag)
-        XCTAssertEqual(flag?.extraLogging.count, 4)
-        XCTAssertEqual(flag?.extraLogging["experiment_id"], "exp-123")
-        XCTAssertEqual(flag?.extraLogging["cohort"], "control")
+        XCTAssertEqual(flag?.extraLogging.count, 2)
+        XCTAssertEqual(flag?.extraLogging["holdoutKey"], "experiment-123-holdout")
+        XCTAssertEqual(flag?.extraLogging["holdoutVariation"], "status_quo")
     }
 }

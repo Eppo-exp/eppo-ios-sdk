@@ -11,7 +11,7 @@ class PrecomputedFlagTests: XCTestCase {
             variationKey: "control",
             variationType: .STRING,
             variationValue: .valueOf("test value"),
-            extraLogging: ["key": "value"],
+            extraLogging: ["holdoutKey": "test-holdout", "holdoutVariation": "status_quo"],
             doLog: true
         )
         
@@ -19,7 +19,7 @@ class PrecomputedFlagTests: XCTestCase {
         XCTAssertEqual(flag.variationKey, "control")
         XCTAssertEqual(flag.variationType, .STRING)
         XCTAssertEqual(flag.variationValue, .valueOf("test value"))
-        XCTAssertEqual(flag.extraLogging, ["key": "value"])
+        XCTAssertEqual(flag.extraLogging, ["holdoutKey": "test-holdout", "holdoutVariation": "status_quo"])
         XCTAssertTrue(flag.doLog)
     }
     
@@ -49,7 +49,7 @@ class PrecomputedFlagTests: XCTestCase {
             variationKey: "variant-a",
             variationType: .STRING,
             variationValue: .valueOf("test string"),
-            extraLogging: ["experiment": "exp-123"],
+            extraLogging: ["holdoutKey": "experiment-123", "holdoutVariation": "all_shipped"],
             doLog: true
         )
         
@@ -75,8 +75,8 @@ class PrecomputedFlagTests: XCTestCase {
             "variationType": "NUMERIC",
             "variationValue": 42.5,
             "extraLogging": {
-                "source": "api",
-                "version": "v2"
+                "holdoutKey": "api-experiment",
+                "holdoutVariation": "all_shipped"
             },
             "doLog": true
         }
@@ -90,8 +90,8 @@ class PrecomputedFlagTests: XCTestCase {
         XCTAssertEqual(flag.variationKey, "treatment")
         XCTAssertEqual(flag.variationType, .NUMERIC)
         XCTAssertEqual(try flag.variationValue.getDoubleValue(), 42.5)
-        XCTAssertEqual(flag.extraLogging["source"], "api")
-        XCTAssertEqual(flag.extraLogging["version"], "v2")
+        XCTAssertEqual(flag.extraLogging["holdoutKey"], "api-experiment")
+        XCTAssertEqual(flag.extraLogging["holdoutVariation"], "all_shipped")
         XCTAssertTrue(flag.doLog)
     }
     
@@ -175,10 +175,8 @@ class PrecomputedFlagTests: XCTestCase {
             "variationType": "STRING",
             "variationValue": "test",
             "extraLogging": {
-                "experiment_id": "exp-123",
-                "cohort": "new_users",
-                "timestamp": "2024-01-01T00:00:00Z",
-                "feature_version": "2.0"
+                "holdoutKey": "activeHoldout",
+                "holdoutVariation": "all_shipped"
             },
             "doLog": true
         }
@@ -188,10 +186,8 @@ class PrecomputedFlagTests: XCTestCase {
         let decoder = JSONDecoder()
         let flag = try decoder.decode(PrecomputedFlag.self, from: data)
         
-        XCTAssertEqual(flag.extraLogging.count, 4)
-        XCTAssertEqual(flag.extraLogging["experiment_id"], "exp-123")
-        XCTAssertEqual(flag.extraLogging["cohort"], "new_users")
-        XCTAssertEqual(flag.extraLogging["timestamp"], "2024-01-01T00:00:00Z")
-        XCTAssertEqual(flag.extraLogging["feature_version"], "2.0")
+        XCTAssertEqual(flag.extraLogging.count, 2)
+        XCTAssertEqual(flag.extraLogging["holdoutKey"], "activeHoldout")
+        XCTAssertEqual(flag.extraLogging["holdoutVariation"], "all_shipped")
     }
 }
