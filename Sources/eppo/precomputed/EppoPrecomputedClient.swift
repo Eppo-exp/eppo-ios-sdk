@@ -34,6 +34,26 @@ public class EppoPrecomputedClient {
     
     private init() {} // Singleton
     
+    /// Temporary initialization for testing Phase 4B
+    /// Full implementation will be in Phase 5
+    internal static func initializeForTesting(
+        configurationStore: PrecomputedConfigurationStore,
+        subject: Subject,
+        assignmentLogger: AssignmentLogger? = nil,
+        assignmentCache: AssignmentCache? = nil
+    ) {
+        shared.accessQueue.sync(flags: .barrier) {
+            shared.configurationStore = configurationStore
+            shared.subject = subject
+            shared.assignmentLogger = assignmentLogger
+            shared.assignmentCache = assignmentCache
+            initialized = true
+        }
+        
+        // Flush any queued assignments
+        shared.flushQueuedAssignments()
+    }
+    
     // MARK: - Lifecycle Management
     
     /// Stops the configuration polling
@@ -122,8 +142,173 @@ public class EppoPrecomputedClient {
         defaultValue: T,
         expectedType: VariationType
     ) -> T {
-        // Phase 4A will implement the actual logic
-        // For now, return default value
-        return defaultValue
+        // Check if client is initialized
+        guard Self.initialized,
+              let store = configurationStore,
+              store.isInitialized() else {
+            return defaultValue
+        }
+        
+        // Get salt for MD5 hashing (always obfuscated for precomputed)
+        guard let salt = store.salt else {
+            return defaultValue
+        }
+        
+        // Hash the flag key with salt
+        let hashedFlagKey = getMD5Hex(flagKey, salt: salt)
+        
+        // Look up the precomputed flag
+        guard let flag = store.getFlag(forKey: hashedFlagKey) else {
+            return defaultValue
+        }
+        
+        // Validate type matches expected
+        guard flag.variationType == expectedType else {
+            return defaultValue
+        }
+        
+        // Convert value based on type
+        do {
+            let convertedValue = try convertValue(
+                flag.variationValue,
+                expectedType: expectedType,
+                defaultValue: defaultValue
+            )
+            
+            // Log assignment if needed
+            logAssignment(
+                flagKey: flagKey,
+                flag: flag,
+                subject: subject
+            )
+            
+            return convertedValue
+        } catch {
+            // Type conversion failed, return default
+            return defaultValue
+        }
+    }
+    
+    // MARK: - Value Conversion
+    
+    private func convertValue<T>(
+        _ eppoValue: EppoValue,
+        expectedType: VariationType,
+        defaultValue: T
+    ) throws -> T {
+        switch expectedType {
+        case .STRING:
+            let stringValue = try eppoValue.getStringValue()
+            // Decode base64 if it's an obfuscated string
+            let decodedValue = base64Decode(stringValue) ?? stringValue
+            if let result = decodedValue as? T {
+                return result
+            }
+            
+        case .BOOLEAN:
+            let boolValue = try eppoValue.getBoolValue()
+            if let result = boolValue as? T {
+                return result
+            }
+            
+        case .INTEGER:
+            let doubleValue = try eppoValue.getDoubleValue()
+            let intValue = Int(doubleValue)
+            if let result = intValue as? T {
+                return result
+            }
+            
+        case .NUMERIC:
+            let doubleValue = try eppoValue.getDoubleValue()
+            if let result = doubleValue as? T {
+                return result
+            }
+            
+        case .JSON:
+            let stringValue = try eppoValue.getStringValue()
+            // Decode base64 if it's an obfuscated JSON string
+            let decodedValue = base64Decode(stringValue) ?? stringValue
+            if let result = decodedValue as? T {
+                return result
+            }
+        }
+        
+        throw Errors.variationWrongType
+    }
+    
+    // MARK: - Assignment Logging
+    
+    private func logAssignment(
+        flagKey: String,
+        flag: PrecomputedFlag,
+        subject: Subject?
+    ) {
+        guard flag.doLog,
+              let subj = subject else {
+            return
+        }
+        
+        // Decode extra logging if obfuscated
+        let decodedExtraLogging = decodeExtraLogging(flag.extraLogging)
+        
+        let assignment = Assignment(
+            flagKey: flagKey,
+            allocationKey: decodeBase64OrOriginal(flag.allocationKey ?? ""),
+            variation: decodeBase64OrOriginal(flag.variationKey ?? ""),
+            subject: subj.subjectKey,
+            timestamp: ISO8601DateFormatter().string(from: Date()),
+            subjectAttributes: subj.subjectAttributes,
+            extraLogging: decodedExtraLogging
+        )
+        
+        // Check if we should log this assignment (deduplication)
+        if shouldLogAssignment(assignment) {
+            if let logger = assignmentLogger {
+                logger(assignment)
+            } else {
+                // Queue for later when logger is set
+                queueAssignment(assignment)
+            }
+        }
+    }
+    
+    private func decodeExtraLogging(_ extraLogging: [String: String]) -> [String: String] {
+        var decoded: [String: String] = [:]
+        for (key, value) in extraLogging {
+            let decodedKey = decodeBase64OrOriginal(key)
+            let decodedValue = decodeBase64OrOriginal(value)
+            decoded[decodedKey] = decodedValue
+        }
+        return decoded
+    }
+    
+    private func decodeBase64OrOriginal(_ value: String) -> String {
+        return base64Decode(value) ?? value
+    }
+    
+    private func shouldLogAssignment(_ assignment: Assignment) -> Bool {
+        guard let cache = assignmentCache,
+              let allocationKey = assignment.allocation.isEmpty ? nil : assignment.allocation,
+              let variationKey = assignment.variation.isEmpty ? nil : assignment.variation else {
+            // No cache or missing keys, always log
+            return true
+        }
+        
+        let cacheKey = AssignmentCacheKey(
+            subjectKey: assignment.subject,
+            flagKey: assignment.featureFlag,
+            allocationKey: allocationKey,
+            variationKey: variationKey
+        )
+        
+        // Log if not in cache
+        let shouldLog = !cache.hasLoggedAssignment(key: cacheKey)
+        
+        if shouldLog {
+            // Add to cache
+            cache.setLastLoggedAssignment(key: cacheKey)
+        }
+        
+        return shouldLog
     }
 }
