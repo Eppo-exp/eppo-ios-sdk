@@ -1,24 +1,24 @@
 import Foundation
 
 /// Represents the configuration for precomputed flag assignments
-struct PrecomputedConfiguration: Codable {
+public struct PrecomputedConfiguration: Codable {
     /// Map of flag keys to precomputed flag assignments
     let flags: [String: PrecomputedFlag]
     
     /// Salt used for obfuscation (always present for precomputed)
-    let salt: String
+    public let salt: String
     
     /// Configuration format (should be "PRECOMPUTED")
-    let format: String
+    public let format: String
     
     /// Timestamp when the configuration was fetched
-    let configFetchedAt: Date
+    public let configFetchedAt: Date
     
     /// Timestamp when the configuration was published (optional)
-    let configPublishedAt: Date?
+    public let configPublishedAt: Date?
     
     /// Environment information
-    let environment: Environment?
+    public let environment: Environment?
     
     // MARK: - Initialization
     
@@ -49,7 +49,7 @@ struct PrecomputedConfiguration: Codable {
         case obfuscated
     }
     
-    init(from decoder: Decoder) throws {
+    public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         
         flags = try container.decode([String: PrecomputedFlag].self, forKey: .flags)
@@ -73,7 +73,7 @@ struct PrecomputedConfiguration: Codable {
         _ = try? container.decode(Bool.self, forKey: .obfuscated)
     }
     
-    func encode(to encoder: Encoder) throws {
+    public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         
         try container.encode(flags, forKey: .flags)

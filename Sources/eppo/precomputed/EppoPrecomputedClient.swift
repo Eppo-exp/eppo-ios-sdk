@@ -3,6 +3,13 @@ import Foundation
 /// Eppo client for precomputed flag assignments
 public class EppoPrecomputedClient {
     public typealias AssignmentLogger = (Assignment) -> Void
+    public typealias ConfigurationChangeCallback = (PrecomputedConfiguration) -> Void
+    
+    // MARK: - Error Types
+    
+    public enum InitializationError: Error {
+        case alreadyInitialized
+    }
     // MARK: - Singleton Pattern (matches regular EppoClient)
     public static let shared = EppoPrecomputedClient()
     private static var initialized = false
@@ -26,6 +33,9 @@ public class EppoPrecomputedClient {
     
     // MARK: - Client State
     private var sdkKey: String?
+    private var host: String?
+    private var configurationChangeCallback: ConfigurationChangeCallback?
+    private var debugCallback: ((String, Double, Double) -> Void)?
     private var isInitialized: Bool {
         return Self.initialized
     }
@@ -34,8 +44,160 @@ public class EppoPrecomputedClient {
     
     private init() {} // Singleton
     
-    /// Temporary initialization for testing Phase 4B
-    /// Full implementation will be in Phase 5
+    /// Initialize the precomputed client with online configuration fetch
+    public static func initialize(
+        sdkKey: String,
+        subject: Subject,
+        assignmentLogger: AssignmentLogger? = nil,
+        assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
+        host: String? = nil,
+        pollingEnabled: Bool = false,
+        pollingIntervalMs: Int = PollerConstants.DEFAULT_POLL_INTERVAL_MS,
+        withPersistentCache: Bool = true,
+        configurationChangeCallback: ConfigurationChangeCallback? = nil,
+        debugCallback: ((String, Double, Double) -> Void)? = nil
+    ) async throws -> EppoPrecomputedClient {
+        let startTime = Date()
+        
+        // Check if already initialized (synchronously)
+        let wasInitialized = shared.accessQueue.sync { initialized }
+        if wasInitialized {
+            throw InitializationError.alreadyInitialized
+        }
+        
+        // Track initialization timing
+        debugCallback?("precomputed_client_initialize_start", 0, startTime.timeIntervalSince1970)
+        
+        // Setup components outside of sync block
+        let resolvedHost = host ?? "https://fs-edge-assignment.eppo.cloud"
+        let store = PrecomputedConfigurationStore()
+        let requestor = PrecomputedRequestor(
+            subject: subject,
+            sdkKey: sdkKey,
+            sdkName: "eppo-ios-sdk",
+            sdkVersion: "3.2.1", // TODO: Get from package version
+            host: resolvedHost
+        )
+        
+        // Fetch configuration asynchronously
+        do {
+            let fetchStartTime = Date()
+            debugCallback?("precomputed_config_fetch_start", 0, fetchStartTime.timeIntervalSince1970)
+            
+            let configuration = try await requestor.fetchPrecomputedFlags()
+            
+            let fetchDuration = Date().timeIntervalSince(fetchStartTime)
+            debugCallback?("precomputed_config_fetch_success", fetchDuration, Date().timeIntervalSince1970)
+            
+            // Now update state synchronously
+            shared.accessQueue.sync(flags: .barrier) {
+                // Double-check initialization state
+                guard !initialized else { return }
+                
+                // Store initialization parameters
+                shared.sdkKey = sdkKey
+                shared.subject = subject
+                shared.assignmentLogger = assignmentLogger
+                shared.assignmentCache = assignmentCache
+                shared.host = resolvedHost
+                shared.configurationChangeCallback = configurationChangeCallback
+                shared.debugCallback = debugCallback
+                shared.configurationStore = store
+                shared.requestor = requestor
+                
+                // Store configuration
+                store.setConfiguration(configuration)
+                
+                // Note: Polling setup will be implemented in Phase 7B
+                // The Poller requires async/MainActor context which needs proper setup
+                // For now, polling remains disabled even if requested
+                
+                // Mark as initialized
+                initialized = true
+                
+                // Flush queued assignments
+                shared.flushQueuedAssignments()
+                
+                // Notify configuration change callback
+                configurationChangeCallback?(configuration)
+            }
+            
+            let totalDuration = Date().timeIntervalSince(startTime)
+            debugCallback?("precomputed_client_initialize_success", totalDuration, Date().timeIntervalSince1970)
+            
+            return shared
+        } catch {
+            let errorDuration = Date().timeIntervalSince(startTime)
+            debugCallback?("precomputed_client_initialize_error", errorDuration, Date().timeIntervalSince1970)
+            
+            // Clean up on failure
+            shared.accessQueue.sync(flags: .barrier) {
+                shared.configurationStore = nil
+                shared.requestor = nil
+                shared.sdkKey = nil
+                shared.subject = nil
+                shared.assignmentLogger = nil
+                shared.assignmentCache = nil
+                shared.host = nil
+                shared.configurationChangeCallback = nil
+                shared.debugCallback = nil
+            }
+            
+            throw error
+        }
+    }
+    
+    /// Initialize the precomputed client offline with provided configuration
+    public static func initializeOffline(
+        sdkKey: String,
+        subject: Subject,
+        initialPrecomputedConfiguration: PrecomputedConfiguration,
+        assignmentLogger: AssignmentLogger? = nil,
+        assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
+        withPersistentCache: Bool = true,
+        configurationChangeCallback: ConfigurationChangeCallback? = nil,
+        debugCallback: ((String, Double, Double) -> Void)? = nil
+    ) -> EppoPrecomputedClient {
+        shared.accessQueue.sync(flags: .barrier) {
+            // Prevent re-initialization
+            guard !initialized else {
+                debugCallback?("precomputed_client_already_initialized", 0, Date().timeIntervalSince1970)
+                return shared
+            }
+            
+            let startTime = Date()
+            debugCallback?("precomputed_client_offline_init_start", 0, startTime.timeIntervalSince1970)
+            
+            // Store initialization parameters
+            shared.sdkKey = sdkKey
+            shared.subject = subject
+            shared.assignmentLogger = assignmentLogger
+            shared.assignmentCache = assignmentCache
+            shared.configurationChangeCallback = configurationChangeCallback
+            shared.debugCallback = debugCallback
+            
+            // Create and populate configuration store
+            let store = PrecomputedConfigurationStore()
+            store.setConfiguration(initialPrecomputedConfiguration)
+            shared.configurationStore = store
+            
+            // Notify configuration change callback
+            configurationChangeCallback?(initialPrecomputedConfiguration)
+            
+            // Mark as initialized
+            initialized = true
+            
+            // Flush queued assignments
+            shared.flushQueuedAssignments()
+            
+            let duration = Date().timeIntervalSince(startTime)
+            debugCallback?("precomputed_client_offline_init_success", duration, Date().timeIntervalSince1970)
+            
+            return shared
+        }
+    }
+    
+    /// Temporary initialization for testing
     internal static func initializeForTesting(
         configurationStore: PrecomputedConfigurationStore,
         subject: Subject,
@@ -52,6 +214,17 @@ public class EppoPrecomputedClient {
         
         // Flush any queued assignments
         shared.flushQueuedAssignments()
+    }
+    
+    // MARK: - Configuration Management
+    
+    /// Sets or updates the assignment logger
+    public func setAssignmentLogger(_ logger: @escaping AssignmentLogger) {
+        accessQueue.sync(flags: .barrier) {
+            assignmentLogger = logger
+            // Flush any queued assignments
+            flushQueuedAssignments()
+        }
     }
     
     // MARK: - Lifecycle Management
@@ -76,6 +249,9 @@ public class EppoPrecomputedClient {
             shared.requestor = nil
             shared.queuedAssignments.removeAll()
             shared.sdkKey = nil
+            shared.host = nil
+            shared.configurationChangeCallback = nil
+            shared.debugCallback = nil
         }
     }
     
