@@ -82,4 +82,48 @@ public class EppoPrecomputedClient {
             queuedAssignments.removeAll()
         }
     }
+    
+    // MARK: - Assignment Methods (synchronous, type-specific)
+    
+    public func getStringAssignment(flagKey: String, defaultValue: String) -> String {
+        return accessQueue.sync {
+            return getPrecomputedAssignment(flagKey: flagKey, defaultValue: defaultValue, expectedType: .STRING)
+        }
+    }
+    
+    public func getBooleanAssignment(flagKey: String, defaultValue: Bool) -> Bool {
+        return accessQueue.sync {
+            return getPrecomputedAssignment(flagKey: flagKey, defaultValue: defaultValue, expectedType: .BOOLEAN)
+        }
+    }
+    
+    public func getIntegerAssignment(flagKey: String, defaultValue: Int) -> Int {
+        return accessQueue.sync {
+            return getPrecomputedAssignment(flagKey: flagKey, defaultValue: defaultValue, expectedType: .INTEGER)
+        }
+    }
+    
+    public func getNumericAssignment(flagKey: String, defaultValue: Double) -> Double {
+        return accessQueue.sync {
+            return getPrecomputedAssignment(flagKey: flagKey, defaultValue: defaultValue, expectedType: .NUMERIC)
+        }
+    }
+    
+    public func getJSONStringAssignment(flagKey: String, defaultValue: String) -> String {
+        return accessQueue.sync {
+            return getPrecomputedAssignment(flagKey: flagKey, defaultValue: defaultValue, expectedType: .JSON)
+        }
+    }
+    
+    // MARK: - Internal Assignment Logic
+    
+    private func getPrecomputedAssignment<T>(
+        flagKey: String,
+        defaultValue: T,
+        expectedType: VariationType
+    ) -> T {
+        // Phase 4A will implement the actual logic
+        // For now, return default value
+        return defaultValue
+    }
 }
