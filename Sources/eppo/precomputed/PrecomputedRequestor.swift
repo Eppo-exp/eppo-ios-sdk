@@ -8,6 +8,10 @@ class PrecomputedRequestor {
     private let sdkName: String
     private let sdkVersion: String
     
+    // Retry configuration
+    private let maxRetryAttempts: Int
+    private let initialRetryDelay: TimeInterval
+    
     // MARK: - Initialization
     
     init(
@@ -15,13 +19,17 @@ class PrecomputedRequestor {
         sdkKey: String,
         sdkName: String,
         sdkVersion: String,
-        host: String = "https://fs-edge-assignment.eppo.cloud"
+        host: String = "https://fs-edge-assignment.eppo.cloud",
+        maxRetryAttempts: Int = 3,
+        initialRetryDelay: TimeInterval = 1.0
     ) {
         self.subject = subject
         self.sdkKey = sdkKey
         self.sdkName = sdkName
         self.sdkVersion = sdkVersion
         self.host = host
+        self.maxRetryAttempts = max(1, maxRetryAttempts) // Ensure at least one attempt
+        self.initialRetryDelay = max(0.1, initialRetryDelay) // Minimum 100ms delay
     }
     
     // MARK: - Public Methods
@@ -64,7 +72,7 @@ class PrecomputedRequestor {
 
 // MARK: - Private Methods
 
-private extension PrecomputedRequestor {
+extension PrecomputedRequestor {
     
     /// Builds the URL for the precomputed flags endpoint
     func buildURL() throws -> URL {
@@ -98,14 +106,106 @@ private extension PrecomputedRequestor {
         encoder.keyEncodingStrategy = .convertToSnakeCase
         request.httpBody = try encoder.encode(payload)
         
-        return try await URLSession.shared.data(for: request)
+        // Perform request with retry logic
+        return try await performRequestWithRetry(request: request)
+    }
+    
+    /// Performs a request with exponential backoff retry logic
+    func performRequestWithRetry(request: URLRequest) async throws -> (Data, URLResponse) {
+        var lastError: Error?
+        
+        for attempt in 0..<maxRetryAttempts {
+            do {
+                let (data, response) = try await URLSession.shared.data(for: request)
+                
+                // Check if we should retry based on response
+                if let httpResponse = response as? HTTPURLResponse {
+                    // Don't retry on client errors (4xx) except for 429 (rate limit)
+                    if httpResponse.statusCode >= 400 && httpResponse.statusCode < 500 && httpResponse.statusCode != 429 {
+                        return (data, response)
+                    }
+                    
+                    // Success or non-retryable error
+                    if httpResponse.statusCode < 500 {
+                        return (data, response)
+                    }
+                    
+                    // Server error (5xx) - will retry
+                    lastError = NetworkError.httpError(statusCode: httpResponse.statusCode)
+                } else {
+                    return (data, response)
+                }
+            } catch {
+                // Store the error for potential retry
+                lastError = error
+                
+                // Check if error is retryable
+                if !isRetryableError(error) {
+                    throw error
+                }
+            }
+            
+            // If not the last attempt, wait before retrying
+            if attempt < maxRetryAttempts - 1 {
+                let delay = calculateRetryDelay(attempt: attempt)
+                try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            }
+        }
+        
+        // All retries exhausted
+        throw lastError ?? NetworkError.invalidResponse
+    }
+    
+    /// Calculates the retry delay using exponential backoff with jitter
+    internal func calculateRetryDelay(attempt: Int) -> TimeInterval {
+        // Exponential backoff: delay = initialDelay * 2^attempt
+        let exponentialDelay = initialRetryDelay * pow(2.0, Double(attempt))
+        
+        // Add jitter (±25%) to prevent thundering herd
+        let jitterRange = exponentialDelay * 0.25
+        let jitter = Double.random(in: -jitterRange...jitterRange)
+        
+        // Cap at 60 seconds
+        return min(exponentialDelay + jitter, 60.0)
+    }
+    
+    /// Determines if an error is retryable
+    internal func isRetryableError(_ error: Error) -> Bool {
+        // Retry on URLError cases that indicate temporary issues
+        if let urlError = error as? URLError {
+            switch urlError.code {
+            case .timedOut,
+                 .cannotFindHost,
+                 .cannotConnectToHost,
+                 .networkConnectionLost,
+                 .dnsLookupFailed,
+                 .notConnectedToInternet,
+                 .dataNotAllowed:
+                return true
+            default:
+                return false
+            }
+        }
+        
+        // Retry on our own network errors
+        if let networkError = error as? NetworkError {
+            switch networkError {
+            case .httpError(let statusCode):
+                // Retry on server errors (5xx) and rate limiting (429)
+                return statusCode >= 500 || statusCode == 429
+            default:
+                return false
+            }
+        }
+        
+        return false
     }
 }
 
 // MARK: - Supporting Types
 
 /// Payload for requesting precomputed flags
-private struct PrecomputedFlagsPayload: Encodable {
+struct PrecomputedFlagsPayload: Encodable {
     let subjectKey: String
     let subjectAttributes: [String: EppoValue]
 }
