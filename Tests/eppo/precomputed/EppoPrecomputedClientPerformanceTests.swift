@@ -257,7 +257,7 @@ class EppoPrecomputedClientPerformanceTests: XCTestCase {
         
         return PrecomputedConfiguration(
             flags: flags,
-            salt: "dGVzdC1zYWx0",  // base64("test-salt")
+            salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
             configPublishedAt: nil,
@@ -325,7 +325,7 @@ class EppoPrecomputedClientPerformanceTests: XCTestCase {
         
         return PrecomputedConfiguration(
             flags: flags,
-            salt: "dGVzdC1zYWx0",  // base64("test-salt")
+            salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
             configPublishedAt: nil,

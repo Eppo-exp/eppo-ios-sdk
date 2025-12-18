@@ -95,8 +95,8 @@ public class EppoPrecomputedClient {
         let requestor = PrecomputedRequestor(
             subject: subject,
             sdkKey: sdkKey,
-            sdkName: "eppo-ios-sdk",
-            sdkVersion: "3.2.1", // TODO: Get from package version
+            sdkName: sdkName,
+            sdkVersion: sdkVersion,
             host: resolvedHost
         )
         
@@ -179,7 +179,7 @@ public class EppoPrecomputedClient {
         configurationChangeCallback: ConfigurationChangeCallback? = nil,
         debugCallback: ((String, Double, Double) -> Void)? = nil
     ) -> EppoPrecomputedClient {
-        shared.accessQueue.sync(flags: .barrier) {
+        let result = shared.accessQueue.sync(flags: .barrier) { () -> EppoPrecomputedClient in
             // Prevent re-initialization
             guard !initialized else {
                 debugCallback?("precomputed_client_already_initialized", 0, Date().timeIntervalSince1970)
@@ -205,15 +205,20 @@ public class EppoPrecomputedClient {
             // Notify configuration change callback
             configurationChangeCallback?(initialPrecomputedConfiguration)
             
-            // Mark as initialized and flush queued assignments
+            // Mark as initialized but DO NOT flush queued assignments inside sync block
             initialized = true
-            shared.flushQueuedAssignments()
             
             let duration = Date().timeIntervalSince(startTime)
             debugCallback?("precomputed_client_offline_init_success", duration, Date().timeIntervalSince1970)
             
             return shared
         }
+        
+        // Flush queued assignments OUTSIDE the sync block to prevent crashes
+        // This matches the safer pattern used in initializeForTesting()
+        result.flushQueuedAssignments()
+        
+        return result
     }
     
     /// Temporary initialization for testing
@@ -365,40 +370,13 @@ public class EppoPrecomputedClient {
                 defaultValue: defaultValue
             )
             
-            // Log assignment if needed using bypass solution
-            if flag.doLog, let logger = assignmentLogger, let subj = subject {
-                // Decode base64 values for assignment logging
-                let decodedAllocationKey = base64Decode(flag.allocationKey ?? "") ?? flag.allocationKey ?? "__eppo_no_allocation"
-                let decodedVariationKey = base64Decode(flag.variationKey ?? "") ?? flag.variationKey ?? "__eppo_no_variation"
-                
-                // Decode extraLogging keys and values
-                var decodedExtraLogging: [String: String] = [:]
-                for (key, value) in flag.extraLogging {
-                    let decodedKey = base64Decode(key) ?? key
-                    let decodedValue = base64Decode(value) ?? value
-                    decodedExtraLogging[decodedKey] = decodedValue
-                }
-                
-                let safeAssignment = Assignment(
+            // Log assignment if needed (now that initialization deadlock is fixed)
+            if flag.doLog {
+                logAssignment(
                     flagKey: flagKey,
-                    allocationKey: decodedAllocationKey,
-                    variation: decodedVariationKey, 
-                    subject: subj.subjectKey,
-                    timestamp: ISO8601DateFormatter().string(from: Date()),
-                    subjectAttributes: subj.subjectAttributes,
-                    metaData: [
-                        "obfuscated": "true",
-                        "sdkName": "eppo-ios-sdk", 
-                        "sdkVersion": "3.2.1",
-                        "clientType": "precomputed"
-                    ],
-                    extraLogging: decodedExtraLogging
+                    flag: flag,
+                    subject: subject
                 )
-                
-                // Check deduplication before logging
-                if shouldLogAssignment(safeAssignment) {
-                    logger(safeAssignment)
-                }
             }
             
             return convertedValue
@@ -457,65 +435,43 @@ public class EppoPrecomputedClient {
     
     // MARK: - Assignment Logging
     
-    /// Assignment logging using proven pattern from regular EppoClient
-    private func safeLogAssignment(flagKey: String, flag: PrecomputedFlag, subject: Subject?) {
-        guard let subj = subject else { return }
-        guard flag.doLog else { return }
-        
-        // Use the same proven pattern as regular EppoClient
-        let allocationKey = flag.allocationKey ?? "__eppo_no_allocation"
-        let variationKey = flag.variationKey ?? "__eppo_no_variation"
-        
-        let assignment = Assignment(
-            flagKey: flagKey,
-            allocationKey: allocationKey,
-            variation: variationKey,
-            subject: subj.subjectKey,
-            timestamp: ISO8601DateFormatter().string(from: Date()),
-            subjectAttributes: subj.subjectAttributes,
-            metaData: [
-                "obfuscated": "true",  // Precomputed flags are obfuscated by nature
-                "sdkName": "eppo-ios-sdk",
-                "sdkVersion": "3.2.1"
-            ],
-            extraLogging: flag.extraLogging  // Use original extraLogging like regular client
-        )
-        
-        // Log using the proven pattern from regular EppoClient
-        if let logger = assignmentLogger {
-            logger(assignment)
-        } else {
-            queueAssignment(assignment)
-        }
-    }
     
     private func logAssignment(
         flagKey: String,
         flag: PrecomputedFlag,
         subject: Subject?
     ) {
-        // Critical production safety: wrap entire assignment logging in crash protection
-        // This ensures the SDK never crashes due to assignment logging issues
-        guard let subj = subject else {
-            return
+        guard let subj = subject else { return }
+        
+        // Decode base64 values for assignment logging (production data is base64 encoded)
+        let decodedAllocationKey = base64Decode(flag.allocationKey ?? "") ?? flag.allocationKey ?? "__eppo_no_allocation"
+        let decodedVariationKey = base64Decode(flag.variationKey ?? "") ?? flag.variationKey ?? "__eppo_no_variation"
+        
+        // Decode extraLogging keys and values
+        var decodedExtraLogging: [String: String] = [:]
+        for (key, value) in flag.extraLogging {
+            let decodedKey = base64Decode(key) ?? key
+            let decodedValue = base64Decode(value) ?? value
+            decodedExtraLogging[decodedKey] = decodedValue
         }
         
-        // Use a simple, safe approach: create assignment with minimal processing
-        let allocationKey = flag.allocationKey ?? "unknown"
-        let variationKey = flag.variationKey ?? "unknown"
-        
-        // Create assignment with safe defaults
+        // Create assignment with decoded values
         let assignment = Assignment(
-            flagKey: flagKey.isEmpty ? "unknown" : flagKey,
-            allocationKey: allocationKey,
-            variation: variationKey, 
-            subject: subj.subjectKey.isEmpty ? "unknown" : subj.subjectKey,
+            flagKey: flagKey,
+            allocationKey: decodedAllocationKey,
+            variation: decodedVariationKey,
+            subject: subj.subjectKey,
             timestamp: ISO8601DateFormatter().string(from: Date()),
             subjectAttributes: subj.subjectAttributes,
-            extraLogging: flag.extraLogging // Use original extraLogging without decoding
+            metaData: [
+                "obfuscated": "true",
+                "sdkName": sdkName,
+                "sdkVersion": sdkVersion
+            ],
+            extraLogging: decodedExtraLogging
         )
         
-        // Check deduplication and log with additional crash protection
+        // Check deduplication and log
         if shouldLogAssignment(assignment) {
             if let logger = assignmentLogger {
                 logger(assignment)
@@ -523,33 +479,6 @@ public class EppoPrecomputedClient {
                 queueAssignment(assignment)
             }
         }
-    }
-    
-    /// Sanitizes strings for logging to prevent crashes from invalid characters
-    private func sanitizeForLogging(_ value: String) -> String {
-        // Remove any potentially problematic characters
-        // Keep only alphanumeric, hyphens, underscores, and common safe characters
-        let allowedCharacters = CharacterSet.alphanumerics
-            .union(CharacterSet(charactersIn: "-_./+="))
-        
-        let sanitized = String(value.unicodeScalars.filter { allowedCharacters.contains($0) })
-        
-        // Return fallback if sanitization results in empty string
-        return sanitized.isEmpty ? "sanitized" : sanitized
-    }
-    
-    private func decodeExtraLogging(_ extraLogging: [String: String]) -> [String: String] {
-        var decoded: [String: String] = [:]
-        for (key, value) in extraLogging {
-            let decodedKey = decodeBase64OrOriginal(key)
-            let decodedValue = decodeBase64OrOriginal(value)
-            decoded[decodedKey] = decodedValue
-        }
-        return decoded
-    }
-    
-    private func decodeBase64OrOriginal(_ value: String) -> String {
-        return base64Decode(value) ?? value
     }
     
     private func shouldLogAssignment(_ assignment: Assignment) -> Bool {

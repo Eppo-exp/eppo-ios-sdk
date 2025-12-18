@@ -146,7 +146,7 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
         
         testConfiguration = PrecomputedConfiguration(
             flags: testFlags,
-            salt: "dGVzdC1zYWx0",  // base64("test-salt")
+            salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
             configPublishedAt: Date(),

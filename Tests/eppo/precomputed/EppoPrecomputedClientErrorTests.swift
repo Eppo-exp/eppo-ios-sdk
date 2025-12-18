@@ -259,7 +259,7 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
                     doLog: true // Logging enabled but will be skipped due to invalid base64
                 )
             ],
-            salt: "dGVzdC1zYWx0",  // base64("test-salt")
+            salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
             configPublishedAt: nil,
@@ -296,7 +296,7 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
                     doLog: true
                 )
             ],
-            salt: "dGVzdC1zYWx0",  // base64("test-salt")
+            salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
             configPublishedAt: nil,
@@ -323,7 +323,7 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
         // Prepare valid response
         let testConfig = PrecomputedConfiguration(
             flags: [:],
-            salt: "dGVzdC1zYWx0",  // base64("test-salt")
+            salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
             configPublishedAt: nil,
@@ -395,24 +395,6 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
     
     // MARK: - Configuration Expiration Tests
     
-    /* TODO: Deep investigation needed for testExpiredConfiguration signal 5 crash
-       This test represents a legitimate production scenario but has a complex crash
-       that requires more detailed debugging. Temporarily disabled for MVP safety.
-       
-       Issue: Signal 5 crash when using valid base64 encoded allocation/variation keys
-       with assignment logging enabled. Crash occurs even before test execution begins.
-       
-       Priority: Post-MVP investigation needed
-    */
-    /* TODO: Signal 5 crash persists even after salt decoding fix
-       Investigated and resolved salt encoding issue (base64 decode needed), but
-       signal 5 crash still occurs with this specific combination:
-       - base64 encoded allocation/variation keys + doLog: true + logger provided
-       
-       Root cause: Deep assignment logging pipeline issue unrelated to salt encoding.
-       The bypass solution works for other cases but this edge case still problematic.
-       
-       Status: Post-MVP investigation needed - complex assignment logging crash
     func testExpiredConfigurationWithLogging() {
         // Test the actual expired configuration scenario with working assignment logging
         EppoPrecomputedClient.resetForTesting()
@@ -426,12 +408,12 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
                     allocationKey: base64Encode("allocation-1"), 
                     variationKey: base64Encode("variant-a"),     
                     variationType: .STRING,
-                    variationValue: EppoValue(value: "value"), 
+                    variationValue: EppoValue(value: base64Encode("value")),
                     extraLogging: [:],
                     doLog: true  
                 )
             ],
-            salt: "dGVzdC1zYWx0",  // base64("test-salt")
+            salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: oldDate,
             configPublishedAt: oldDate,
@@ -451,15 +433,14 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
         )
         XCTAssertEqual(result, "value", "Assignment should work with old configuration")
         
-        // Verify assignment logging worked with salt decoding fix!
+        // Verify assignment logging worked with bypass solution!
         XCTAssertGreaterThan(testLogger.loggedAssignments.count, 0, "Assignment logging must work")
         let loggedAssignment = testLogger.loggedAssignments.first!
         XCTAssertEqual(loggedAssignment.featureFlag, "test-flag")
-        XCTAssertEqual(loggedAssignment.allocation, "allocation-1")    // Bypass uses raw values
-        XCTAssertEqual(loggedAssignment.variation, "variant-a")        // Bypass uses raw values  
+        XCTAssertEqual(loggedAssignment.allocation, "allocation-1")
+        XCTAssertEqual(loggedAssignment.variation, "variant-a")
         XCTAssertEqual(loggedAssignment.subject, "test-user")
     }
-    */
     
     // MARK: - Edge Case Tests
     
@@ -469,7 +450,7 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
         
         let testConfig = PrecomputedConfiguration(
             flags: [:],
-            salt: "dGVzdC1zYWx0",  // base64("test-salt")
+            salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
             configPublishedAt: nil,
@@ -506,7 +487,7 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
                     doLog: true
                 )
             ],
-            salt: "dGVzdC1zYWx0",  // base64("test-salt")
+            salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
             configPublishedAt: nil,
@@ -553,7 +534,7 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
         
         let testConfig = PrecomputedConfiguration(
             flags: flags,
-            salt: "dGVzdC1zYWx0",  // base64("test-salt")
+            salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
             configPublishedAt: nil,
@@ -615,7 +596,7 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
                     doLog: true
                 )
             ],
-            salt: "dGVzdC1zYWx0",  // base64("test-salt")
+            salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
             configPublishedAt: nil,
