@@ -91,7 +91,7 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
                     doLog: true
                 )
             ],
-            salt: "test-salt",
+            salt: "dGVzdC1zYWx0",  // base64("test-salt")
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
             configPublishedAt: Date(),
@@ -166,7 +166,7 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
                     doLog: true
                 )
             ],
-            salt: "test-salt",
+            salt: "dGVzdC1zYWx0",  // base64("test-salt")
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
             configPublishedAt: Date(),
@@ -190,7 +190,7 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
         
         // Verify configuration change callback
         XCTAssertEqual(mockConfigChangeCallback.configurations.count, 1)
-        XCTAssertEqual(mockConfigChangeCallback.configurations[0].salt, "test-salt")
+        XCTAssertEqual(mockConfigChangeCallback.configurations[0].salt, "dGVzdC1zYWx0")  // base64("test-salt")
         
         // Verify assignment works after offline init
         let result = client.getStringAssignment(
@@ -208,7 +208,7 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
         // First initialization
         let testConfig = PrecomputedConfiguration(
             flags: [:],
-            salt: "test-salt",
+            salt: "dGVzdC1zYWx0",  // base64("test-salt")
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
             configPublishedAt: nil,
@@ -253,7 +253,7 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
                     doLog: true
                 )
             ],
-            salt: "test-salt",
+            salt: "dGVzdC1zYWx0",  // base64("test-salt")
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
             configPublishedAt: nil,
@@ -317,7 +317,7 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
     func testConfigurationChangeCallbackIsCalledOnInit() {
         let testConfig = PrecomputedConfiguration(
             flags: [:],
-            salt: "test-salt",
+            salt: "dGVzdC1zYWx0",  // base64("test-salt")
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
             configPublishedAt: nil,
@@ -332,7 +332,7 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
         )
         
         XCTAssertEqual(mockConfigChangeCallback.configurations.count, 1)
-        XCTAssertEqual(mockConfigChangeCallback.configurations[0].salt, "test-salt")
+        XCTAssertEqual(mockConfigChangeCallback.configurations[0].salt, "dGVzdC1zYWx0")  // base64("test-salt")
         XCTAssertEqual(mockConfigChangeCallback.configurations[0].format, "PRECOMPUTED")
     }
     
@@ -341,7 +341,7 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
     func testInitializationWithMinimalParameters() {
         let testConfig = PrecomputedConfiguration(
             flags: [:],
-            salt: "test-salt",
+            salt: "dGVzdC1zYWx0",  // base64("test-salt")
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
             configPublishedAt: nil,
@@ -361,7 +361,7 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
     func testDefaultAssignmentCacheIsCreated() {
         let testConfig = PrecomputedConfiguration(
             flags: [:],
-            salt: "test-salt", 
+            salt: "dGVzdC1zYWx0",  // base64("test-salt") 
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
             configPublishedAt: nil,

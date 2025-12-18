@@ -42,7 +42,7 @@ class PrecomputedConfigurationStoreTests: XCTestCase {
         
         let retrieved = store.getConfiguration()
         XCTAssertNotNil(retrieved)
-        XCTAssertEqual(retrieved?.salt, "test-salt")
+        XCTAssertEqual(retrieved?.salt, "dGVzdC1zYWx0")  // base64("test-salt")
         XCTAssertEqual(retrieved?.format, "PRECOMPUTED")
         XCTAssertEqual(retrieved?.flags.count, 2)
         XCTAssertTrue(store.isInitialized())
@@ -82,7 +82,7 @@ class PrecomputedConfigurationStoreTests: XCTestCase {
         let config = createSampleConfiguration()
         store.setConfiguration(config)
         
-        XCTAssertEqual(store.salt, "test-salt")
+        XCTAssertEqual(store.salt, "dGVzdC1zYWx0")  // base64("test-salt")
     }
     
     // MARK: - Expiration Tests
@@ -190,7 +190,7 @@ class PrecomputedConfigurationStoreTests: XCTestCase {
         
         let loaded = newStore.getConfiguration()
         XCTAssertNotNil(loaded)
-        XCTAssertEqual(loaded?.salt, "test-salt")
+        XCTAssertEqual(loaded?.salt, "dGVzdC1zYWx0")  // base64("test-salt")
         XCTAssertEqual(loaded?.flags.count, 2)
     }
     
@@ -231,7 +231,7 @@ class PrecomputedConfigurationStoreTests: XCTestCase {
         
         newStore.loadInitialConfiguration()
         XCTAssertNotNil(newStore.getConfiguration()) // Now loaded
-        XCTAssertEqual(newStore.getConfiguration()?.salt, "test-salt")
+        XCTAssertEqual(newStore.getConfiguration()?.salt, "dGVzdC1zYWx0")  // base64("test-salt")
     }
     
     func testClearPersistentCache() {
@@ -260,7 +260,7 @@ class PrecomputedConfigurationStoreTests: XCTestCase {
         
         return PrecomputedConfiguration(
             flags: flags,
-            salt: "test-salt",
+            salt: "dGVzdC1zYWx0",  // base64("test-salt")
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
             configPublishedAt: Date(timeIntervalSinceNow: -3600),
