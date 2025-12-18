@@ -238,43 +238,43 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
     
     // MARK: - Assignment Error Tests
     
-    // TODO: Fix this test - it's causing signal 5 crash with invalid base64
-    // func testAssignmentWithCorruptedFlagData() {
-    //     // Reset client first
-    //     EppoPrecomputedClient.resetForTesting()
-    //     
-    //     // Create config with invalid flag data
-    //     let testConfig = PrecomputedConfiguration(
-    //         flags: [
-    //             getMD5Hex("corrupt-flag", salt: "test-salt"): PrecomputedFlag(
-    //                 allocationKey: "not-base64!@#$%", // Invalid base64
-    //                 variationKey: base64Encode("variant-a"),
-    //                 variationType: .STRING,
-    //                 variationValue: EppoValue(value: base64Encode("value")),
-    //                 extraLogging: [:],
-    //                 doLog: true
-    //             )
-    //         ],
-    //         salt: "test-salt",
-    //         format: "PRECOMPUTED",
-    //         configFetchedAt: Date(),
-    //         configPublishedAt: nil,
-    //         environment: nil
-    //     )
-    //     
-    //     _ = EppoPrecomputedClient.initializeOffline(
-    //         sdkKey: "test-key",
-    //         subject: testSubject,
-    //         initialPrecomputedConfiguration: testConfig
-    //     )
-    //     
-    //     // Should return default when decoding fails
-    //     let result = EppoPrecomputedClient.shared.getStringAssignment(
-    //         flagKey: "corrupt-flag",
-    //         defaultValue: "default"
-    //     )
-    //     XCTAssertEqual(result, "default")
-    // }
+    func testAssignmentWithCorruptedFlagData() {
+        // Reset client first
+        EppoPrecomputedClient.resetForTesting()
+        
+        // Create config with invalid base64 data (now safe with validation)
+        let testConfig = PrecomputedConfiguration(
+            flags: [
+                getMD5Hex("corrupt-flag", salt: "test-salt"): PrecomputedFlag(
+                    allocationKey: "not-base64!@#$%", // Invalid base64 - should skip logging
+                    variationKey: base64Encode("variant-a"),
+                    variationType: .STRING,
+                    variationValue: EppoValue(value: base64Encode("value")),
+                    extraLogging: [:],
+                    doLog: true // Logging enabled but will be skipped due to invalid base64
+                )
+            ],
+            salt: "test-salt",
+            format: "PRECOMPUTED",
+            configFetchedAt: Date(),
+            configPublishedAt: nil,
+            environment: nil
+        )
+        
+        _ = EppoPrecomputedClient.initializeOffline(
+            sdkKey: "test-key",
+            subject: testSubject,
+            initialPrecomputedConfiguration: testConfig
+        )
+        
+        // Should return assignment value despite invalid logging data
+        let result = EppoPrecomputedClient.shared.getStringAssignment(
+            flagKey: "corrupt-flag",
+            defaultValue: "default"
+        )
+        XCTAssertEqual(result, "value", "Assignment should work despite invalid base64 in logging data")
+    }
+    
     
     func testAssignmentWithTypeMismatch() {
         // Reset client first
@@ -465,8 +465,11 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
         XCTAssertEqual(result, "default")
     }
     
-    // TODO: Fix this test - it's causing signal 5 crash
+    // TODO: Still causing signal 5 crash - may be unrelated to thread safety  
     // func testEmptyExtraLogging() {
+    //     // Reset client first  
+    //     EppoPrecomputedClient.resetForTesting()
+    //     
     //     // Test that empty extraLogging is handled correctly
     //     let testConfig = PrecomputedConfiguration(
     //         flags: [

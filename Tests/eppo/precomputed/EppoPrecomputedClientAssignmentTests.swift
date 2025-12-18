@@ -447,4 +447,101 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
         // Should have only 2 unique assignments due to deduplication
         XCTAssertEqual(logged.count, 2)
     }
+    
+    // MARK: - Performance Tests
+    
+    func testAssignmentPerformance() {
+        initializeClient()
+        
+        // Test assignment performance with existing working configuration
+        let iterations = 1000
+        let startTime = CFAbsoluteTimeGetCurrent()
+        
+        for i in 0..<iterations {
+            // Alternate between the two flags we know work
+            if i % 2 == 0 {
+                _ = EppoPrecomputedClient.shared.getStringAssignment(
+                    flagKey: "string-flag",
+                    defaultValue: "default"
+                )
+            } else {
+                _ = EppoPrecomputedClient.shared.getBooleanAssignment(
+                    flagKey: "bool-flag",
+                    defaultValue: false
+                )
+            }
+        }
+        
+        let totalTime = CFAbsoluteTimeGetCurrent() - startTime
+        let averageTime = (totalTime * 1000) / Double(iterations) // Convert to ms
+        
+        print("Average assignment time: \(String(format: "%.6f", averageTime))ms over \(iterations) calls")
+        print("Total time: \(String(format: "%.3f", totalTime * 1000))ms")
+        
+        // Verify <1ms requirement
+        XCTAssertLessThan(averageTime, 1.0, "Average assignment time should be less than 1ms, got \(averageTime)ms")
+        
+        // Also verify it's reasonably fast (should be much less than 1ms)
+        XCTAssertLessThan(averageTime, 0.1, "Assignment time should be very fast with small config, got \(averageTime)ms")
+    }
+    
+    func testSingleAssignmentPerformance() {
+        initializeClient()
+        
+        // Test performance using XCTest's measure functionality
+        measure {
+            _ = EppoPrecomputedClient.shared.getStringAssignment(
+                flagKey: "string-flag",
+                defaultValue: "default"
+            )
+        }
+    }
+    
+    func testPerformanceWithMixedFlagTypes() {
+        initializeClient()
+        
+        // Test performance with all different flag types from the working configuration
+        let iterations = 200 // 40 of each type
+        let startTime = CFAbsoluteTimeGetCurrent()
+        
+        for i in 0..<iterations {
+            switch i % 5 {
+            case 0:
+                _ = EppoPrecomputedClient.shared.getStringAssignment(
+                    flagKey: "string-flag",
+                    defaultValue: "default"
+                )
+            case 1:
+                _ = EppoPrecomputedClient.shared.getBooleanAssignment(
+                    flagKey: "bool-flag",
+                    defaultValue: false
+                )
+            case 2:
+                _ = EppoPrecomputedClient.shared.getIntegerAssignment(
+                    flagKey: "int-flag",
+                    defaultValue: 0
+                )
+            case 3:
+                _ = EppoPrecomputedClient.shared.getNumericAssignment(
+                    flagKey: "numeric-flag",
+                    defaultValue: 0.0
+                )
+            case 4:
+                _ = EppoPrecomputedClient.shared.getJSONStringAssignment(
+                    flagKey: "json-flag",
+                    defaultValue: "{}"
+                )
+            default:
+                break
+            }
+        }
+        
+        let totalTime = CFAbsoluteTimeGetCurrent() - startTime
+        let averageTime = (totalTime * 1000) / Double(iterations)
+        
+        print("Mixed flag types average time: \(String(format: "%.6f", averageTime))ms over \(iterations) calls")
+        
+        XCTAssertLessThan(averageTime, 1.0, "Performance should be good with mixed flag types")
+        XCTAssertLessThan(averageTime, 0.2, "Mixed type performance should be very fast")
+    }
 }

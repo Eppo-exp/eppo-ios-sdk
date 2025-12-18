@@ -11,8 +11,20 @@ public class EppoPrecomputedClient {
         case alreadyInitialized
     }
     // MARK: - Singleton Pattern (matches regular EppoClient)
-    public static let shared = EppoPrecomputedClient()
+    private static let sharedLock = NSLock()
+    private static var sharedInstance: EppoPrecomputedClient?
     private static var initialized = false
+    
+    public static var shared: EppoPrecomputedClient {
+        sharedLock.withLock {
+            if let instance = sharedInstance {
+                return instance
+            }
+            let instance = EppoPrecomputedClient()
+            sharedInstance = instance
+            return instance
+        }
+    }
     
     // MARK: - Thread Safety (matches regular EppoClient approach)
     private let accessQueue = DispatchQueue(label: "cloud.eppo.precomputed.access", qos: .userInitiated)
@@ -37,7 +49,7 @@ public class EppoPrecomputedClient {
     private var configurationChangeCallback: ConfigurationChangeCallback?
     private var debugCallback: ((String, Double, Double) -> Void)?
     private var isInitialized: Bool {
-        return Self.initialized
+        return Self.sharedLock.withLock { Self.initialized }
     }
     
     // MARK: - Initialization
@@ -60,7 +72,7 @@ public class EppoPrecomputedClient {
         let startTime = Date()
         
         // Check if already initialized (synchronously)
-        let wasInitialized = shared.accessQueue.sync { initialized }
+        let wasInitialized = sharedLock.withLock { initialized }
         if wasInitialized {
             throw InitializationError.alreadyInitialized
         }
@@ -112,10 +124,8 @@ public class EppoPrecomputedClient {
                 // The Poller requires async/MainActor context which needs proper setup
                 // For now, polling remains disabled even if requested
                 
-                // Mark as initialized
+                // Mark as initialized and flush queued assignments
                 initialized = true
-                
-                // Flush queued assignments
                 shared.flushQueuedAssignments()
                 
                 // Notify configuration change callback
@@ -184,10 +194,8 @@ public class EppoPrecomputedClient {
             // Notify configuration change callback
             configurationChangeCallback?(initialPrecomputedConfiguration)
             
-            // Mark as initialized
+            // Mark as initialized and flush queued assignments
             initialized = true
-            
-            // Flush queued assignments
             shared.flushQueuedAssignments()
             
             let duration = Date().timeIntervalSince(startTime)
@@ -236,22 +244,10 @@ public class EppoPrecomputedClient {
     }
     
     /// Resets the client state (useful for testing)
-    internal static func resetForTesting() {
-        initialized = false
-        shared.accessQueue.sync(flags: .barrier) {
-            shared.configurationStore = nil
-            shared.subject = nil
-            shared.assignmentLogger = nil
-            shared.assignmentCache = nil
-            // Note: We can't call stop() here as it's MainActor-isolated
-            // The poller will be replaced/cleaned up when set to nil
-            shared.poller = nil
-            shared.requestor = nil
-            shared.queuedAssignments.removeAll()
-            shared.sdkKey = nil
-            shared.host = nil
-            shared.configurationChangeCallback = nil
-            shared.debugCallback = nil
+    public static func resetForTesting() {
+        sharedLock.withLock {
+            initialized = false
+            sharedInstance = nil
         }
     }
     
@@ -319,7 +315,8 @@ public class EppoPrecomputedClient {
         expectedType: VariationType
     ) -> T {
         // Check if client is initialized
-        guard Self.initialized,
+        let isInitialized = Self.sharedLock.withLock { Self.initialized }
+        guard isInitialized,
               let store = configurationStore,
               store.isInitialized() else {
             return defaultValue
@@ -351,12 +348,23 @@ public class EppoPrecomputedClient {
                 defaultValue: defaultValue
             )
             
-            // Log assignment if needed
-            logAssignment(
-                flagKey: flagKey,
-                flag: flag,
-                subject: subject
-            )
+            // Log assignment if needed - validate base64 safety first
+            if flag.doLog {
+                // Pre-validate base64 to prevent crashes
+                let allocationKey = flag.allocationKey ?? ""
+                let variationKey = flag.variationKey ?? ""
+                
+                // Only log if both keys are valid base64 or empty
+                if (allocationKey.isEmpty || base64Decode(allocationKey) != nil) &&
+                   (variationKey.isEmpty || base64Decode(variationKey) != nil) {
+                    logAssignment(
+                        flagKey: flagKey,
+                        flag: flag,
+                        subject: subject
+                    )
+                }
+                // Otherwise skip logging silently to prevent crashes
+            }
             
             return convertedValue
         } catch {
@@ -419,33 +427,64 @@ public class EppoPrecomputedClient {
         flag: PrecomputedFlag,
         subject: Subject?
     ) {
-        guard flag.doLog,
-              let subj = subject else {
+        guard let subj = subject else {
             return
         }
         
-        // Decode extra logging if obfuscated
+        // Safe approach: validate base64 data before any processing
+        let allocationKey = flag.allocationKey ?? ""
+        let variationKey = flag.variationKey ?? ""
+        
+        // Skip logging if keys are empty
+        guard !allocationKey.isEmpty && !variationKey.isEmpty else {
+            return
+        }
+        
+        // Validate base64 data - skip logging if decoding would fail
+        // This prevents crashes in logger callbacks when Assignment contains invalid characters
+        guard base64Decode(allocationKey) != nil,
+              base64Decode(variationKey) != nil else {
+            // Skip logging entirely when base64 is invalid
+            return
+        }
+        
+        // Safe to decode now since we validated above
+        let decodedAllocationKey = decodeBase64OrOriginal(allocationKey)
+        let decodedVariationKey = decodeBase64OrOriginal(variationKey)
         let decodedExtraLogging = decodeExtraLogging(flag.extraLogging)
         
+        // Create assignment
         let assignment = Assignment(
             flagKey: flagKey,
-            allocationKey: decodeBase64OrOriginal(flag.allocationKey ?? ""),
-            variation: decodeBase64OrOriginal(flag.variationKey ?? ""),
+            allocationKey: decodedAllocationKey,
+            variation: decodedVariationKey,
             subject: subj.subjectKey,
             timestamp: ISO8601DateFormatter().string(from: Date()),
             subjectAttributes: subj.subjectAttributes,
             extraLogging: decodedExtraLogging
         )
         
-        // Check if we should log this assignment (deduplication)
+        // Check deduplication and log (following JS SDK pattern)
         if shouldLogAssignment(assignment) {
             if let logger = assignmentLogger {
                 logger(assignment)
             } else {
-                // Queue for later when logger is set
                 queueAssignment(assignment)
             }
         }
+    }
+    
+    /// Sanitizes strings for logging to prevent crashes from invalid characters
+    private func sanitizeForLogging(_ value: String) -> String {
+        // Remove any potentially problematic characters
+        // Keep only alphanumeric, hyphens, underscores, and common safe characters
+        let allowedCharacters = CharacterSet.alphanumerics
+            .union(CharacterSet(charactersIn: "-_./+="))
+        
+        let sanitized = String(value.unicodeScalars.filter { allowedCharacters.contains($0) })
+        
+        // Return fallback if sanitization results in empty string
+        return sanitized.isEmpty ? "sanitized" : sanitized
     }
     
     private func decodeExtraLogging(_ extraLogging: [String: String]) -> [String: String] {
