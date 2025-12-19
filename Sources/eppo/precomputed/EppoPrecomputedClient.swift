@@ -48,7 +48,6 @@ public class EppoPrecomputedClient {
     private var sdkKey: String?
     private var host: String?
     private var configurationChangeCallback: ConfigurationChangeCallback?
-    private var debugCallback: ((String, Double, Double) -> Void)?
     private var isInitialized: Bool {
         return Self.sharedLock.withLock { Self.initialized }
     }
@@ -65,8 +64,7 @@ public class EppoPrecomputedClient {
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
         host: String? = nil,
         withPersistentCache: Bool = true,
-        configurationChangeCallback: ConfigurationChangeCallback? = nil,
-        debugCallback: ((String, Double, Double) -> Void)? = nil
+        configurationChangeCallback: ConfigurationChangeCallback? = nil
     ) async throws -> EppoPrecomputedClient {
         let startTime = Date()
         
@@ -84,9 +82,6 @@ public class EppoPrecomputedClient {
             throw InitializationError.alreadyInitialized
         }
         
-        // Track initialization timing
-        debugCallback?("precomputed_client_initialize_start", 0, startTime.timeIntervalSince1970)
-        
         // Setup components outside of sync block
         let resolvedHost = host ?? "https://fs-edge-assignment.eppo.cloud"
         let store = PrecomputedConfigurationStore()
@@ -100,13 +95,7 @@ public class EppoPrecomputedClient {
         
         // Fetch configuration asynchronously
         do {
-            let fetchStartTime = Date()
-            debugCallback?("precomputed_config_fetch_start", 0, fetchStartTime.timeIntervalSince1970)
-            
             let configuration = try await requestor.fetchPrecomputedFlags()
-            
-            let fetchDuration = Date().timeIntervalSince(fetchStartTime)
-            debugCallback?("precomputed_config_fetch_success", fetchDuration, Date().timeIntervalSince1970)
             
             // Now update state synchronously
             shared.accessQueue.sync(flags: .barrier) {
@@ -120,7 +109,6 @@ public class EppoPrecomputedClient {
                 shared.assignmentCache = assignmentCache
                 shared.host = resolvedHost
                 shared.configurationChangeCallback = configurationChangeCallback
-                shared.debugCallback = debugCallback
                 shared.configurationStore = store
                 shared.requestor = requestor
                 
@@ -136,14 +124,8 @@ public class EppoPrecomputedClient {
                 configurationChangeCallback?(configuration)
             }
             
-            let totalDuration = Date().timeIntervalSince(startTime)
-            debugCallback?("precomputed_client_initialize_success", totalDuration, Date().timeIntervalSince1970)
-            
             return shared
         } catch {
-            let errorDuration = Date().timeIntervalSince(startTime)
-            debugCallback?("precomputed_client_initialize_error", errorDuration, Date().timeIntervalSince1970)
-            
             // Clean up on failure
             shared.accessQueue.sync(flags: .barrier) {
                 shared.configurationStore = nil
@@ -154,7 +136,6 @@ public class EppoPrecomputedClient {
                 shared.assignmentCache = nil
                 shared.host = nil
                 shared.configurationChangeCallback = nil
-                shared.debugCallback = nil
                 initializing = false  // Clear initializing flag on failure
             }
             
@@ -170,18 +151,13 @@ public class EppoPrecomputedClient {
         assignmentLogger: AssignmentLogger? = nil,
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
         withPersistentCache: Bool = true,
-        configurationChangeCallback: ConfigurationChangeCallback? = nil,
-        debugCallback: ((String, Double, Double) -> Void)? = nil
+        configurationChangeCallback: ConfigurationChangeCallback? = nil
     ) -> EppoPrecomputedClient {
         let result = shared.accessQueue.sync(flags: .barrier) { () -> EppoPrecomputedClient in
             // Prevent re-initialization
             guard !initialized else {
-                debugCallback?("precomputed_client_already_initialized", 0, Date().timeIntervalSince1970)
                 return shared
             }
-            
-            let startTime = Date()
-            debugCallback?("precomputed_client_offline_init_start", 0, startTime.timeIntervalSince1970)
             
             // Store initialization parameters
             shared.sdkKey = sdkKey
@@ -189,7 +165,6 @@ public class EppoPrecomputedClient {
             shared.assignmentLogger = assignmentLogger
             shared.assignmentCache = assignmentCache
             shared.configurationChangeCallback = configurationChangeCallback
-            shared.debugCallback = debugCallback
             
             // Create and populate configuration store
             let store = PrecomputedConfigurationStore()
@@ -201,9 +176,6 @@ public class EppoPrecomputedClient {
             
             // Mark as initialized but DO NOT flush queued assignments inside sync block
             initialized = true
-            
-            let duration = Date().timeIntervalSince(startTime)
-            debugCallback?("precomputed_client_offline_init_success", duration, Date().timeIntervalSince1970)
             
             return shared
         }

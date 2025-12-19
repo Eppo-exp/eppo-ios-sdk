@@ -25,20 +25,6 @@ class MockURLSession {
     }
 }
 
-// Mock debug callback
-class MockDebugCallback {
-    private(set) var calls: [(String, Double, Double)] = []
-    
-    var callback: (String, Double, Double) -> Void {
-        return { [weak self] event, duration, timestamp in
-            self?.calls.append((event, duration, timestamp))
-        }
-    }
-    
-    func hasEvent(_ event: String) -> Bool {
-        return calls.contains { $0.0 == event }
-    }
-}
 
 // Mock configuration change callback
 class MockConfigurationChangeCallback {
@@ -53,7 +39,6 @@ class MockConfigurationChangeCallback {
 
 class EppoPrecomputedClientInitializationTests: XCTestCase {
     var mockSession: MockURLSession!
-    var mockDebugCallback: MockDebugCallback!
     var mockConfigChangeCallback: MockConfigurationChangeCallback!
     var testSubject: Subject!
     var mockLogger: MockAssignmentLogger!
@@ -62,7 +47,6 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
         super.setUp()
         EppoPrecomputedClient.resetForTesting()
         mockSession = MockURLSession()
-        mockDebugCallback = MockDebugCallback()
         mockConfigChangeCallback = MockConfigurationChangeCallback()
         testSubject = Subject(
             subjectKey: "test-user-123",
@@ -117,14 +101,13 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
             sdkKey: "test-sdk-key",
             subject: testSubject,
             assignmentLogger: mockLogger.logger,
-            configurationChangeCallback: mockConfigChangeCallback.callback,
-            debugCallback: mockDebugCallback.callback
+            configurationChangeCallback: mockConfigChangeCallback.callback
         )
         
         XCTAssertNotNil(client1)
         
-        // Verify debug callbacks were called
-        XCTAssertTrue(mockDebugCallback.hasEvent("precomputed_client_initialize_start"))
+        // Verify initialization succeeded by checking that assignments work
+        XCTAssertEqual(mockConfigChangeCallback.configurations.count, 1)
         
         // Test re-initialization throws error
         do {
@@ -178,15 +161,10 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
             subject: testSubject,
             initialPrecomputedConfiguration: testConfig,
             assignmentLogger: mockLogger.logger,
-            configurationChangeCallback: mockConfigChangeCallback.callback,
-            debugCallback: mockDebugCallback.callback
+            configurationChangeCallback: mockConfigChangeCallback.callback
         )
         
         XCTAssertNotNil(client)
-        
-        // Verify debug callbacks
-        XCTAssertTrue(mockDebugCallback.hasEvent("precomputed_client_offline_init_start"))
-        XCTAssertTrue(mockDebugCallback.hasEvent("precomputed_client_offline_init_success"))
         
         // Verify configuration change callback
         XCTAssertEqual(mockConfigChangeCallback.configurations.count, 1)
@@ -215,27 +193,22 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
             environment: nil
         )
         
-        _ = EppoPrecomputedClient.initializeOffline(
+        let originalClient = EppoPrecomputedClient.initializeOffline(
             sdkKey: "test-sdk-key",
             subject: testSubject,
-            initialPrecomputedConfiguration: testConfig,
-            debugCallback: mockDebugCallback.callback
+            initialPrecomputedConfiguration: testConfig
         )
         
-        // Reset debug callback
-        mockDebugCallback = MockDebugCallback()
-        
-        // Second initialization should return existing instance
+        // Second initialization should return existing instance without changing state
         let client2 = EppoPrecomputedClient.initializeOffline(
             sdkKey: "different-key",
             subject: Subject(subjectKey: "different-user"),
-            initialPrecomputedConfiguration: testConfig,
-            debugCallback: mockDebugCallback.callback
+            initialPrecomputedConfiguration: testConfig
         )
         
         XCTAssertNotNil(client2)
-        XCTAssertTrue(mockDebugCallback.hasEvent("precomputed_client_already_initialized"))
-        XCTAssertFalse(mockDebugCallback.hasEvent("precomputed_client_offline_init_start"))
+        // Verify it's the same instance (already initialized behavior)
+        XCTAssertTrue(originalClient === client2)
     }
     
     // MARK: - Assignment Queue Tests
