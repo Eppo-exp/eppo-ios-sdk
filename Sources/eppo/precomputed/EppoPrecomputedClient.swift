@@ -64,8 +64,6 @@ public class EppoPrecomputedClient {
         assignmentLogger: AssignmentLogger? = nil,
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
         host: String? = nil,
-        pollingEnabled: Bool = false,
-        pollingIntervalMs: Int = PollerConstants.DEFAULT_POLL_INTERVAL_MS,
         withPersistentCache: Bool = true,
         configurationChangeCallback: ConfigurationChangeCallback? = nil,
         debugCallback: ((String, Double, Double) -> Void)? = nil
@@ -128,10 +126,6 @@ public class EppoPrecomputedClient {
                 
                 // Store configuration
                 store.setConfiguration(configuration)
-                
-                // Note: Polling setup will be implemented in Phase 7B
-                // The Poller requires async/MainActor context which needs proper setup
-                // For now, polling remains disabled even if requested
                 
                 // Mark as initialized and flush queued assignments
                 initializing = false
