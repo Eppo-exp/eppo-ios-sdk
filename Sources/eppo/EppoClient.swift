@@ -15,6 +15,16 @@ public enum Errors: Error {
 
 public typealias SubjectAttributes = [String: EppoValue]
 public typealias ConfigurationChangeCallback = (Configuration) -> Void
+
+public struct Subject {
+    public let subjectKey: String
+    public let subjectAttributes: SubjectAttributes
+    
+    public init(subjectKey: String, subjectAttributes: SubjectAttributes = [:]) {
+        self.subjectKey = subjectKey
+        self.subjectAttributes = subjectAttributes
+    }
+}
 actor EppoClientState {
     private(set) var isLoaded: Bool = false
 
