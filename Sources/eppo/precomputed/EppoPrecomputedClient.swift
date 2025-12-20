@@ -27,32 +27,35 @@ public class EppoPrecomputedClient {
     private let assignmentLogger: AssignmentLogger?
     private let assignmentCache: AssignmentCache?
     
+    // MARK: - Network Components  
+    private var requestor: PrecomputedRequestor?
+    private var poller: Poller?
+    private let sdkKey: String
+    private var host: String?
     private var configurationChangeCallback: ConfigurationChangeCallback?
     
     private init(
+        sdkKey: String,
+        subjectKey: String,
+        subjectAttributes: [String: EppoValue],
         assignmentLogger: AssignmentLogger? = nil,
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
         initialPrecomputedConfiguration: PrecomputedConfiguration? = nil,
         withPersistentCache: Bool = true,
         configurationChangeCallback: ConfigurationChangeCallback? = nil
     ) {
-        
-        // Extract subject information from configuration or use placeholder
-        if let configuration = initialPrecomputedConfiguration {
-            self.subjectKey = configuration.subject.subjectKey
-            self.subjectAttributes = configuration.subject.subjectAttributes
-            self.configurationStore = PrecomputedConfigurationStore(withPersistentCache: withPersistentCache)
-            self.configurationStore.setConfiguration(configuration)
-        } else {
-            // Create placeholder subject information for offline-only initialization
-            self.subjectKey = ""
-            self.subjectAttributes = [:]
-            self.configurationStore = PrecomputedConfigurationStore(withPersistentCache: withPersistentCache)
-        }
-        
+        self.sdkKey = sdkKey
+        self.subjectKey = subjectKey
+        self.subjectAttributes = subjectAttributes
         self.assignmentLogger = assignmentLogger
         self.assignmentCache = assignmentCache
         self.configurationChangeCallback = configurationChangeCallback
+        self.configurationStore = PrecomputedConfigurationStore(withPersistentCache: withPersistentCache)
+        
+        // Set initial configuration if provided
+        if let configuration = initialPrecomputedConfiguration {
+            self.configurationStore.setConfiguration(configuration)
+        }
     }
     
     
@@ -71,6 +74,9 @@ public class EppoPrecomputedClient {
             }
             
             let instance = EppoPrecomputedClient(
+                sdkKey: "offline",
+                subjectKey: initialPrecomputedConfiguration.subject.subjectKey,
+                subjectAttributes: initialPrecomputedConfiguration.subject.subjectAttributes,
                 assignmentLogger: assignmentLogger,
                 assignmentCache: assignmentCache,
                 initialPrecomputedConfiguration: initialPrecomputedConfiguration,
@@ -84,6 +90,159 @@ public class EppoPrecomputedClient {
             sharedInstance = instance
             return instance
         }
+    }
+    
+    /// Initialize the precomputed client with online configuration fetch
+    public static func initialize(
+        sdkKey: String,
+        subject: Subject,
+        assignmentLogger: AssignmentLogger? = nil,
+        assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
+        host: String? = nil,
+        withPersistentCache: Bool = true,
+        configurationChangeCallback: ConfigurationChangeCallback? = nil
+    ) async throws -> EppoPrecomputedClient {
+        // Create bootstrap configuration with subject info
+        let bootstrapConfig = PrecomputedConfiguration(
+            flags: [:],
+            salt: "",
+            format: "PRECOMPUTED", 
+            configFetchedAt: Date(),
+            subject: PrecomputedSubject(
+                subjectKey: subject.subjectKey,
+                subjectAttributes: subject.subjectAttributes
+            ),
+            configPublishedAt: nil,
+            environment: nil
+        )
+        
+        // Initialize offline with bootstrap config
+        let instance = Self.sharedLock.withLock {
+            if let existingInstance = sharedInstance {
+                return existingInstance
+            }
+            
+            let newInstance = EppoPrecomputedClient(
+                sdkKey: sdkKey,
+                subjectKey: subject.subjectKey,
+                subjectAttributes: subject.subjectAttributes,
+                assignmentLogger: assignmentLogger,
+                assignmentCache: assignmentCache,
+                initialPrecomputedConfiguration: bootstrapConfig,
+                withPersistentCache: withPersistentCache,
+                configurationChangeCallback: configurationChangeCallback
+            )
+            
+            sharedInstance = newInstance
+            return newInstance
+        }
+        
+        // Load configuration from network
+        try await instance.load(host: host)
+        
+        return instance
+    }
+    
+    /// Load configuration from network
+    public func load(host: String? = nil) async throws {
+        let resolvedHost = host ?? precomputedBaseUrl
+        
+        // Create Subject from stored fields
+        let subject = Subject(
+            subjectKey: self.subjectKey,
+            subjectAttributes: self.subjectAttributes
+        )
+        
+        let requestor = PrecomputedRequestor(
+            subject: subject,
+            sdkKey: self.sdkKey,
+            sdkName: sdkName,
+            sdkVersion: sdkVersion,
+            host: resolvedHost
+        )
+        
+        let networkConfig = try await requestor.fetchPrecomputedFlags()
+        
+        // Create full configuration preserving subject info
+        let fullConfig = PrecomputedConfiguration(
+            flags: networkConfig.flags,
+            salt: networkConfig.salt,
+            format: networkConfig.format,
+            configFetchedAt: networkConfig.configFetchedAt,
+            subject: PrecomputedSubject(
+                subjectKey: self.subjectKey,
+                subjectAttributes: self.subjectAttributes
+            ),
+            configPublishedAt: networkConfig.configPublishedAt,
+            environment: networkConfig.environment
+        )
+        
+        Self.sharedLock.withLock {
+            self.requestor = requestor
+            self.host = resolvedHost
+            self.configurationStore.setConfiguration(fullConfig)
+            self.notifyConfigurationChange(fullConfig)
+        }
+    }
+    
+    // MARK: - Polling Management
+    
+    /// Starts configuration polling for regular updates
+    @MainActor
+    public func startPolling(intervalMs: Int = PollerConstants.DEFAULT_POLL_INTERVAL_MS) async throws {
+        // Stop existing polling if running
+        stopPolling()
+        
+        let jitterMs = intervalMs / PollerConstants.DEFAULT_JITTER_INTERVAL_RATIO
+        
+        poller = await Poller(
+            intervalMs: intervalMs,
+            jitterMs: jitterMs,
+            callback: { [weak self] in
+                guard let self = self else { return }
+                
+                // Handle gracefully if network components aren't initialized yet
+                guard let requestor = self.requestor else {
+                    // Skip this polling cycle - network not initialized yet
+                    return
+                }
+                
+                do {
+                    let networkConfig = try await requestor.fetchPrecomputedFlags()
+                    
+                    // Create full configuration preserving subject info
+                    let fullConfig = PrecomputedConfiguration(
+                        flags: networkConfig.flags,
+                        salt: networkConfig.salt,
+                        format: networkConfig.format,
+                        configFetchedAt: networkConfig.configFetchedAt,
+                        subject: PrecomputedSubject(
+                            subjectKey: self.subjectKey,
+                            subjectAttributes: self.subjectAttributes
+                        ),
+                        configPublishedAt: networkConfig.configPublishedAt,
+                        environment: networkConfig.environment
+                    )
+                    
+                    Self.sharedLock.withLock {
+                        self.configurationStore.setConfiguration(fullConfig)
+                        self.notifyConfigurationChange(fullConfig)
+                    }
+                } catch {
+                    // Poller will handle retry logic
+                    throw error
+                }
+            }
+        )
+        
+        try await poller?.start()
+    }
+    
+    /// Stops configuration polling
+    @MainActor
+    public func stopPolling() {
+        poller?.stop()
+        poller = nil
     }
     
     // MARK: - Lifecycle Management
