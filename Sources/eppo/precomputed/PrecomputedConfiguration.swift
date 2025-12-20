@@ -63,10 +63,8 @@ public struct PrecomputedConfiguration: Codable {
             configPublishedAt = nil
         }
         
-        // Fetch time is set when configuration is received
         configFetchedAt = Date()
         
-        // Environment is optional
         environment = try container.decodeIfPresent(Environment.self, forKey: .environment)
         
         // Note: obfuscated field exists but is not stored (always true for precomputed)
@@ -80,7 +78,6 @@ public struct PrecomputedConfiguration: Codable {
         try container.encode(salt, forKey: .salt)
         try container.encode(format, forKey: .format)
         
-        // Encode dates as ISO strings
         if let publishedAt = configPublishedAt {
             let formatter = ISO8601DateFormatter()
             formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]

@@ -10,7 +10,7 @@ public class EppoPrecomputedClient {
     public enum InitializationError: Error {
         case alreadyInitialized
     }
-    // MARK: - Singleton Pattern (matches regular EppoClient)
+    // MARK: - Singleton Pattern
     private static let sharedLock = NSLock()
     private static var sharedInstance: EppoPrecomputedClient?
     private static var initialized = false
@@ -27,7 +27,7 @@ public class EppoPrecomputedClient {
         }
     }
     
-    // MARK: - Thread Safety (matches regular EppoClient approach)
+    // MARK: - Thread Safety
     private let accessQueue = DispatchQueue(label: "cloud.eppo.precomputed.access", qos: .userInitiated)
     
     // MARK: - Core Components
@@ -42,7 +42,7 @@ public class EppoPrecomputedClient {
     
     // MARK: - Event Queuing (before logger is set)
     private var queuedAssignments: [Assignment] = []
-    private let maxEventQueueSize = 100  // Match JS MAX_EVENT_QUEUE_SIZE
+    private let maxEventQueueSize = 100
     
     // MARK: - Client State
     private var sdkKey: String?
@@ -66,8 +66,6 @@ public class EppoPrecomputedClient {
         withPersistentCache: Bool = true,
         configurationChangeCallback: ConfigurationChangeCallback? = nil
     ) async throws -> EppoPrecomputedClient {
-        let startTime = Date()
-        
         // Check if already initialized or initializing (synchronously)
         let (wasInitialized, wasInitializing) = sharedLock.withLock { 
             if initialized || initializing {
@@ -83,7 +81,7 @@ public class EppoPrecomputedClient {
         }
         
         // Setup components outside of sync block
-        let resolvedHost = host ?? "https://fs-edge-assignment.eppo.cloud"
+        let resolvedHost = host ?? precomputedBaseUrl
         let store = PrecomputedConfigurationStore()
         let requestor = PrecomputedRequestor(
             subject: subject,
@@ -102,7 +100,6 @@ public class EppoPrecomputedClient {
                 // Double-check initialization state
                 guard !initialized else { return }
                 
-                // Store initialization parameters
                 shared.sdkKey = sdkKey
                 shared.subject = subject
                 shared.assignmentLogger = assignmentLogger
@@ -112,7 +109,6 @@ public class EppoPrecomputedClient {
                 shared.configurationStore = store
                 shared.requestor = requestor
                 
-                // Store configuration
                 store.setConfiguration(configuration)
                 
                 // Mark as initialized and flush queued assignments
@@ -120,7 +116,6 @@ public class EppoPrecomputedClient {
                 initialized = true
                 shared.flushQueuedAssignments()
                 
-                // Notify configuration change callback
                 configurationChangeCallback?(configuration)
             }
             
@@ -159,14 +154,12 @@ public class EppoPrecomputedClient {
                 return shared
             }
             
-            // Store initialization parameters
             shared.sdkKey = sdkKey
             shared.subject = subject
             shared.assignmentLogger = assignmentLogger
             shared.assignmentCache = assignmentCache
             shared.configurationChangeCallback = configurationChangeCallback
             
-            // Create and populate configuration store
             let store = PrecomputedConfigurationStore()
             store.setConfiguration(initialPrecomputedConfiguration)
             shared.configurationStore = store

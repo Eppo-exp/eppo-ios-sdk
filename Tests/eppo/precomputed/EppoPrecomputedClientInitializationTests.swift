@@ -86,7 +86,7 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
         encoder.dateEncodingStrategy = .iso8601
         mockSession.data = try encoder.encode(testConfig)
         mockSession.response = HTTPURLResponse(
-            url: URL(string: "https://fs-edge-assignment.eppo.cloud/assignments")!,
+            url: URL(string: "\(precomputedBaseUrl)/assignments")!,
             statusCode: 200,
             httpVersion: nil,
             headerFields: nil

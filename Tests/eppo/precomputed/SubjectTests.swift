@@ -38,7 +38,7 @@ class SubjectTests: XCTestCase {
     // MARK: - Validation Tests
     
     func testEmptySubjectKeyIsAllowed() {
-        // Empty subject keys are allowed, matching the behavior of regular EppoClient
+        // Empty subject keys are allowed
         let subject = Subject(subjectKey: "", subjectAttributes: [:])
         XCTAssertEqual(subject.subjectKey, "")
         XCTAssertTrue(subject.subjectAttributes.isEmpty)

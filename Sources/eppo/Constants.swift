@@ -3,3 +3,4 @@ public let sdkName = "ios"
 public let sdkVersion = "5.3.0-rc.2"
 
 public let defaultHost = "https://fscdn.eppo.cloud/api"
+public let precomputedBaseUrl = "https://fs-edge-assignment.eppo.cloud"

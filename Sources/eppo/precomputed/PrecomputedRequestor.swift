@@ -19,7 +19,7 @@ class PrecomputedRequestor {
         sdkKey: String,
         sdkName: String,
         sdkVersion: String,
-        host: String = "https://fs-edge-assignment.eppo.cloud",
+        host: String = precomputedBaseUrl,
         maxRetryAttempts: Int = 3,
         initialRetryDelay: TimeInterval = 1.0
     ) {
@@ -36,13 +36,11 @@ class PrecomputedRequestor {
     
     /// Fetches precomputed flags from the server
     func fetchPrecomputedFlags() async throws -> PrecomputedConfiguration {
-        // Create the request body payload
         let payload = PrecomputedFlagsPayload(
             subjectKey: subject.subjectKey,
             subjectAttributes: subject.subjectAttributes
         )
         
-        // Construct the full URL with query parameters
         let url = try buildURL()
         
         // Make the POST request
@@ -136,10 +134,8 @@ extension PrecomputedRequestor {
                     return (data, response)
                 }
             } catch {
-                // Store the error for potential retry
                 lastError = error
                 
-                // Check if error is retryable
                 if !isRetryableError(error) {
                     throw error
                 }

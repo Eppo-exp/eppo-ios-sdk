@@ -121,7 +121,7 @@ class PrecomputedConfigurationStore {
             return nil
         }
         
-        // Use different file name to avoid conflicts with regular client
+        // Use precomputed-specific file name
         return cacheDirectoryURL
             .appendingPathComponent("eppo-precomputed-configuration.json", isDirectory: false)
     }

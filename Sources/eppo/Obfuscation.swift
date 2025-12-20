@@ -3,7 +3,7 @@ import CommonCrypto
 
 func getMD5Hex(_ value: String, salt: String = "") -> String {
     let length = Int(CC_MD5_DIGEST_LENGTH)
-    // Concatenate salt and value, matching JS: new SparkMD5().append(salt).append(input).end()
+    // Concatenate salt and value for MD5 hashing
     let saltedValue = salt + value
     let messageData = saltedValue.data(using: .utf8)!
     var digestData = Data(count: length)
