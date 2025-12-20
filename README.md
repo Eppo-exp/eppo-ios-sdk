@@ -14,6 +14,7 @@ The [primary documentation](https://docs.geteppo.com/sdks/client-sdks/ios/) expl
 - A/B/n experiments
 - Mutually exclusive experiments (Layers)
 - Dynamic configuration
+- Precomputed assignments
 
 ## Installation
 
@@ -184,6 +185,43 @@ struct ContentView: View {
         }
     }
 }
+```
+
+## Precomputed client
+
+For applications requiring high performance, security, or minimal network overhead, you can use precomputed assignments calculated via Eppo's globally distributed edge functions.
+
+#### Online initialization
+
+For dynamic precomputed assignments, initialize with network fetching:
+
+```swift
+Task {
+    let client = try await EppoPrecomputedClient.initialize(
+        sdkKey: "SDK-KEY-FROM-DASHBOARD",
+        subject: Subject(subjectKey: "user-123", subjectAttributes: ["plan": EppoValue(value: "premium")])
+    )
+}
+```
+
+#### Offline initialization
+
+Initialize with precomputed data to avoid performing a network request:
+
+```swift
+let client = EppoPrecomputedClient.initializeOffline(
+    sdkKey: "SDK-KEY-FROM-DASHBOARD",
+    subject: Subject(subjectKey: "user-123", subjectAttributes: ["plan": EppoValue(value: "premium")]),
+    initialPrecomputedConfiguration: precomputedConfig
+)
+```
+
+#### Assign precomputed values
+
+Assignment is synchronous and uses the same typed functions:
+
+```swift
+let assignment = client.getStringAssignment(flagKey: "new-feature", defaultValue: "control")
 ```
 
 ## Assignment functions
