@@ -1,9 +1,11 @@
 import Foundation
 import CommonCrypto
 
-func getMD5Hex(_ value: String) -> String {
+func getMD5Hex(_ value: String, salt: String = "") -> String {
     let length = Int(CC_MD5_DIGEST_LENGTH)
-    let messageData = value.data(using: .utf8)!
+    // Concatenate salt and value for MD5 hashing
+    let saltedValue = salt + value
+    let messageData = saltedValue.data(using: .utf8)!
     var digestData = Data(count: length)
 
     _ = digestData.withUnsafeMutableBytes { digestBytes -> UInt8 in
