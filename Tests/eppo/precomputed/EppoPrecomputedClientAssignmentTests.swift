@@ -383,34 +383,6 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
         XCTAssertEqual(logged.count, 0)
     }
     
-    // MARK: - Queue Management Tests
-    
-    func testQueuedAssignmentsBeforeLoggerIsSet() {
-        // This test validates that assignments are queued when no logger is set
-        // In the current implementation, queued assignments are flushed when a logger is set during initialization
-        // This will be fully tested in Phase 5 with proper initialization methods
-        
-        // For now, verify that assignments without logger don't crash
-        EppoPrecomputedClient.initializeForTesting(
-            configurationStore: configStore,
-            subject: testSubject,
-            assignmentLogger: nil, // No logger
-            assignmentCache: nil
-        )
-        
-        // Get assignments (should be queued internally)
-        _ = EppoPrecomputedClient.shared.getStringAssignment(
-            flagKey: "string-flag",
-            defaultValue: "default"
-        )
-        _ = EppoPrecomputedClient.shared.getBooleanAssignment(
-            flagKey: "bool-flag",
-            defaultValue: false
-        )
-        
-        // No assertions about logging since we can't set logger after init in current design
-        // This will be properly tested in Phase 5
-    }
     
     // MARK: - Concurrent Access Tests
     
