@@ -389,6 +389,7 @@ public class EppoPrecomputedClient {
         flag: PrecomputedFlag
     ) {
         
+        // Precomputed configs are always obfuscated, so decode base64 values for assignment logging
         var decodedAllocationKey: String = flag.allocationKey ?? ""
         if let allocationKey = flag.allocationKey,
            let decoded = base64Decode(allocationKey) {
