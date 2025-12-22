@@ -164,7 +164,7 @@ class PrecomputedConfigurationTests: XCTestCase {
     }
     
     func testEmptySaltIsValid() throws {
-        // Empty salt should be allowed (though not recommended)
+        // Empty salt is allowed (though not expected)
         let json = """
         {
             "salt": "",
@@ -179,5 +179,4 @@ class PrecomputedConfigurationTests: XCTestCase {
         
         XCTAssertEqual(config.salt, "")
     }
-    
 }
