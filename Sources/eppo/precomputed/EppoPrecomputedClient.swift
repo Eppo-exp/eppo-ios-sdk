@@ -10,7 +10,6 @@ public class EppoPrecomputedClient {
     }
     private static let sharedLock = NSLock()
     private static var sharedInstance: EppoPrecomputedClient?
-    private static let initializerQueue = DispatchQueue(label: "cloud.eppo.precomputed.initializer")
     
     public static func shared() throws -> EppoPrecomputedClient {
         try sharedLock.withLock {
