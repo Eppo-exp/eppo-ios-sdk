@@ -321,7 +321,7 @@ public class EppoPrecomputedClient {
                 defaultValue: defaultValue
             )
             
-            // Log assignment if needed (now that initialization deadlock is fixed)
+            // Log assignment if needed
             if flag.doLog {
                 logAssignment(
                     flagKey: flagKey,
