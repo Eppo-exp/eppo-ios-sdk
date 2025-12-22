@@ -7,6 +7,7 @@ class PrecomputedRequestor {
     private let sdkKey: String
     private let sdkName: String
     private let sdkVersion: String
+    private let urlSession: URLSession
     
     // Retry configuration
     private let maxRetryAttempts: Int
@@ -21,7 +22,8 @@ class PrecomputedRequestor {
         sdkVersion: String,
         host: String = precomputedBaseUrl,
         maxRetryAttempts: Int = 3,
-        initialRetryDelay: TimeInterval = 1.0
+        initialRetryDelay: TimeInterval = 1.0,
+        urlSession: URLSession = .shared
     ) {
         self.subject = subject
         self.sdkKey = sdkKey
@@ -30,6 +32,7 @@ class PrecomputedRequestor {
         self.host = host
         self.maxRetryAttempts = max(1, maxRetryAttempts) // Ensure at least one attempt
         self.initialRetryDelay = max(0.1, initialRetryDelay) // Minimum 100ms delay
+        self.urlSession = urlSession
     }
     
     // MARK: - Public Methods
@@ -114,21 +117,21 @@ extension PrecomputedRequestor {
         
         for attempt in 0..<maxRetryAttempts {
             do {
-                let (data, response) = try await URLSession.shared.data(for: request)
+                let (data, response) = try await urlSession.data(for: request)
                 
                 // Check if we should retry based on response
                 if let httpResponse = response as? HTTPURLResponse {
+                    // Success (2xx, 3xx) - return immediately
+                    if httpResponse.statusCode < 400 {
+                        return (data, response)
+                    }
+                    
                     // Don't retry on client errors (4xx) except for 429 (rate limit)
                     if httpResponse.statusCode >= 400 && httpResponse.statusCode < 500 && httpResponse.statusCode != 429 {
                         return (data, response)
                     }
                     
-                    // Success or non-retryable error
-                    if httpResponse.statusCode < 500 {
-                        return (data, response)
-                    }
-                    
-                    // Server error (5xx) - will retry
+                    // Rate limit (429) or server error (5xx) - will retry
                     lastError = NetworkError.httpError(statusCode: httpResponse.statusCode)
                 } else {
                     return (data, response)

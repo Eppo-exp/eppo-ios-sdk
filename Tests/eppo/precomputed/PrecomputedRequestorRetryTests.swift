@@ -75,7 +75,8 @@ class PrecomputedRequestorRetryTests: XCTestCase {
             sdkName: "test-sdk",
             sdkVersion: "1.0.0",
             maxRetryAttempts: 3,
-            initialRetryDelay: 0.1 // Short delay for tests
+            initialRetryDelay: 0.1, // Short delay for tests
+            urlSession: mockSession
         )
     }
     
