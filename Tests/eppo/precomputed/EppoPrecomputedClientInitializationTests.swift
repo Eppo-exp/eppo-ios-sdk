@@ -191,12 +191,12 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
         XCTAssertTrue(originalClient === client2)
     }
     
-    // MARK: - Assignment Queue Tests
+    // MARK: - No-Op Logger Tests
     
-    func testQueuedAssignmentsAreFlushedOnInitialization() {
-        // This test validates assignment queuing behavior without logger
+    func testInitializationWithoutLogger() {
+        // This test validates that initialization without logger works (no-op behavior)
         let testConfig = PrecomputedConfiguration(
-            flags: [:], // Use empty flags to avoid assignment crashes
+            flags: [:], // Use empty flags 
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
@@ -204,12 +204,12 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
             environment: nil
         )
         
-        // Initialize without logger - should not crash
+        // Initialize without logger - should not crash, assignments will not be logged
         let client = EppoPrecomputedClient.initializeOffline(
             sdkKey: "test-sdk-key",
             subject: testSubject,
             initialPrecomputedConfiguration: testConfig,
-            assignmentLogger: nil // No logger
+            assignmentLogger: nil // No logger - assignments will be silent no-op
         )
         
         XCTAssertNotNil(client)

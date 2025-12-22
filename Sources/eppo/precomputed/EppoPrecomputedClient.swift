@@ -36,9 +36,6 @@ public class EppoPrecomputedClient {
     private var assignmentLogger: AssignmentLogger?
     private var assignmentCache: AssignmentCache?
     
-    // MARK: - Event Queuing (before logger is set)
-    private var queuedAssignments: [Assignment] = []
-    private let maxEventQueueSize = 100
     
     // MARK: - Client State
     private var sdkKey: String?
@@ -89,7 +86,6 @@ public class EppoPrecomputedClient {
         
         // Flush queued assignments OUTSIDE the sync block to prevent crashes
         // This matches the safer pattern used in initializeForTesting()
-        result.flushQueuedAssignments()
         
         return result
     }
@@ -110,19 +106,10 @@ public class EppoPrecomputedClient {
         }
         
         // Flush any queued assignments
-        shared.flushQueuedAssignments()
     }
     
     // MARK: - Configuration Management
     
-    /// Sets or updates the assignment logger
-    public func setAssignmentLogger(_ logger: @escaping AssignmentLogger) {
-        accessQueue.sync(flags: .barrier) {
-            assignmentLogger = logger
-            // Flush any queued assignments
-            flushQueuedAssignments()
-        }
-    }
     
     // MARK: - Lifecycle Management
     
@@ -135,29 +122,6 @@ public class EppoPrecomputedClient {
         }
     }
     
-    // MARK: - Queue Management
-    
-    /// Adds an assignment to the queue (called before logger is set)
-    private func queueAssignment(_ assignment: Assignment) {
-        accessQueue.sync(flags: .barrier) {
-            // Limit queue size to prevent memory issues
-            if queuedAssignments.count < maxEventQueueSize {
-                queuedAssignments.append(assignment)
-            }
-        }
-    }
-    
-    /// Flushes queued assignments to the logger
-    private func flushQueuedAssignments() {
-        guard let logger = assignmentLogger else { return }
-        
-        accessQueue.sync(flags: .barrier) {
-            for assignment in queuedAssignments {
-                logger(assignment)
-            }
-            queuedAssignments.removeAll()
-        }
-    }
     
     // MARK: - Assignment Methods (synchronous, type-specific)
     
@@ -342,8 +306,6 @@ public class EppoPrecomputedClient {
         if shouldLogAssignment(assignment) {
             if let logger = assignmentLogger {
                 logger(assignment)
-            } else {
-                queueAssignment(assignment)
             }
         }
     }
