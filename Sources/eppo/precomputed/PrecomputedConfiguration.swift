@@ -46,7 +46,6 @@ public struct PrecomputedConfiguration: Codable {
         case format
         case createdAt
         case environment
-        case obfuscated
     }
     
     public init(from decoder: Decoder) throws {
@@ -67,8 +66,7 @@ public struct PrecomputedConfiguration: Codable {
         
         environment = try container.decodeIfPresent(Environment.self, forKey: .environment)
         
-        // Note: obfuscated field exists but is not stored (always true for precomputed)
-        _ = try? container.decode(Bool.self, forKey: .obfuscated)
+        // Note: obfuscated field is always true for precomputed configs, so we ignore it
     }
     
     public func encode(to encoder: Encoder) throws {
@@ -85,7 +83,6 @@ public struct PrecomputedConfiguration: Codable {
         }
         
         try container.encodeIfPresent(environment, forKey: .environment)
-        try container.encode(true, forKey: .obfuscated) // Always obfuscated
     }
 }
 
