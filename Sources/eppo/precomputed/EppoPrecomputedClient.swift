@@ -5,12 +5,9 @@ public class EppoPrecomputedClient {
     public typealias AssignmentLogger = (Assignment) -> Void
     public typealias ConfigurationChangeCallback = (PrecomputedConfiguration) -> Void
     
-    // MARK: - Error Types
-    
     public enum InitializationError: Error {
         case alreadyInitialized
     }
-    // MARK: - Singleton Pattern
     private static let sharedLock = NSLock()
     private static var sharedInstance: EppoPrecomputedClient?
     private static var initialized = false
@@ -27,26 +24,19 @@ public class EppoPrecomputedClient {
         }
     }
     
-    // MARK: - Thread Safety
     private let accessQueue = DispatchQueue(label: "cloud.eppo.precomputed.access", qos: .userInitiated)
-    
-    // MARK: - Core Components
     private var configurationStore: PrecomputedConfigurationStore?
     private var subject: Subject?
     private var assignmentLogger: AssignmentLogger?
     private var assignmentCache: AssignmentCache?
     
-    
-    // MARK: - Client State
     private var sdkKey: String?
     private var configurationChangeCallback: ConfigurationChangeCallback?
     private var isInitialized: Bool {
         return Self.sharedLock.withLock { Self.initialized }
     }
     
-    // MARK: - Initialization
-    
-    private init() {} // Singleton
+    private init() {}
     
     
     /// Initialize the precomputed client offline with provided configuration
@@ -60,8 +50,7 @@ public class EppoPrecomputedClient {
         configurationChangeCallback: ConfigurationChangeCallback? = nil
     ) -> EppoPrecomputedClient {
         let result = shared.accessQueue.sync(flags: .barrier) { () -> EppoPrecomputedClient in
-            // Prevent re-initialization
-            guard !initialized else {
+                guard !initialized else {
                 return shared
             }
             
@@ -105,7 +94,6 @@ public class EppoPrecomputedClient {
             initialized = true
         }
         
-        // Flush any queued assignments
     }
     
     // MARK: - Configuration Management
@@ -162,7 +150,6 @@ public class EppoPrecomputedClient {
         defaultValue: T,
         expectedType: VariationType
     ) -> T {
-        // Check if client is initialized
         let isInitialized = Self.sharedLock.withLock { Self.initialized }
         guard isInitialized,
               let store = configurationStore,
@@ -170,30 +157,24 @@ public class EppoPrecomputedClient {
             return defaultValue
         }
         
-        // Get salt for MD5 hashing (always obfuscated for precomputed)
         guard let salt = store.salt else {
             return defaultValue
         }
         
-        // Decode base64 salt (precomputed configs are always obfuscated)
         guard let decodedSalt = base64Decode(salt) else {
             return defaultValue
         }
         
-        // Hash the flag key with decoded salt
         let hashedFlagKey = getMD5Hex(flagKey, salt: decodedSalt)
         
-        // Look up the precomputed flag
         guard let flag = store.getFlag(forKey: hashedFlagKey) else {
             return defaultValue
         }
         
-        // Validate type matches expected
         guard flag.variationType == expectedType else {
             return defaultValue
         }
         
-        // Convert value based on type
         do {
             let convertedValue = try convertValue(
                 flag.variationValue,
@@ -212,7 +193,6 @@ public class EppoPrecomputedClient {
             
             return convertedValue
         } catch {
-            // Type conversion failed, return default
             return defaultValue
         }
     }
@@ -227,8 +207,8 @@ public class EppoPrecomputedClient {
         switch expectedType {
         case .STRING:
             let stringValue = try eppoValue.getStringValue()
-            // Decode base64 if it's an obfuscated string
-            let decodedValue = base64Decode(stringValue) ?? stringValue
+            // Precomputed configs are always obfuscated - decode base64 string
+            let decodedValue = try base64DecodeOrThrow(stringValue)
             if let result = decodedValue as? T {
                 return result
             }
@@ -254,8 +234,8 @@ public class EppoPrecomputedClient {
             
         case .JSON:
             let stringValue = try eppoValue.getStringValue()
-            // Decode base64 if it's an obfuscated JSON string
-            let decodedValue = base64Decode(stringValue) ?? stringValue
+            // Precomputed configs are always obfuscated - decode base64 JSON string
+            let decodedValue = try base64DecodeOrThrow(stringValue)
             if let result = decodedValue as? T {
                 return result
             }
@@ -274,19 +254,32 @@ public class EppoPrecomputedClient {
     ) {
         guard let subj = subject else { return }
         
-        // Decode base64 values for assignment logging (production data is base64 encoded)
-        let decodedAllocationKey = base64Decode(flag.allocationKey ?? "") ?? flag.allocationKey ?? "__eppo_no_allocation"
-        let decodedVariationKey = base64Decode(flag.variationKey ?? "") ?? flag.variationKey ?? "__eppo_no_variation"
+        var decodedAllocationKey: String = flag.allocationKey ?? ""
+        if let allocationKey = flag.allocationKey,
+           let decoded = base64Decode(allocationKey) {
+            decodedAllocationKey = decoded
+        }
+        
+        var decodedVariationKey: String = flag.variationKey ?? ""
+        if let variationKey = flag.variationKey,
+           let decoded = base64Decode(variationKey) {
+            decodedVariationKey = decoded
+        }
         
         // Decode extraLogging keys and values
         var decodedExtraLogging: [String: String] = [:]
         for (key, value) in flag.extraLogging {
-            let decodedKey = base64Decode(key) ?? key
-            let decodedValue = base64Decode(value) ?? value
-            decodedExtraLogging[decodedKey] = decodedValue
+            do {
+                // Decode both key and value if they are base64 encoded
+                let decodedKey = try base64DecodeOrThrow(key)
+                let decodedValue = try base64DecodeOrThrow(value)
+                decodedExtraLogging[decodedKey] = decodedValue
+            } catch {
+                print("Warning: Failed to decode extraLogging entry - key: \(key), value: \(value), error: \(error.localizedDescription)")
+                // Skip this entry - don't add it to decodedExtraLogging
+            }
         }
         
-        // Create assignment with decoded values
         let assignment = Assignment(
             flagKey: flagKey,
             allocationKey: decodedAllocationKey,
@@ -302,7 +295,6 @@ public class EppoPrecomputedClient {
             extraLogging: decodedExtraLogging
         )
         
-        // Check deduplication and log
         if shouldLogAssignment(assignment) {
             if let logger = assignmentLogger {
                 logger(assignment)
@@ -314,7 +306,6 @@ public class EppoPrecomputedClient {
         guard let cache = assignmentCache,
               let allocationKey = assignment.allocation.isEmpty ? nil : assignment.allocation,
               let variationKey = assignment.variation.isEmpty ? nil : assignment.variation else {
-            // No cache or missing keys, always log
             return true
         }
         
@@ -325,11 +316,9 @@ public class EppoPrecomputedClient {
             variationKey: variationKey
         )
         
-        // Log if not in cache
         let shouldLog = !cache.hasLoggedAssignment(key: cacheKey)
         
         if shouldLog {
-            // Add to cache
             cache.setLastLoggedAssignment(key: cacheKey)
         }
         
