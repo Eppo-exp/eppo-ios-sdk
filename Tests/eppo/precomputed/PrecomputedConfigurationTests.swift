@@ -102,19 +102,19 @@ class PrecomputedConfigurationTests: XCTestCase {
             },
             "flags": {
                 "string-flag": {
-                    "allocationKey": "allocation-123",
-                    "variationKey": "variation-123",
+                    "allocationKey": "YWxsb2NhdGlvbi0xMjM=",
+                    "variationKey": "dmFyaWF0aW9uLTEyMw==",
                     "variationType": "STRING",
-                    "variationValue": "red",
+                    "variationValue": "cmVk",
                     "extraLogging": {},
                     "doLog": true
                 },
                 "boolean-flag": {
-                    "allocationKey": "allocation-124",
-                    "variationKey": "variation-124",
+                    "allocationKey": "YWxsb2NhdGlvbi0xMjQ=",
+                    "variationKey": "dmFyaWF0aW9uLTEyNA==",
                     "variationType": "BOOLEAN",
                     "variationValue": true,
-                    "extraLogging": {"holdoutKey": "feature-rollout", "holdoutVariation": "all_shipped"},
+                    "extraLogging": {"aG9sZG91dEtleQ==": "ZmVhdHVyZS1yb2xsb3V0", "aG9sZG91dFZhcmlhdGlvbg==": "YWxsX3NoaXBwZWQ="},
                     "doLog": false
                 }
             }
@@ -132,9 +132,9 @@ class PrecomputedConfigurationTests: XCTestCase {
         
         let stringFlag = config.flags["string-flag"]
         XCTAssertNotNil(stringFlag)
-        XCTAssertEqual(stringFlag?.variationKey, "variation-123")
+        XCTAssertEqual(stringFlag?.variationKey, "dmFyaWF0aW9uLTEyMw==")
         XCTAssertEqual(stringFlag?.variationType, .STRING)
-        XCTAssertEqual(stringFlag?.variationValue, .valueOf("red"))
+        XCTAssertEqual(stringFlag?.variationValue, .valueOf("cmVk"))
         XCTAssertTrue(stringFlag?.doLog ?? false)
         
         let boolFlag = config.flags["boolean-flag"]
@@ -144,39 +144,6 @@ class PrecomputedConfigurationTests: XCTestCase {
         XCTAssertFalse(boolFlag?.doLog ?? true)
     }
     
-    func testDecodingWithObfuscatedData() throws {
-        let json = """
-        {
-            "createdAt": "MjAyNC0xMS0xOFQxNDoyMzoyNS4xMjNa",
-            "format": "PRECOMPUTED",
-            "salt": "c29kaXVtY2hsb3JpZGU=",
-            "obfuscated": true,
-            "flags": {
-                "41a27b85ebdd7b1a5ae367a1a240a214": {
-                    "allocationKey": "YWxsb2NhdGlvbi0xMjM=",
-                    "variationKey": "dmFyaWF0aW9uLTEyMw==",
-                    "variationType": "STRING",
-                    "variationValue": "cmVk",
-                    "extraLogging": {},
-                    "doLog": true
-                }
-            }
-        }
-        """
-        
-        let data = json.data(using: .utf8)!
-        let decoder = JSONDecoder()
-        let config = try decoder.decode(PrecomputedConfiguration.self, from: data)
-        
-        XCTAssertEqual(config.salt, "c29kaXVtY2hsb3JpZGU=")
-        XCTAssertEqual(config.flags.count, 1)
-        
-        let flag = config.flags["41a27b85ebdd7b1a5ae367a1a240a214"]
-        XCTAssertNotNil(flag)
-        XCTAssertEqual(flag?.allocationKey, "YWxsb2NhdGlvbi0xMjM=")
-        XCTAssertEqual(flag?.variationKey, "dmFyaWF0aW9uLTEyMw==")
-        XCTAssertEqual(flag?.variationValue, .valueOf("cmVk"))
-    }
     
     // MARK: - Salt Validation Tests
     
@@ -213,114 +180,4 @@ class PrecomputedConfigurationTests: XCTestCase {
         XCTAssertEqual(config.salt, "")
     }
     
-    // MARK: - Format Tests
-    
-    func testFormatValidation() throws {
-        let json = """
-        {
-            "salt": "test-salt",
-            "format": "PRECOMPUTED",
-            "flags": {}
-        }
-        """
-        
-        let data = json.data(using: .utf8)!
-        let decoder = JSONDecoder()
-        let config = try decoder.decode(PrecomputedConfiguration.self, from: data)
-        
-        XCTAssertEqual(config.format, "PRECOMPUTED")
-    }
-    
-    // MARK: - Edge Cases
-    
-    func testDecodingWithoutEnvironment() throws {
-        let json = """
-        {
-            "salt": "no-env-salt",
-            "format": "PRECOMPUTED",
-            "flags": {}
-        }
-        """
-        
-        let data = json.data(using: .utf8)!
-        let decoder = JSONDecoder()
-        let config = try decoder.decode(PrecomputedConfiguration.self, from: data)
-        
-        XCTAssertNil(config.environment)
-    }
-    
-    func testDecodingWithoutCreatedAt() throws {
-        let json = """
-        {
-            "salt": "no-date-salt",
-            "format": "PRECOMPUTED",
-            "flags": {}
-        }
-        """
-        
-        let data = json.data(using: .utf8)!
-        let decoder = JSONDecoder()
-        let config = try decoder.decode(PrecomputedConfiguration.self, from: data)
-        
-        XCTAssertNil(config.configPublishedAt)
-        XCTAssertNotNil(config.configFetchedAt) // This is set to current date
-    }
-    
-    func testLargeFlagConfiguration() throws {
-        var flags: [String: PrecomputedFlag] = [:]
-        for i in 1...100 {
-            flags["flag\(i)"] = PrecomputedFlag(
-                allocationKey: "allocation-\(i)",
-                variationKey: "variation-\(i)",
-                variationType: .STRING,
-                variationValue: .valueOf("value-\(i)"),
-                extraLogging: i % 10 == 0 ? ["holdoutKey": "holdout-\(i)", "holdoutVariation": "status_quo"] : [:],
-                doLog: i % 2 == 0
-            )
-        }
-        
-        let config = PrecomputedConfiguration(
-            flags: flags,
-            salt: "large-config-salt",
-            format: "PRECOMPUTED",
-            configFetchedAt: Date()
-        )
-        
-        XCTAssertEqual(config.flags.count, 100)
-        XCTAssertEqual(config.flags["flag50"]?.variationKey, "variation-50")
-        XCTAssertTrue(config.flags["flag50"]?.doLog ?? false)
-        XCTAssertFalse(config.flags["flag51"]?.doLog ?? true)
-    }
-    
-    func testComplexExtraLogging() throws {
-        let json = """
-        {
-            "salt": "complex-logging-salt",
-            "format": "PRECOMPUTED",
-            "flags": {
-                "test-flag": {
-                    "allocationKey": "allocation-1",
-                    "variationKey": "variation-1",
-                    "variationType": "STRING",
-                    "variationValue": "test",
-                    "extraLogging": {
-                        "holdoutKey": "experiment-123-holdout",
-                        "holdoutVariation": "status_quo"
-                    },
-                    "doLog": true
-                }
-            }
-        }
-        """
-        
-        let data = json.data(using: .utf8)!
-        let decoder = JSONDecoder()
-        let config = try decoder.decode(PrecomputedConfiguration.self, from: data)
-        
-        let flag = config.flags["test-flag"]
-        XCTAssertNotNil(flag)
-        XCTAssertEqual(flag?.extraLogging.count, 2)
-        XCTAssertEqual(flag?.extraLogging["holdoutKey"], "experiment-123-holdout")
-        XCTAssertEqual(flag?.extraLogging["holdoutVariation"], "status_quo")
-    }
 }

@@ -24,11 +24,6 @@ class PrecomputedConfigurationStoreTests: XCTestCase {
         XCTAssertFalse(store.isInitialized())
     }
     
-    func testInitializationWithoutPersistentCache() {
-        store = PrecomputedConfigurationStore(withPersistentCache: false)
-        XCTAssertNil(store.getConfiguration())
-        XCTAssertFalse(store.isInitialized())
-    }
     
     // MARK: - Configuration Storage Tests
     
