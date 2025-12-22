@@ -1,6 +1,5 @@
 import Foundation
 
-/// Represents a precomputed flag assignment from the server
 struct PrecomputedFlag: Codable, Equatable {
     let allocationKey: String?
     let variationKey: String?
@@ -26,7 +25,6 @@ struct PrecomputedFlag: Codable, Equatable {
     }
 }
 
-/// Represents the type of a variation value
 enum VariationType: String, Codable {
     case BOOLEAN = "BOOLEAN"
     case NUMERIC = "NUMERIC"

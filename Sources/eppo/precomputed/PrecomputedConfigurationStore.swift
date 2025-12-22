@@ -5,7 +5,6 @@ class PrecomputedConfigurationStore {
     private var configuration: PrecomputedConfiguration?
     private let syncQueue = DispatchQueue(
         label: "cloud.eppo.precomputedConfigurationStoreQueue", attributes: .concurrent)
-    private var debugLogger: ((String) -> Void)?
     
     /// Salt extracted from the configuration for obfuscation
     var salt: String? {
@@ -17,8 +16,6 @@ class PrecomputedConfigurationStore {
     private static let persistenceQueue = DispatchQueue(
         label: "cloud.eppo.precomputedConfigurationStorePersistence", qos: .background)
     
-    // MARK: - Initialization
-    
     init(withPersistentCache: Bool = true) {
         self.cacheFileURL = if withPersistentCache {
             Self.findCacheFileURL()
@@ -26,29 +23,21 @@ class PrecomputedConfigurationStore {
             nil
         }
         
-        // Configuration will be loaded after debug logger is set up
         self.configuration = nil
     }
     
-    // MARK: - Public Methods
-    
-    /// Load initial configuration from disk (called after debug logger is set up)
+    /// Load initial configuration from disk
     func loadInitialConfiguration() {
         if self.configuration == nil {
             self.configuration = self.loadFromDisk()
         }
     }
     
-    func setDebugLogger(_ logger: @escaping (String) -> Void) {
-        self.debugLogger = logger
-    }
-    
-    /// Get the stored configuration in a thread-safe manner
     func getConfiguration() -> PrecomputedConfiguration? {
         return syncQueue.sync { self.configuration }
     }
     
-    /// Set the configuration in a thread-safe manner with disk persistence
+    /// Set configuration with disk persistence
     func setConfiguration(_ configuration: PrecomputedConfiguration) {
         syncQueue.sync(flags: .barrier) {
             self.configuration = configuration
@@ -56,24 +45,20 @@ class PrecomputedConfigurationStore {
         }
     }
     
-    /// Check if the store has been initialized with a configuration
     func isInitialized() -> Bool {
         return syncQueue.sync { self.configuration != nil }
     }
     
-    /// Get all flag keys in the configuration
     func getKeys() -> [String] {
         return syncQueue.sync { 
             self.configuration?.flags.keys.map { $0 } ?? []
         }
     }
     
-    /// Get a specific precomputed flag by key
     func getFlag(forKey key: String) -> PrecomputedFlag? {
         return syncQueue.sync { self.configuration?.flags[key] }
     }
     
-    /// Check if configuration has expired based on a TTL
     func isExpired(ttlSeconds: TimeInterval = 300) -> Bool {
         return syncQueue.sync {
             guard let config = self.configuration else {
@@ -99,8 +84,6 @@ class PrecomputedConfigurationStore {
             }
         }
     }
-    
-    // MARK: - Private Methods
     
     private static func findCacheFileURL() -> URL? {
         guard let cacheDirectoryURL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)
@@ -131,18 +114,14 @@ class PrecomputedConfigurationStore {
             return
         }
         
-        Self.persistenceQueue.async { [weak self] in
-            self?.debugLogger?("Starting precomputed configuration persistent storage write")
+        Self.persistenceQueue.async {
             do {
                 let encoder = JSONEncoder()
                 encoder.dateEncodingStrategy = .iso8601
                 let data = try encoder.encode(configuration)
-                self?.debugLogger?("Encoded precomputed configuration data: \(data.count) bytes")
                 try data.write(to: cacheFileURL, options: .atomic)
-                self?.debugLogger?("Precomputed configuration persistent storage write completed")
             } catch {
                 print("Error saving precomputed configuration to disk: \(error)")
-                self?.debugLogger?("Precomputed configuration persistent storage write failed")
             }
         }
     }
@@ -152,17 +131,13 @@ class PrecomputedConfigurationStore {
             return nil
         }
         
-        debugLogger?("Starting precomputed configuration persistent storage read")
         do {
             let data = try Data(contentsOf: cacheFileURL)
-            debugLogger?("Loaded precomputed configuration data from disk: \(data.count) bytes")
             let decoder = JSONDecoder()
             let config = try decoder.decode(PrecomputedConfiguration.self, from: data)
-            debugLogger?("Precomputed configuration persistent storage read completed")
             return config
         } catch {
             print("No precomputed configuration found on disk or error decoding: \(error)")
-            debugLogger?("Precomputed configuration persistent storage read failed - no cached config")
             return nil
         }
     }

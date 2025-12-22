@@ -3,7 +3,6 @@ import CommonCrypto
 
 func getMD5Hex(_ value: String, salt: String = "") -> String {
     let length = Int(CC_MD5_DIGEST_LENGTH)
-    // Concatenate salt and value for MD5 hashing
     let saltedValue = salt + value
     let messageData = saltedValue.data(using: .utf8)!
     var digestData = Data(count: length)
@@ -62,7 +61,6 @@ enum Base64DecodeError: Error, LocalizedError {
     }
 }
 
-// Define the date formatter at a scope accessible by your function
 let UTC_ISO_DATE_FORMAT: DateFormatter = {
     let formatter = DateFormatter()
     formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZ" // Includes milliseconds

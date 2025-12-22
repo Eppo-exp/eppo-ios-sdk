@@ -114,9 +114,7 @@ class PrecomputedConfigurationStoreTests: XCTestCase {
         
         store.setConfiguration(config)
         
-        // Should be expired with default 300 second TTL
         XCTAssertTrue(store.isExpired())
-        // Should not be expired with longer TTL
         XCTAssertFalse(store.isExpired(ttlSeconds: 500))
     }
     
@@ -161,7 +159,6 @@ class PrecomputedConfigurationStoreTests: XCTestCase {
         
         wait(for: [expectation], timeout: 5.0)
         
-        // Should have one of the configurations set
         XCTAssertNotNil(store.getConfiguration())
         XCTAssertTrue(store.isInitialized())
     }
@@ -175,7 +172,6 @@ class PrecomputedConfigurationStoreTests: XCTestCase {
         let config = createSampleConfiguration()
         store.setConfiguration(config)
         
-        // Give time for async write to complete
         let expectation = XCTestExpectation(description: "Persistence write completes")
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             expectation.fulfill()
@@ -191,35 +187,11 @@ class PrecomputedConfigurationStoreTests: XCTestCase {
         XCTAssertEqual(loaded?.flags.count, 2)
     }
     
-    func testPersistentStorageWithDebugLogger() {
-        var debugLogs: [String] = []
-        
-        store = PrecomputedConfigurationStore(withPersistentCache: true)
-        store.setDebugLogger { message in
-            debugLogs.append(message)
-        }
-        
-        let config = createSampleConfiguration()
-        store.setConfiguration(config)
-        
-        // Give time for async operations
-        let expectation = XCTestExpectation(description: "Debug logging completes")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            expectation.fulfill()
-        }
-        wait(for: [expectation], timeout: 1.0)
-        
-        // Should have debug logs for write operation
-        XCTAssertTrue(debugLogs.contains { $0.contains("Starting precomputed configuration persistent storage write") })
-        XCTAssertTrue(debugLogs.contains { $0.contains("bytes") })
-    }
     
     func testLoadInitialConfiguration() {
-        // First, save a configuration
         store = PrecomputedConfigurationStore(withPersistentCache: true)
         store.setConfiguration(createSampleConfiguration())
         
-        // Give time for write
         Thread.sleep(forTimeInterval: 0.5)
         
         let newStore = PrecomputedConfigurationStore(withPersistentCache: true)
@@ -231,16 +203,13 @@ class PrecomputedConfigurationStoreTests: XCTestCase {
     }
     
     func testClearPersistentCache() {
-        // Save configuration
         store = PrecomputedConfigurationStore(withPersistentCache: true)
         store.setConfiguration(createSampleConfiguration())
         
         Thread.sleep(forTimeInterval: 0.5)
         
-        // Clear cache
         PrecomputedConfigurationStore.clearPersistentCache()
         
-        // New store should not find cached data
         let newStore = PrecomputedConfigurationStore(withPersistentCache: true)
         newStore.loadInitialConfiguration()
         XCTAssertNil(newStore.getConfiguration())

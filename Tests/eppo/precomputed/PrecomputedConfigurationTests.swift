@@ -91,7 +91,6 @@ class PrecomputedConfigurationTests: XCTestCase {
     }
     
     func testDecodingFromServerResponse() throws {
-        // Test data similar to server response structure
         let json = """
         {
             "createdAt": "2024-11-18T14:23:25.123Z",
@@ -131,7 +130,6 @@ class PrecomputedConfigurationTests: XCTestCase {
         XCTAssertEqual(config.environment?.name, "Test")
         XCTAssertEqual(config.flags.count, 2)
         
-        // Check specific flags
         let stringFlag = config.flags["string-flag"]
         XCTAssertNotNil(stringFlag)
         XCTAssertEqual(stringFlag?.variationKey, "variation-123")
@@ -147,7 +145,6 @@ class PrecomputedConfigurationTests: XCTestCase {
     }
     
     func testDecodingWithObfuscatedData() throws {
-        // Test with MD5 hashed flag keys (obfuscated)
         let json = """
         {
             "createdAt": "MjAyNC0xMS0xOFQxNDoyMzoyNS4xMjNa",
@@ -174,7 +171,6 @@ class PrecomputedConfigurationTests: XCTestCase {
         XCTAssertEqual(config.salt, "c29kaXVtY2hsb3JpZGU=")
         XCTAssertEqual(config.flags.count, 1)
         
-        // Check the obfuscated flag exists
         let flag = config.flags["41a27b85ebdd7b1a5ae367a1a240a214"]
         XCTAssertNotNil(flag)
         XCTAssertEqual(flag?.allocationKey, "YWxsb2NhdGlvbi0xMjM=")
@@ -196,7 +192,6 @@ class PrecomputedConfigurationTests: XCTestCase {
         let decoder = JSONDecoder()
         
         XCTAssertThrowsError(try decoder.decode(PrecomputedConfiguration.self, from: data)) { error in
-            // Should fail because salt is missing
             XCTAssertTrue(error is DecodingError)
         }
     }
@@ -272,7 +267,6 @@ class PrecomputedConfigurationTests: XCTestCase {
     }
     
     func testLargeFlagConfiguration() throws {
-        // Test with many flags
         var flags: [String: PrecomputedFlag] = [:]
         for i in 1...100 {
             flags["flag\(i)"] = PrecomputedFlag(
