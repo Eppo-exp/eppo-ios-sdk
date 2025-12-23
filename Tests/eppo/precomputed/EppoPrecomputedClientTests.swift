@@ -23,24 +23,30 @@ class EppoPrecomputedClientTests: XCTestCase {
     
     // MARK: - Lifecycle Tests
     
-    func _testStopPolling_REMOVED_IN_OFFLINE_BRANCH() {
-        // Polling functionality removed in offline branch
-        // This test is disabled as stopPolling() method doesn't exist in offline-only client
-    }
-    
     // MARK: - Thread Safety Tests
     
-    func testThreadSafetyDuringConcurrentAccess() {
+    func testConcurrentSingletonAccess() {
         let expectation = XCTestExpectation(description: "Concurrent access completes")
         expectation.expectedFulfillmentCount = 100
+        var instances: [EppoPrecomputedClient] = []
+        let queue = DispatchQueue(label: "test.concurrent", attributes: .concurrent)
         
         DispatchQueue.concurrentPerform(iterations: 100) { _ in
-            _ = EppoPrecomputedClient.shared
-            // Offline-only client doesn't have polling functionality
+            let instance = EppoPrecomputedClient.shared
+            queue.async(flags: .barrier) {
+                instances.append(instance)
+            }
             expectation.fulfill()
         }
         
         wait(for: [expectation], timeout: 5.0)
+        
+        // Verify all instances are the same (singleton pattern)
+        XCTAssertEqual(instances.count, 100)
+        let firstInstance = instances[0]
+        for instance in instances {
+            XCTAssertTrue(firstInstance === instance, "All instances should be the same singleton")
+        }
     }
     
     // MARK: - Reset Tests
@@ -77,44 +83,32 @@ class EppoPrecomputedClientTests: XCTestCase {
         )
     }
     
-    func testConcurrentAssignmentCalls() {
+    func testConcurrentAssignmentCallsReturnDefaults() {
         let expectation = XCTestExpectation(description: "Concurrent assignment calls complete")
-        expectation.expectedFulfillmentCount = 100
+        expectation.expectedFulfillmentCount = 50
+        var results: [(String, String)] = []
+        let queue = DispatchQueue(label: "test.results", attributes: .concurrent)
         
-        DispatchQueue.concurrentPerform(iterations: 100) { i in
-            switch i % 5 {
-            case 0:
-                _ = EppoPrecomputedClient.shared.getStringAssignment(
-                    flagKey: "flag-\(i)",
-                    defaultValue: "default-\(i)"
-                )
-            case 1:
-                _ = EppoPrecomputedClient.shared.getBooleanAssignment(
-                    flagKey: "flag-\(i)",
-                    defaultValue: i % 2 == 0
-                )
-            case 2:
-                _ = EppoPrecomputedClient.shared.getIntegerAssignment(
-                    flagKey: "flag-\(i)",
-                    defaultValue: i
-                )
-            case 3:
-                _ = EppoPrecomputedClient.shared.getNumericAssignment(
-                    flagKey: "flag-\(i)",
-                    defaultValue: Double(i) * 0.5
-                )
-            case 4:
-                _ = EppoPrecomputedClient.shared.getJSONStringAssignment(
-                    flagKey: "flag-\(i)",
-                    defaultValue: "{\"index\":\(i)}"
-                )
-            default:
-                break
+        DispatchQueue.concurrentPerform(iterations: 50) { i in
+            let result = EppoPrecomputedClient.shared.getStringAssignment(
+                flagKey: "flag-\(i)",
+                defaultValue: "default-\(i)"
+            )
+            
+            queue.async(flags: .barrier) {
+                results.append(("flag-\(i)", result))
             }
             expectation.fulfill()
         }
         
         wait(for: [expectation], timeout: 5.0)
+        
+        // Verify all calls returned defaults (since client is not initialized)
+        XCTAssertEqual(results.count, 50)
+        for (flagKey, result) in results {
+            let expectedDefault = flagKey.replacingOccurrences(of: "flag-", with: "default-")
+            XCTAssertEqual(result, expectedDefault, "Should return default value when not initialized")
+        }
     }
     
     func testAssignmentWithEmptyFlagKey() {

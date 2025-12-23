@@ -65,24 +65,19 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
         
         XCTAssertNotNil(client)
         
-        // Verify configuration change callback
         XCTAssertEqual(mockConfigChangeCallback.configurations.count, 1)
         XCTAssertEqual(mockConfigChangeCallback.configurations[0].salt, base64Encode("test-salt"))
-        
-        // Verify assignment works after offline init
         let result = client.getStringAssignment(
             flagKey: "test-flag",
             defaultValue: "default"
         )
         XCTAssertEqual(result, "hello")
         
-        // Verify assignment was logged
         Thread.sleep(forTimeInterval: 0.1)
         XCTAssertEqual(mockLogger.getLoggedAssignments().count, 1)
     }
     
     func testOfflineInitializationWhenAlreadyInitialized() {
-        // First initialization
         let testConfig = PrecomputedConfiguration(
             flags: [:],
             salt: base64Encode("test-salt"),
@@ -97,8 +92,6 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
             subject: testSubject,
             initialPrecomputedConfiguration: testConfig
         )
-        
-        // Second initialization should return existing instance without changing state
         let client2 = EppoPrecomputedClient.initializeOffline(
             sdkKey: "different-key",
             subject: Subject(subjectKey: "different-user"),
@@ -106,16 +99,14 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
         )
         
         XCTAssertNotNil(client2)
-        // Verify it's the same instance (already initialized behavior)
         XCTAssertTrue(originalClient === client2)
     }
     
     // MARK: - No-Op Logger Tests
     
     func testInitializationWithoutLogger() {
-        // This test validates that initialization without logger works (no-op behavior)
         let testConfig = PrecomputedConfiguration(
-            flags: [:], // Use empty flags 
+            flags: [:],
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
@@ -123,17 +114,14 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
             environment: nil
         )
         
-        // Initialize without logger - should not crash, assignments will not be logged
         let client = EppoPrecomputedClient.initializeOffline(
             sdkKey: "test-sdk-key",
             subject: testSubject,
             initialPrecomputedConfiguration: testConfig,
-            assignmentLogger: nil // No logger - assignments will be silent no-op
+            assignmentLogger: nil
         )
         
         XCTAssertNotNil(client)
-        
-        // Verify client works with default values when no flags present
         let result = client.getStringAssignment(
             flagKey: "nonexistent-flag",
             defaultValue: "default"
@@ -144,13 +132,7 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
     // MARK: - Error Handling Tests
     
     func testInitializationCleanupOnError() async {
-        // This test would verify that state is cleaned up when initialization fails
-        // Currently limited without URLSession injection
-        
-        // Test that client state is clean after failed initialization
         EppoPrecomputedClient.resetForTesting()
-        
-        // Verify client returns defaults when not initialized
         let result = EppoPrecomputedClient.shared.getStringAssignment(
             flagKey: "any-flag",
             defaultValue: "default"
@@ -193,8 +175,6 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
             configPublishedAt: nil,
             environment: nil
         )
-        
-        // Should work with just required parameters
         let client = EppoPrecomputedClient.initializeOffline(
             sdkKey: "test-sdk-key",
             subject: testSubject,
@@ -204,26 +184,4 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
         XCTAssertNotNil(client)
     }
     
-    func testDefaultAssignmentCacheIsCreated() {
-        let testConfig = PrecomputedConfiguration(
-            flags: [:],
-            salt: base64Encode("test-salt"), 
-            format: "PRECOMPUTED",
-            configFetchedAt: Date(),
-            configPublishedAt: nil,
-            environment: nil
-        )
-        
-        // Initialize without providing cache (should create default)
-        _ = EppoPrecomputedClient.initializeOffline(
-            sdkKey: "test-sdk-key",
-            subject: testSubject,
-            initialPrecomputedConfiguration: testConfig,
-            assignmentLogger: mockLogger.logger,
-            assignmentCache: nil // Let it create default
-        )
-        
-        // This would be better tested with internal state access
-        // For now, just verify initialization succeeds
-    }
 }

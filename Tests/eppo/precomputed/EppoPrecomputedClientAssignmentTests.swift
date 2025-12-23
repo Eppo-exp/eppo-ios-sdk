@@ -68,9 +68,7 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
             subjectAttributes: ["age": EppoValue(value: 25)]
         )
         
-        // Create test configuration with various flag types
         let testFlags: [String: PrecomputedFlag] = [
-            // String flag - hashed key for "string-flag" with salt "test-salt"
             getMD5Hex("string-flag", salt: "test-salt"): PrecomputedFlag(
                 allocationKey: base64Encode("allocation-1"),
                 variationKey: base64Encode("variant-a"),
@@ -83,7 +81,6 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
                 doLog: true
             ),
             
-            // Boolean flag - hashed key for "bool-flag" with salt "test-salt"
             getMD5Hex("bool-flag", salt: "test-salt"): PrecomputedFlag(
                 allocationKey: base64Encode("allocation-2"),
                 variationKey: base64Encode("variant-b"),
@@ -93,17 +90,15 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
                 doLog: true
             ),
             
-            // Integer flag - hashed key for "int-flag" with salt "test-salt"
             getMD5Hex("int-flag", salt: "test-salt"): PrecomputedFlag(
                 allocationKey: base64Encode("allocation-3"),
                 variationKey: base64Encode("variant-c"),
                 variationType: .INTEGER,
-                variationValue: EppoValue(value: 42.0), // Stored as Double
+                variationValue: EppoValue(value: 42.0),
                 extraLogging: [:],
                 doLog: true
             ),
             
-            // Numeric flag - hashed key for "numeric-flag" with salt "test-salt"
             getMD5Hex("numeric-flag", salt: "test-salt"): PrecomputedFlag(
                 allocationKey: base64Encode("allocation-4"),
                 variationKey: base64Encode("variant-d"),
@@ -113,7 +108,6 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
                 doLog: true
             ),
             
-            // JSON flag - hashed key for "json-flag" with salt "test-salt"
             getMD5Hex("json-flag", salt: "test-salt"): PrecomputedFlag(
                 allocationKey: base64Encode("allocation-5"),
                 variationKey: base64Encode("variant-e"),
@@ -123,7 +117,6 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
                 doLog: true
             ),
             
-            // Flag with doLog = false
             getMD5Hex("no-log-flag", salt: "test-salt"): PrecomputedFlag(
                 allocationKey: base64Encode("allocation-6"),
                 variationKey: base64Encode("variant-f"),
@@ -133,7 +126,6 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
                 doLog: false
             ),
             
-            // Type mismatch flag (BOOLEAN type but STRING value)
             getMD5Hex("type-mismatch-flag", salt: "test-salt"): PrecomputedFlag(
                 allocationKey: base64Encode("allocation-7"),
                 variationKey: base64Encode("variant-g"),
@@ -153,7 +145,6 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
             environment: Environment(name: "test")
         )
         
-        // Initialize configuration store
         configStore = PrecomputedConfigurationStore()
         configStore.setConfiguration(testConfiguration)
     }
@@ -247,7 +238,6 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
             defaultValue: "default"
         )
         
-        // Wait a bit for async logging
         Thread.sleep(forTimeInterval: 0.1)
         
         let logged = mockLogger.getLoggedAssignments()
@@ -322,7 +312,6 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
     // MARK: - Edge Cases and Error Handling
     
     func testAssignmentWithoutInitialization() {
-        // Don't initialize the client
         let result = EppoPrecomputedClient.shared.getStringAssignment(
             flagKey: "string-flag",
             defaultValue: "default"
@@ -372,11 +361,9 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
         
         wait(for: [expectation], timeout: 5.0)
         
-        // Wait for logging to complete
         Thread.sleep(forTimeInterval: 0.2)
         
         let logged = mockLogger.getLoggedAssignments()
-        // Should have only 2 unique assignments due to deduplication
         XCTAssertEqual(logged.count, 2)
     }
 }
