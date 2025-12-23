@@ -172,35 +172,29 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
     func testAllAssignmentTypes() {
         initializeClient()
         
-        // Test string assignment
         let stringResult = EppoPrecomputedClient.shared.getStringAssignment(
             flagKey: "string-flag",
             defaultValue: "default"
         )
         XCTAssertEqual(stringResult, "hello world")
         
-        // Test boolean assignment
         let boolResult = EppoPrecomputedClient.shared.getBooleanAssignment(
             flagKey: "bool-flag",
             defaultValue: false
         )
         XCTAssertTrue(boolResult)
         
-        // Test integer assignment
         let intResult = EppoPrecomputedClient.shared.getIntegerAssignment(
             flagKey: "int-flag",
             defaultValue: 0
         )
         XCTAssertEqual(intResult, 42)
         
-        // Test numeric assignment
         let numericResult = EppoPrecomputedClient.shared.getNumericAssignment(
             flagKey: "numeric-flag",
             defaultValue: 0.0
         )
         XCTAssertEqual(numericResult, 3.14159, accuracy: 0.00001)
-        
-        // Test JSON assignment
         let jsonResult = EppoPrecomputedClient.shared.getJSONStringAssignment(
             flagKey: "json-flag",
             defaultValue: "{}"
@@ -218,7 +212,7 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
             flagKey: "type-mismatch-flag",
             defaultValue: true
         )
-        XCTAssertTrue(boolResult) // Should return default
+        XCTAssertTrue(boolResult)
         
         // Try to get string value from boolean flag
         let stringResult = EppoPrecomputedClient.shared.getStringAssignment(
@@ -260,7 +254,6 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
             defaultValue: "default"
         )
         
-        // Wait a bit for potential async logging
         Thread.sleep(forTimeInterval: 0.1)
         
         let logged = mockLogger.getLoggedAssignments()
@@ -270,7 +263,6 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
     func testAssignmentDeduplication() {
         initializeClient()
         
-        // Get the same assignment multiple times
         for _ in 0..<5 {
             _ = EppoPrecomputedClient.shared.getStringAssignment(
                 flagKey: "string-flag",
@@ -278,7 +270,6 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
             )
         }
         
-        // Wait a bit for async logging
         Thread.sleep(forTimeInterval: 0.1)
         
         let logged = mockLogger.getLoggedAssignments()
@@ -330,8 +321,6 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
         
         XCTAssertEqual(result, "default")
     }
-    
-    
     
     // MARK: - Concurrent Access Tests
     

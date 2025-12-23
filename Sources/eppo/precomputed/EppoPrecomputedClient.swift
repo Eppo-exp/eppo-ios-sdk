@@ -96,9 +96,6 @@ public class EppoPrecomputedClient {
         
     }
     
-    // MARK: - Configuration Management
-    
-    
     // MARK: - Lifecycle Management
     
     /// Resets the client state (useful for testing)
@@ -109,7 +106,6 @@ public class EppoPrecomputedClient {
             sharedInstance = nil
         }
     }
-    
     
     // MARK: - Assignment Methods (synchronous, type-specific)
     
@@ -245,7 +241,6 @@ public class EppoPrecomputedClient {
     }
     
     // MARK: - Assignment Logging
-    
     
     private func logAssignment(
         flagKey: String,

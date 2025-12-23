@@ -21,8 +21,6 @@ class EppoPrecomputedClientTests: XCTestCase {
         XCTAssertNotNil(EppoPrecomputedClient.shared)
     }
     
-    // MARK: - Lifecycle Tests
-    
     // MARK: - Thread Safety Tests
     
     func testConcurrentSingletonAccess() {
@@ -41,7 +39,6 @@ class EppoPrecomputedClientTests: XCTestCase {
         
         wait(for: [expectation], timeout: 5.0)
         
-        // Verify all instances are the same (singleton pattern)
         XCTAssertEqual(instances.count, 100)
         let firstInstance = instances[0]
         for instance in instances {
@@ -52,16 +49,11 @@ class EppoPrecomputedClientTests: XCTestCase {
     // MARK: - Reset Tests
     
     func testResetForTesting() {
-        // This method is internal and used for testing
-        // Ensure it doesn't crash and properly resets state
         EppoPrecomputedClient.resetForTesting()
-        
-        // Verify we can still access the singleton after reset
         XCTAssertNotNil(EppoPrecomputedClient.shared)
     }
     
     func testMultipleResets() {
-        // Ensure multiple resets don't cause issues
         for _ in 0..<5 {
             EppoPrecomputedClient.resetForTesting()
         }
@@ -72,7 +64,6 @@ class EppoPrecomputedClientTests: XCTestCase {
     // MARK: - Assignment Method Tests
     
     func testAssignmentMethodsReturnDefaultsWhenNotInitialized() {
-        // Test that assignment methods return default values when client is not initialized
         XCTAssertEqual(
             EppoPrecomputedClient.shared.getStringAssignment(flagKey: "test-flag", defaultValue: "default"),
             "default"
@@ -103,7 +94,6 @@ class EppoPrecomputedClientTests: XCTestCase {
         
         wait(for: [expectation], timeout: 5.0)
         
-        // Verify all calls returned defaults (since client is not initialized)
         XCTAssertEqual(results.count, 50)
         for (flagKey, result) in results {
             let expectedDefault = flagKey.replacingOccurrences(of: "flag-", with: "default-")
