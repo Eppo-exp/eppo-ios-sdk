@@ -33,6 +33,19 @@ public struct PrecomputedConfiguration: Codable {
         self.environment = environment
     }
     
+    public init(precomputedConfigurationJson: Data) throws {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let decoded = try decoder.decode(PrecomputedConfiguration.self, from: precomputedConfigurationJson)
+        
+        self.flags = decoded.flags
+        self.salt = decoded.salt
+        self.format = decoded.format
+        self.configFetchedAt = Date() // Always use current time when parsing
+        self.configPublishedAt = decoded.configPublishedAt
+        self.environment = decoded.environment
+    }
+    
     private enum CodingKeys: String, CodingKey {
         case flags
         case salt

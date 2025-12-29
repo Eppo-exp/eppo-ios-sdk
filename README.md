@@ -97,6 +97,25 @@ As modern iOS devices have substantial memory, applications are often kept in me
 
 It is recommended to use the `load()` method to fetch the latest flag configurations when the application is launched.
 
+#### Precomputed Client (Offline-First)
+
+For applications that need to work entirely offline or with precomputed flag values, use the `EppoPrecomputedClient`:
+
+```swift
+let client = EppoPrecomputedClient.initializeOffline(
+    sdkKey: "SDK-KEY-FROM-DASHBOARD", 
+    subject: Subject(subjectKey: "user-123", subjectAttributes: ["age": EppoValue(value: 25)]),
+    initialPrecomputedConfiguration: try PrecomputedConfiguration(
+        precomputedConfigurationJson: Data(#"{ "precomputed-JSON": "from server or embedded" }"#.utf8)
+    )
+);
+
+// Direct assignment without network dependency
+let assignment = client.getStringAssignment(flagKey: "feature-flag", defaultValue: "default");
+```
+
+The precomputed client is designed for scenarios where flag values are pre-calculated and embedded in the app, eliminating the need for network requests during assignment evaluation.
+
 #### Assign anywhere
 
 Assignment is a synchronous operation.

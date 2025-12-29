@@ -144,6 +144,52 @@ class PrecomputedConfigurationTests: XCTestCase {
         XCTAssertFalse(boolFlag?.doLog ?? true)
     }
     
+    func testJSONConvenienceInitializer() throws {
+        let json = """
+        {
+            "createdAt": "2024-11-18T14:23:25.123Z",
+            "format": "PRECOMPUTED",
+            "salt": "dGVzdC1zYWx0",
+            "environment": {
+                "name": "Production"
+            },
+            "flags": {
+                "test-flag": {
+                    "allocationKey": "YWxsb2NhdGlvbi0xMjM=",
+                    "variationKey": "dmFyaWF0aW9uLTEyMw==",
+                    "variationType": "STRING",
+                    "variationValue": "dGVzdC12YWx1ZQ==",
+                    "extraLogging": {},
+                    "doLog": true
+                }
+            }
+        }
+        """
+        
+        let jsonData = json.data(using: .utf8)!
+        let config = try PrecomputedConfiguration(precomputedConfigurationJson: jsonData)
+        
+        XCTAssertEqual(config.salt, "dGVzdC1zYWx0")
+        XCTAssertEqual(config.format, "PRECOMPUTED")
+        XCTAssertEqual(config.environment?.name, "Production")
+        XCTAssertEqual(config.flags.count, 1)
+        XCTAssertNotNil(config.configFetchedAt) // Should be set to current time
+        
+        let testFlag = config.flags["test-flag"]
+        XCTAssertNotNil(testFlag)
+        XCTAssertEqual(testFlag?.allocationKey, "YWxsb2NhdGlvbi0xMjM=")
+        XCTAssertEqual(testFlag?.variationType, .STRING)
+        XCTAssertTrue(testFlag?.doLog ?? false)
+    }
+    
+    func testJSONConvenienceInitializerWithInvalidJSON() {
+        let invalidJSON = "{ invalid json }"
+        let jsonData = invalidJSON.data(using: .utf8)!
+        
+        XCTAssertThrowsError(try PrecomputedConfiguration(precomputedConfigurationJson: jsonData)) { error in
+            XCTAssertTrue(error is DecodingError)
+        }
+    }
     
     // MARK: - Salt Validation Tests
     
