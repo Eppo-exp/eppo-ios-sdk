@@ -24,7 +24,6 @@ public class EppoPrecomputedClient {
         }
     }
     
-    private let accessQueue = DispatchQueue(label: "cloud.eppo.precomputed.access", qos: .userInitiated)
     private var configurationStore: PrecomputedConfigurationStore?
     private var subject: Subject?
     private var assignmentLogger: AssignmentLogger?
@@ -49,7 +48,7 @@ public class EppoPrecomputedClient {
         withPersistentCache: Bool = true,
         configurationChangeCallback: ConfigurationChangeCallback? = nil
     ) -> EppoPrecomputedClient {
-        let result = shared.accessQueue.sync(flags: .barrier) { () -> EppoPrecomputedClient in
+        let result = Self.sharedLock.withLock { () -> EppoPrecomputedClient in
                 guard !initialized else {
                 return shared
             }
@@ -73,27 +72,8 @@ public class EppoPrecomputedClient {
             return shared
         }
         
-        // Flush queued assignments OUTSIDE the sync block to prevent crashes
-        // This matches the safer pattern used in initializeForTesting()
         
         return result
-    }
-    
-    /// Temporary initialization for testing
-    internal static func initializeForTesting(
-        configurationStore: PrecomputedConfigurationStore,
-        subject: Subject,
-        assignmentLogger: AssignmentLogger? = nil,
-        assignmentCache: AssignmentCache? = nil
-    ) {
-        shared.accessQueue.sync(flags: .barrier) {
-            shared.configurationStore = configurationStore
-            shared.subject = subject
-            shared.assignmentLogger = assignmentLogger
-            shared.assignmentCache = assignmentCache
-            initialized = true
-        }
-        
     }
     
     // MARK: - Lifecycle Management
@@ -110,33 +90,23 @@ public class EppoPrecomputedClient {
     // MARK: - Assignment Methods (synchronous, type-specific)
     
     public func getStringAssignment(flagKey: String, defaultValue: String) -> String {
-        return accessQueue.sync {
-            return getPrecomputedAssignment(flagKey: flagKey, defaultValue: defaultValue, expectedType: .STRING)
-        }
+        return getPrecomputedAssignment(flagKey: flagKey, defaultValue: defaultValue, expectedType: .STRING)
     }
     
     public func getBooleanAssignment(flagKey: String, defaultValue: Bool) -> Bool {
-        return accessQueue.sync {
-            return getPrecomputedAssignment(flagKey: flagKey, defaultValue: defaultValue, expectedType: .BOOLEAN)
-        }
+        return getPrecomputedAssignment(flagKey: flagKey, defaultValue: defaultValue, expectedType: .BOOLEAN)
     }
     
     public func getIntegerAssignment(flagKey: String, defaultValue: Int) -> Int {
-        return accessQueue.sync {
-            return getPrecomputedAssignment(flagKey: flagKey, defaultValue: defaultValue, expectedType: .INTEGER)
-        }
+        return getPrecomputedAssignment(flagKey: flagKey, defaultValue: defaultValue, expectedType: .INTEGER)
     }
     
     public func getNumericAssignment(flagKey: String, defaultValue: Double) -> Double {
-        return accessQueue.sync {
-            return getPrecomputedAssignment(flagKey: flagKey, defaultValue: defaultValue, expectedType: .NUMERIC)
-        }
+        return getPrecomputedAssignment(flagKey: flagKey, defaultValue: defaultValue, expectedType: .NUMERIC)
     }
     
     public func getJSONStringAssignment(flagKey: String, defaultValue: String) -> String {
-        return accessQueue.sync {
-            return getPrecomputedAssignment(flagKey: flagKey, defaultValue: defaultValue, expectedType: .JSON)
-        }
+        return getPrecomputedAssignment(flagKey: flagKey, defaultValue: defaultValue, expectedType: .JSON)
     }
     
     // MARK: - Internal Assignment Logic

@@ -56,7 +56,7 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
         )
         
         let client = EppoPrecomputedClient.initializeOffline(
-            sdkKey: "test-sdk-key",
+            sdkKey: "mock-api-key",
             subject: testSubject,
             initialPrecomputedConfiguration: testConfig,
             assignmentLogger: mockLogger.logger,
@@ -88,7 +88,7 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
         )
         
         let originalClient = EppoPrecomputedClient.initializeOffline(
-            sdkKey: "test-sdk-key",
+            sdkKey: "mock-api-key",
             subject: testSubject,
             initialPrecomputedConfiguration: testConfig
         )
@@ -115,7 +115,7 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
         )
         
         let client = EppoPrecomputedClient.initializeOffline(
-            sdkKey: "test-sdk-key",
+            sdkKey: "mock-api-key",
             subject: testSubject,
             initialPrecomputedConfiguration: testConfig,
             assignmentLogger: nil
@@ -153,7 +153,7 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
         )
         
         _ = EppoPrecomputedClient.initializeOffline(
-            sdkKey: "test-sdk-key",
+            sdkKey: "mock-api-key",
             subject: testSubject,
             initialPrecomputedConfiguration: testConfig,
             configurationChangeCallback: mockConfigChangeCallback.callback
@@ -176,7 +176,7 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
             environment: nil
         )
         let client = EppoPrecomputedClient.initializeOffline(
-            sdkKey: "test-sdk-key",
+            sdkKey: "mock-api-key",
             subject: testSubject,
             initialPrecomputedConfiguration: testConfig
         )

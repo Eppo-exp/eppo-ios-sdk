@@ -159,9 +159,10 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
     // MARK: - Test helpers
     
     private func initializeClient() {
-        EppoPrecomputedClient.initializeForTesting(
-            configurationStore: configStore,
+        _ = EppoPrecomputedClient.initializeOffline(
+            sdkKey: "mock-api-key",
             subject: testSubject,
+            initialPrecomputedConfiguration: testConfiguration,
             assignmentLogger: mockLogger.logger,
             assignmentCache: mockCache
         )
@@ -277,12 +278,12 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
     }
     
     func testAssignmentLoggingWithoutCache() {
-        // Initialize without cache
-        EppoPrecomputedClient.initializeForTesting(
-            configurationStore: configStore,
+        _ = EppoPrecomputedClient.initializeOffline(
+            sdkKey: "mock-api-key",
             subject: testSubject,
+            initialPrecomputedConfiguration: testConfiguration,
             assignmentLogger: mockLogger.logger,
-            assignmentCache: nil // No cache
+            assignmentCache: nil
         )
         
         // Get the same assignment multiple times
