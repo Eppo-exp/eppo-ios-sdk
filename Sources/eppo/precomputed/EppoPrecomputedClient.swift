@@ -10,8 +10,7 @@ public class EppoPrecomputedClient {
     }
     private static let sharedLock = NSLock()
     private static var sharedInstance: EppoPrecomputedClient?
-    private static var initialized = false
-    private static var initializing = false
+    private static let initializerQueue = DispatchQueue(label: "cloud.eppo.precomputed.initializer")
     
     public static var shared: EppoPrecomputedClient {
         sharedLock.withLock {
@@ -31,9 +30,6 @@ public class EppoPrecomputedClient {
     
     private var sdkKey: String?
     private var configurationChangeCallback: ConfigurationChangeCallback?
-    private var isInitialized: Bool {
-        return Self.sharedLock.withLock { Self.initialized }
-    }
     
     private init() {}
     
@@ -49,40 +45,44 @@ public class EppoPrecomputedClient {
         configurationChangeCallback: ConfigurationChangeCallback? = nil
     ) -> EppoPrecomputedClient {
         let result = Self.sharedLock.withLock { () -> EppoPrecomputedClient in
-                guard !initialized else {
-                return shared
+            if let instance = sharedInstance {
+                return instance
             }
             
-            shared.sdkKey = sdkKey
-            shared.subject = subject
-            shared.assignmentLogger = assignmentLogger
-            shared.assignmentCache = assignmentCache
-            shared.configurationChangeCallback = configurationChangeCallback
-            
+            let instance = EppoPrecomputedClient()
+            instance.sdkKey = sdkKey
+            instance.subject = subject
+            instance.assignmentLogger = assignmentLogger
+            instance.assignmentCache = assignmentCache
             let store = PrecomputedConfigurationStore()
             store.setConfiguration(initialPrecomputedConfiguration)
-            shared.configurationStore = store
+            instance.configurationStore = store
             
-            // Notify configuration change callback
-            configurationChangeCallback?(initialPrecomputedConfiguration)
+            instance.configurationChangeCallback = configurationChangeCallback
+            instance.notifyConfigurationChange(initialPrecomputedConfiguration)
             
-            // Mark as initialized but DO NOT flush queued assignments inside sync block
-            initialized = true
-            
-            return shared
+            sharedInstance = instance
+            return instance
         }
-        
         
         return result
     }
     
     // MARK: - Lifecycle Management
     
+    /// Sets the configuration change callback
+    public func onConfigurationChange(_ callback: @escaping ConfigurationChangeCallback) {
+        configurationChangeCallback = callback
+    }
+    
+    /// Notifies the registered callback when configuration changes
+    private func notifyConfigurationChange(_ configuration: PrecomputedConfiguration) {
+        configurationChangeCallback?(configuration)
+    }
+    
     /// Resets the client state (useful for testing)
     public static func resetForTesting() {
         sharedLock.withLock {
-            initialized = false
-            initializing = false
             sharedInstance = nil
         }
     }
@@ -116,9 +116,7 @@ public class EppoPrecomputedClient {
         defaultValue: T,
         expectedType: VariationType
     ) -> T {
-        let isInitialized = Self.sharedLock.withLock { Self.initialized }
-        guard isInitialized,
-              let store = configurationStore,
+        guard let store = configurationStore,
               store.isInitialized() else {
             return defaultValue
         }

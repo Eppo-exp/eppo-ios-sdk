@@ -196,6 +196,7 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
             defaultValue: 0.0
         )
         XCTAssertEqual(numericResult, 3.14159, accuracy: 0.00001)
+        
         let jsonResult = EppoPrecomputedClient.shared.getJSONStringAssignment(
             flagKey: "json-flag",
             defaultValue: "{}"
