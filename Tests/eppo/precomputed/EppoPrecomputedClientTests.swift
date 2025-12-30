@@ -94,6 +94,9 @@ class EppoPrecomputedClientTests: XCTestCase {
         
         wait(for: [expectation], timeout: 5.0)
         
+        // Ensure all barrier operations complete before asserting
+        queue.sync(flags: .barrier) {}
+        
         XCTAssertEqual(results.count, 50)
         for (flagKey, result) in results {
             let expectedDefault = flagKey.replacingOccurrences(of: "flag-", with: "default-")
