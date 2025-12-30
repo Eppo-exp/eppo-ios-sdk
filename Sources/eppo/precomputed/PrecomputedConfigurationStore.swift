@@ -77,10 +77,12 @@ class PrecomputedConfigurationStore {
         }
         
         Self.persistenceQueue.sync {
-            do {
-                try FileManager.default.removeItem(at: cacheFileURL)
-            } catch {
-                print("Error removing precomputed cache file: \(error)")
+            if FileManager.default.fileExists(atPath: cacheFileURL.path) {
+                do {
+                    try FileManager.default.removeItem(at: cacheFileURL)
+                } catch {
+                    print("Error removing precomputed cache file: \(error)")
+                }
             }
         }
     }
@@ -131,13 +133,17 @@ class PrecomputedConfigurationStore {
             return nil
         }
         
+        guard FileManager.default.fileExists(atPath: cacheFileURL.path) else {
+            return nil
+        }
+        
         do {
             let data = try Data(contentsOf: cacheFileURL)
             let decoder = JSONDecoder()
             let config = try decoder.decode(PrecomputedConfiguration.self, from: data)
             return config
         } catch {
-            print("No precomputed configuration found on disk or error decoding: \(error)")
+            print("Error decoding precomputed configuration from disk: \(error)")
             return nil
         }
     }
