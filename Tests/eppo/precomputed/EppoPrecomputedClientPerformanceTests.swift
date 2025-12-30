@@ -38,7 +38,7 @@ class EppoPrecomputedClientPerformanceTests: XCTestCase {
         
         // Measure single assignment performance
         measure {
-            _ = EppoPrecomputedClient.shared.getStringAssignment(
+            _ = try! EppoPrecomputedClient.shared().getStringAssignment(
                 flagKey: "flag-50", // Pick a flag in the middle
                 defaultValue: "default"
             )
@@ -61,7 +61,7 @@ class EppoPrecomputedClientPerformanceTests: XCTestCase {
         
         for i in 0..<iterations {
             let flagKey = "flag-\(i % 500)" // Cycle through available flags
-            _ = EppoPrecomputedClient.shared.getStringAssignment(
+            _ = try! EppoPrecomputedClient.shared().getStringAssignment(
                 flagKey: flagKey,
                 defaultValue: "default"
             )
@@ -93,11 +93,11 @@ class EppoPrecomputedClientPerformanceTests: XCTestCase {
         let startTime = CFAbsoluteTimeGetCurrent()
         
         // Launch multiple concurrent assignment threads
-        for threadIndex in 0..<10 {
+        for _ in 0..<10 {
             DispatchQueue.global(qos: .userInitiated).async {
                 for i in 0..<100 {
                     let flagKey = "flag-\(i % 200)"
-                    _ = EppoPrecomputedClient.shared.getStringAssignment(
+                    _ = try! EppoPrecomputedClient.shared().getStringAssignment(
                         flagKey: flagKey,
                         defaultValue: "default"
                     )
@@ -136,7 +136,7 @@ class EppoPrecomputedClientPerformanceTests: XCTestCase {
         // Perform many assignments to stress test memory
         for i in 0..<1000 {
             let flagKey = "flag-\(i)"
-            _ = EppoPrecomputedClient.shared.getStringAssignment(
+            _ = try! EppoPrecomputedClient.shared().getStringAssignment(
                 flagKey: flagKey,
                 defaultValue: "default"
             )
@@ -198,27 +198,27 @@ class EppoPrecomputedClientPerformanceTests: XCTestCase {
             
             switch i % 5 {
             case 0:
-                _ = EppoPrecomputedClient.shared.getStringAssignment(
+                _ = try! EppoPrecomputedClient.shared().getStringAssignment(
                     flagKey: "string-flag-\(flagIndex)",
                     defaultValue: "default"
                 )
             case 1:
-                _ = EppoPrecomputedClient.shared.getBooleanAssignment(
+                _ = try! EppoPrecomputedClient.shared().getBooleanAssignment(
                     flagKey: "boolean-flag-\(flagIndex)",
                     defaultValue: false
                 )
             case 2:
-                _ = EppoPrecomputedClient.shared.getIntegerAssignment(
+                _ = try! EppoPrecomputedClient.shared().getIntegerAssignment(
                     flagKey: "integer-flag-\(flagIndex)",
                     defaultValue: 0
                 )
             case 3:
-                _ = EppoPrecomputedClient.shared.getNumericAssignment(
+                _ = try! EppoPrecomputedClient.shared().getNumericAssignment(
                     flagKey: "numeric-flag-\(flagIndex)",
                     defaultValue: 0.0
                 )
             case 4:
-                _ = EppoPrecomputedClient.shared.getJSONStringAssignment(
+                _ = try! EppoPrecomputedClient.shared().getJSONStringAssignment(
                     flagKey: "json-flag-\(flagIndex)",
                     defaultValue: "{}"
                 )

@@ -142,12 +142,15 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
             XCTAssertNotNil(error)
         }
         
-        // Verify client is not initialized
-        let result = EppoPrecomputedClient.shared.getStringAssignment(
-            flagKey: "test-flag",
-            defaultValue: "default"
-        )
-        XCTAssertEqual(result, "default")
+        // Verify that despite network failure, an offline instance was created  
+        // (initialize() calls initializeOffline() first, then tries to load config)
+        do {
+            let instance = try EppoPrecomputedClient.shared()
+            XCTAssertNotNil(instance)
+            // Instance exists but has no network configuration loaded
+        } catch {
+            XCTFail("Instance should exist after offline initialization, even if network load failed: \(error)")
+        }
     }
     
     func testInitializationFailsOnTimeout() async {
@@ -273,7 +276,7 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
         )
         
         // Should return assignment value despite invalid logging data
-        let result = EppoPrecomputedClient.shared.getStringAssignment(
+        let result = try! EppoPrecomputedClient.shared().getStringAssignment(
             flagKey: "corrupt-flag",
             defaultValue: "default"
         )
@@ -310,7 +313,7 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
         )
         
         // Should return default when type conversion fails
-        let result = EppoPrecomputedClient.shared.getIntegerAssignment(
+        let result = try! EppoPrecomputedClient.shared().getIntegerAssignment(
             flagKey: "type-mismatch-flag",
             defaultValue: 42
         )
@@ -369,7 +372,7 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
         
         let results = await collector.getResults()
         
-        // Only one should succeed, others should get already initialized error
+        // All should succeed and return the same instance (like regular EppoClient)
         let successes = results.compactMap { try? $0.get() }
         let failures = results.compactMap { 
             switch $0 {
@@ -380,16 +383,13 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
             }
         }
         
-        XCTAssertEqual(successes.count, 1)
-        XCTAssertEqual(failures.count, 4)
+        XCTAssertEqual(successes.count, 5, "All concurrent initialization attempts should succeed")
+        XCTAssertEqual(failures.count, 0, "No failures should occur with concurrent initialization")
         
-        // Verify all failures are "already initialized" errors
-        for error in failures {
-            if let initError = error as? EppoPrecomputedClient.InitializationError {
-                XCTAssertEqual(initError, .alreadyInitialized)
-            } else {
-                XCTFail("Unexpected error type: \(error)")
-            }
+        // Verify all successes return the same instance
+        let firstInstance = successes[0]
+        for instance in successes {
+            XCTAssertTrue(firstInstance === instance, "All instances should be the same singleton")
         }
     }
     
@@ -427,7 +427,7 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
             assignmentLogger: testLogger.logger
         )
         
-        let result = EppoPrecomputedClient.shared.getStringAssignment(
+        let result = try! EppoPrecomputedClient.shared().getStringAssignment(
             flagKey: "test-flag",
             defaultValue: "default"
         )
@@ -464,7 +464,7 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
         )
         
         // Should handle empty flag key gracefully
-        let result = EppoPrecomputedClient.shared.getStringAssignment(
+        let result = try! EppoPrecomputedClient.shared().getStringAssignment(
             flagKey: "",
             defaultValue: "default"
         )
@@ -501,7 +501,7 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
             initialPrecomputedConfiguration: testConfig
         )
         
-        let result = EppoPrecomputedClient.shared.getStringAssignment(
+        let result = try! EppoPrecomputedClient.shared().getStringAssignment(
             flagKey: "empty-extra-flag",
             defaultValue: "default"
         )
@@ -557,7 +557,7 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
         // Test assignment performance - restore original scope
         let assignmentStart = Date()
         for i in 0..<100 {
-            _ = EppoPrecomputedClient.shared.getStringAssignment(
+            _ = try! EppoPrecomputedClient.shared().getStringAssignment(
                 flagKey: "flag-\(i)",
                 defaultValue: "default"
             )
@@ -611,7 +611,7 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
         )
         
         // Should still return correct value even with failing cache
-        let result = EppoPrecomputedClient.shared.getStringAssignment(
+        let result = try! EppoPrecomputedClient.shared().getStringAssignment(
             flagKey: "cache-test-flag",
             defaultValue: "default"
         )

@@ -88,18 +88,29 @@ class PrecomputedRequestorRetryTests: XCTestCase {
     // MARK: - Retry Logic Tests
     
     func testCalculateRetryDelay() {
-        // Test exponential backoff calculation
-        let delay0 = requestor.calculateRetryDelay(attempt: 0)
-        let delay1 = requestor.calculateRetryDelay(attempt: 1)
-        let delay2 = requestor.calculateRetryDelay(attempt: 2)
+        // Test exponential backoff calculation with multiple samples to account for jitter
+        var delay0Samples: [TimeInterval] = []
+        var delay1Samples: [TimeInterval] = []
+        var delay2Samples: [TimeInterval] = []
         
-        // Verify exponential growth (accounting for jitter)
-        XCTAssertGreaterThan(delay1, delay0 * 1.5) // At least 1.5x growth
-        XCTAssertGreaterThan(delay2, delay1 * 1.5)
+        // Take multiple samples to get reliable statistics despite jitter
+        for _ in 0..<10 {
+            delay0Samples.append(requestor.calculateRetryDelay(attempt: 0))
+            delay1Samples.append(requestor.calculateRetryDelay(attempt: 1))
+            delay2Samples.append(requestor.calculateRetryDelay(attempt: 2))
+        }
         
-        // Verify jitter is applied
-        let delay1Again = requestor.calculateRetryDelay(attempt: 1)
-        XCTAssertNotEqual(delay1, delay1Again, "Jitter should make delays different")
+        let avgDelay0 = delay0Samples.reduce(0, +) / Double(delay0Samples.count)
+        let avgDelay1 = delay1Samples.reduce(0, +) / Double(delay1Samples.count)
+        let avgDelay2 = delay2Samples.reduce(0, +) / Double(delay2Samples.count)
+        
+        // Verify exponential growth on average (accounting for ±25% jitter)
+        XCTAssertGreaterThan(avgDelay1, avgDelay0 * 1.5, "Average delay1 should be > 1.5x delay0")
+        XCTAssertGreaterThan(avgDelay2, avgDelay1 * 1.5, "Average delay2 should be > 1.5x delay1")
+        
+        // Verify jitter is applied by checking variance
+        let hasVariance = Set(delay1Samples).count > 1
+        XCTAssertTrue(hasVariance, "Jitter should make delays different")
         
         // Verify cap at 60 seconds
         let delayLarge = requestor.calculateRetryDelay(attempt: 10)

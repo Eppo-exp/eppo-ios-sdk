@@ -174,6 +174,11 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
     
     private func initializeClient() {
         _ = EppoPrecomputedClient.initializeOffline(
+            sdkKey: "mock-api-key",
+            subject: Subject(
+                subjectKey: testSubjectKey,
+                subjectAttributes: testSubjectAttributes
+            ),
             initialPrecomputedConfiguration: testConfiguration,
             assignmentLogger: mockLogger.logger,
             assignmentCache: mockCache
@@ -299,6 +304,11 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
     
     func testAssignmentLoggingWithoutCache() throws {
         _ = EppoPrecomputedClient.initializeOffline(
+            sdkKey: "mock-api-key",
+            subject: Subject(
+                subjectKey: testSubjectKey,
+                subjectAttributes: testSubjectAttributes
+            ),
             initialPrecomputedConfiguration: testConfiguration,
             assignmentLogger: mockLogger.logger,
             assignmentCache: nil

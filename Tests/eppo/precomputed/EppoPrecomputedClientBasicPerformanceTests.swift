@@ -35,7 +35,7 @@ class EppoPrecomputedClientBasicPerformanceTests: XCTestCase {
         
         for i in 0..<iterations {
             let flagKey = "flag-\(i % 10)" // Cycle through available flags
-            _ = EppoPrecomputedClient.shared.getStringAssignment(
+            _ = try! EppoPrecomputedClient.shared().getStringAssignment(
                 flagKey: flagKey,
                 defaultValue: "default"
             )
@@ -67,7 +67,7 @@ class EppoPrecomputedClientBasicPerformanceTests: XCTestCase {
         
         for i in 0..<iterations {
             let flagKey = "flag-\(i % 50)"
-            _ = EppoPrecomputedClient.shared.getStringAssignment(
+            _ = try! EppoPrecomputedClient.shared().getStringAssignment(
                 flagKey: flagKey,
                 defaultValue: "default"
             )
@@ -96,7 +96,7 @@ class EppoPrecomputedClientBasicPerformanceTests: XCTestCase {
         // String assignments
         var startTime = CFAbsoluteTimeGetCurrent()
         for _ in 0..<iterations {
-            _ = EppoPrecomputedClient.shared.getStringAssignment(
+            _ = try! EppoPrecomputedClient.shared().getStringAssignment(
                 flagKey: "string-flag",
                 defaultValue: "default"
             )
@@ -106,7 +106,7 @@ class EppoPrecomputedClientBasicPerformanceTests: XCTestCase {
         // Boolean assignments
         startTime = CFAbsoluteTimeGetCurrent()
         for _ in 0..<iterations {
-            _ = EppoPrecomputedClient.shared.getBooleanAssignment(
+            _ = try! EppoPrecomputedClient.shared().getBooleanAssignment(
                 flagKey: "boolean-flag",
                 defaultValue: false
             )
@@ -116,7 +116,7 @@ class EppoPrecomputedClientBasicPerformanceTests: XCTestCase {
         // Integer assignments
         startTime = CFAbsoluteTimeGetCurrent()
         for _ in 0..<iterations {
-            _ = EppoPrecomputedClient.shared.getIntegerAssignment(
+            _ = try! EppoPrecomputedClient.shared().getIntegerAssignment(
                 flagKey: "integer-flag",
                 defaultValue: 0
             )
@@ -126,7 +126,7 @@ class EppoPrecomputedClientBasicPerformanceTests: XCTestCase {
         // Numeric assignments
         startTime = CFAbsoluteTimeGetCurrent()
         for _ in 0..<iterations {
-            _ = EppoPrecomputedClient.shared.getNumericAssignment(
+            _ = try! EppoPrecomputedClient.shared().getNumericAssignment(
                 flagKey: "numeric-flag",
                 defaultValue: 0.0
             )
@@ -136,7 +136,7 @@ class EppoPrecomputedClientBasicPerformanceTests: XCTestCase {
         // JSON assignments
         startTime = CFAbsoluteTimeGetCurrent()
         for _ in 0..<iterations {
-            _ = EppoPrecomputedClient.shared.getJSONStringAssignment(
+            _ = try! EppoPrecomputedClient.shared().getJSONStringAssignment(
                 flagKey: "json-flag",
                 defaultValue: "{}"
             )

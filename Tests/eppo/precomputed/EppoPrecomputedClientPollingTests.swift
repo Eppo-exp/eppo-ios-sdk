@@ -43,7 +43,7 @@ class EppoPrecomputedClientPollingTests: XCTestCase {
     
     // MARK: - Polling Lifecycle Tests
     
-    func testStartPollingRequiresNetworkInitialization() async throws {
+    func testPollingWithoutNetworkInitialization() async throws {
         // Initialize offline-only client
         _ = EppoPrecomputedClient.initializeOffline(
             sdkKey: "mock-api-key",
@@ -51,15 +51,16 @@ class EppoPrecomputedClientPollingTests: XCTestCase {
             initialPrecomputedConfiguration: testConfiguration
         )
         
-        // Starting polling should fail without network components
-        do {
-            try await EppoPrecomputedClient.shared.startPolling()
-            XCTFail("Should throw error when requestor is not available")
-        } catch EppoPrecomputedClient.InitializationError.alreadyInitialized {
-            // Expected error - polling requires network initialization
-        } catch {
-            XCTFail("Unexpected error: \\(error)")
-        }
+        // Starting polling should succeed even without network components
+        // It will just skip polling cycles until network is initialized
+        try await EppoPrecomputedClient.shared().startPolling()
+        
+        // Polling should be active (even if skipping cycles)
+        // We can't easily test the internal skipping without mocking, but
+        // the important thing is that startPolling() doesn't throw
+        
+        // Clean up
+        try EppoPrecomputedClient.shared().stopPolling()
     }
     
     func testStopPollingWithoutStarting() async {
@@ -71,7 +72,7 @@ class EppoPrecomputedClientPollingTests: XCTestCase {
         )
         
         // Stopping polling should not crash even if never started
-        EppoPrecomputedClient.shared.stopPolling()
+        try! EppoPrecomputedClient.shared().stopPolling()
         
         // Should complete without error
         XCTAssertTrue(true)
@@ -109,13 +110,11 @@ class EppoPrecomputedClientPollingTests: XCTestCase {
         // Test that custom interval parameter is accepted
         let customInterval = 60000 // 1 minute
         
-        do {
-            try await EppoPrecomputedClient.shared.startPolling(intervalMs: customInterval)
-            XCTFail("Should fail without requestor")
-        } catch {
-            // Expected to fail - just testing API signature
-            XCTAssertTrue(error is EppoPrecomputedClient.InitializationError)
-        }
+        // Should succeed even without requestor (will skip polling cycles gracefully)
+        try await EppoPrecomputedClient.shared().startPolling(intervalMs: customInterval)
+        
+        // Clean up
+        try EppoPrecomputedClient.shared().stopPolling()
     }
     
     func testPollingWithDefaultInterval() async throws {
@@ -127,13 +126,11 @@ class EppoPrecomputedClientPollingTests: XCTestCase {
         )
         
         // Test that default interval is used when not specified
-        do {
-            try await EppoPrecomputedClient.shared.startPolling()
-            XCTFail("Should fail without requestor")
-        } catch {
-            // Expected to fail - just testing API signature
-            XCTAssertTrue(error is EppoPrecomputedClient.InitializationError)
-        }
+        // Should succeed even without requestor (will skip polling cycles gracefully)
+        try await EppoPrecomputedClient.shared().startPolling()
+        
+        // Clean up
+        try EppoPrecomputedClient.shared().stopPolling()
     }
     
     // MARK: - Concurrent Access Tests
@@ -147,9 +144,9 @@ class EppoPrecomputedClientPollingTests: XCTestCase {
         )
         
         // Multiple stop calls should not crash
-        EppoPrecomputedClient.shared.stopPolling()
-        EppoPrecomputedClient.shared.stopPolling()
-        EppoPrecomputedClient.shared.stopPolling()
+        try! EppoPrecomputedClient.shared().stopPolling()
+        try! EppoPrecomputedClient.shared().stopPolling()
+        try! EppoPrecomputedClient.shared().stopPolling()
         
         XCTAssertTrue(true)
     }
@@ -170,7 +167,7 @@ class EppoPrecomputedClientPollingTests: XCTestCase {
         
         // Test that polling API exists for future network integration
         do {
-            try await EppoPrecomputedClient.shared.startPolling()
+            try await EppoPrecomputedClient.shared().startPolling()
         } catch {
             // Expected to fail without network setup
             XCTAssertTrue(error is EppoPrecomputedClient.InitializationError)

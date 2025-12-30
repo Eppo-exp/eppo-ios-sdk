@@ -197,11 +197,15 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
     
     func testInitializationCleanupOnError() async {
         EppoPrecomputedClient.resetForTesting()
+        
+        // Test that after reset, shared() throws error indicating no configuration
         do {
             _ = try EppoPrecomputedClient.shared()
-            XCTFail("Should have thrown an error when not initialized")
+            XCTFail("Should throw error after reset")
+        } catch EppoPrecomputedClient.InitializationError.notConfigured {
+            // Expected behavior after reset
         } catch {
-            XCTAssertTrue(error is EppoPrecomputedClient.InitializationError)
+            XCTFail("Should throw notConfigured error, but got: \(error)")
         }
     }
     

@@ -21,6 +21,11 @@ class EppoPrecomputedClientTests: XCTestCase {
             subject: testSubject
         )
         _ = EppoPrecomputedClient.initializeOffline(
+            sdkKey: "mock-api-key",
+            subject: Subject(
+                subjectKey: testSubject.subjectKey,
+                subjectAttributes: testSubject.subjectAttributes
+            ),
             initialPrecomputedConfiguration: testConfig
         )
         
@@ -49,6 +54,11 @@ class EppoPrecomputedClientTests: XCTestCase {
             subject: testSubject
         )
         _ = EppoPrecomputedClient.initializeOffline(
+            sdkKey: "mock-api-key",
+            subject: Subject(
+                subjectKey: testSubject.subjectKey,
+                subjectAttributes: testSubject.subjectAttributes
+            ),
             initialPrecomputedConfiguration: testConfig
         )
         
@@ -91,6 +101,11 @@ class EppoPrecomputedClientTests: XCTestCase {
             subject: testSubject
         )
         _ = EppoPrecomputedClient.initializeOffline(
+            sdkKey: "mock-api-key",
+            subject: Subject(
+                subjectKey: testSubject.subjectKey,
+                subjectAttributes: testSubject.subjectAttributes
+            ),
             initialPrecomputedConfiguration: testConfig
         )
         
@@ -113,6 +128,11 @@ class EppoPrecomputedClientTests: XCTestCase {
             subject: testSubject
         )
         _ = EppoPrecomputedClient.initializeOffline(
+            sdkKey: "mock-api-key",
+            subject: Subject(
+                subjectKey: testSubject.subjectKey,
+                subjectAttributes: testSubject.subjectAttributes
+            ),
             initialPrecomputedConfiguration: testConfig
         )
         
@@ -140,6 +160,11 @@ class EppoPrecomputedClientTests: XCTestCase {
             subject: testSubject
         )
         _ = EppoPrecomputedClient.initializeOffline(
+            sdkKey: "mock-api-key",
+            subject: Subject(
+                subjectKey: testSubject.subjectKey,
+                subjectAttributes: testSubject.subjectAttributes
+            ),
             initialPrecomputedConfiguration: testConfig
         )
         
@@ -188,6 +213,11 @@ class EppoPrecomputedClientTests: XCTestCase {
             subject: testSubject
         )
         _ = EppoPrecomputedClient.initializeOffline(
+            sdkKey: "mock-api-key",
+            subject: Subject(
+                subjectKey: testSubject.subjectKey,
+                subjectAttributes: testSubject.subjectAttributes
+            ),
             initialPrecomputedConfiguration: testConfig
         )
         
@@ -210,6 +240,11 @@ class EppoPrecomputedClientTests: XCTestCase {
             subject: testSubject
         )
         _ = EppoPrecomputedClient.initializeOffline(
+            sdkKey: "mock-api-key",
+            subject: Subject(
+                subjectKey: testSubject.subjectKey,
+                subjectAttributes: testSubject.subjectAttributes
+            ),
             initialPrecomputedConfiguration: testConfig
         )
         

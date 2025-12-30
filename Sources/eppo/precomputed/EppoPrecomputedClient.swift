@@ -21,8 +21,7 @@ public class EppoPrecomputedClient {
     }
     
     private let configurationStore: PrecomputedConfigurationStore
-    private let subjectKey: String
-    private let subjectAttributes: [String: EppoValue]
+    private let subject: Subject
     private let assignmentLogger: AssignmentLogger?
     private let assignmentCache: AssignmentCache?
     
@@ -35,33 +34,27 @@ public class EppoPrecomputedClient {
     
     private init(
         sdkKey: String,
-        subjectKey: String,
-        subjectAttributes: [String: EppoValue],
+        subject: Subject,
         assignmentLogger: AssignmentLogger? = nil,
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
-        initialPrecomputedConfiguration: PrecomputedConfiguration? = nil,
         withPersistentCache: Bool = true,
         configurationChangeCallback: ConfigurationChangeCallback? = nil
     ) {
         self.sdkKey = sdkKey
-        self.subjectKey = subjectKey
-        self.subjectAttributes = subjectAttributes
+        self.subject = subject
         self.assignmentLogger = assignmentLogger
         self.assignmentCache = assignmentCache
-        self.configurationChangeCallback = configurationChangeCallback
         self.configurationStore = PrecomputedConfigurationStore(withPersistentCache: withPersistentCache)
-        
-        // Set initial configuration if provided
-        if let configuration = initialPrecomputedConfiguration {
-            self.configurationStore.setConfiguration(configuration)
-        }
+        self.configurationChangeCallback = configurationChangeCallback
     }
     
     
     /// Initialize the precomputed client offline with provided configuration
     /// The subject information is extracted from the precomputed configuration
     public static func initializeOffline(
-        initialPrecomputedConfiguration: PrecomputedConfiguration,
+        sdkKey: String,
+        subject: Subject,
+        initialPrecomputedConfiguration: PrecomputedConfiguration?,
         assignmentLogger: AssignmentLogger? = nil,
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
         withPersistentCache: Bool = true,
@@ -73,23 +66,24 @@ public class EppoPrecomputedClient {
             }
             
             let instance = EppoPrecomputedClient(
-                sdkKey: "offline",
-                subjectKey: initialPrecomputedConfiguration.subject.subjectKey,
-                subjectAttributes: initialPrecomputedConfiguration.subject.subjectAttributes,
+                sdkKey: sdkKey,
+                subject: subject,
                 assignmentLogger: assignmentLogger,
                 assignmentCache: assignmentCache,
-                initialPrecomputedConfiguration: initialPrecomputedConfiguration,
                 withPersistentCache: withPersistentCache,
                 configurationChangeCallback: configurationChangeCallback
             )
             
-            // Trigger configuration change callback
-            instance.notifyConfigurationChange(initialPrecomputedConfiguration)
+            if let configuration = initialPrecomputedConfiguration {
+                instance.configurationStore.setConfiguration(configuration)
+                instance.notifyConfigurationChange(configuration)
+            }
             
             sharedInstance = instance
             return instance
         }
     }
+    
     
     /// Initialize the precomputed client with online configuration fetch
     public static func initialize(
@@ -101,59 +95,30 @@ public class EppoPrecomputedClient {
         withPersistentCache: Bool = true,
         configurationChangeCallback: ConfigurationChangeCallback? = nil
     ) async throws -> EppoPrecomputedClient {
-        // Create bootstrap configuration with subject info
-        let bootstrapConfig = PrecomputedConfiguration(
-            flags: [:],
-            salt: "",
-            format: "PRECOMPUTED", 
-            configFetchedAt: Date(),
-            subject: PrecomputedSubject(
-                subjectKey: subject.subjectKey,
-                subjectAttributes: subject.subjectAttributes
-            ),
-            configPublishedAt: nil,
-            environment: nil
+        // Initialize offline first (without initial configuration) - returns existing instance if already initialized
+        let instance = initializeOffline(
+            sdkKey: sdkKey,
+            subject: subject,
+            initialPrecomputedConfiguration: nil,
+            assignmentLogger: assignmentLogger,
+            assignmentCache: assignmentCache,
+            withPersistentCache: withPersistentCache,
+            configurationChangeCallback: configurationChangeCallback
         )
         
-        // Initialize offline with bootstrap config
-        let instance = Self.sharedLock.withLock {
-            if let existingInstance = sharedInstance {
-                return existingInstance
-            }
-            
-            let newInstance = EppoPrecomputedClient(
-                sdkKey: sdkKey,
-                subjectKey: subject.subjectKey,
-                subjectAttributes: subject.subjectAttributes,
-                assignmentLogger: assignmentLogger,
-                assignmentCache: assignmentCache,
-                initialPrecomputedConfiguration: bootstrapConfig,
-                withPersistentCache: withPersistentCache,
-                configurationChangeCallback: configurationChangeCallback
-            )
-            
-            sharedInstance = newInstance
-            return newInstance
-        }
-        
-        // Load configuration from network
+        // Load configuration from network - this will trigger the configuration callback
         try await instance.load(host: host)
         
         return instance
     }
     
+    
     /// Load configuration from network
     public func load(host: String? = nil) async throws {
         let resolvedHost = host ?? precomputedBaseUrl
         
-        // Create Subject from stored fields
-        let subject = Subject(
-            subjectKey: self.subjectKey,
-            subjectAttributes: self.subjectAttributes
-        )
-        
         let requestor = PrecomputedRequestor(
-            subject: subject,
+            subject: self.subject,
             sdkKey: self.sdkKey,
             sdkName: sdkName,
             sdkVersion: sdkVersion,
@@ -169,8 +134,8 @@ public class EppoPrecomputedClient {
             format: networkConfig.format,
             configFetchedAt: networkConfig.configFetchedAt,
             subject: PrecomputedSubject(
-                subjectKey: self.subjectKey,
-                subjectAttributes: self.subjectAttributes
+                subjectKey: self.subject.subjectKey,
+                subjectAttributes: self.subject.subjectAttributes
             ),
             configPublishedAt: networkConfig.configPublishedAt,
             environment: networkConfig.environment
@@ -216,8 +181,8 @@ public class EppoPrecomputedClient {
                         format: networkConfig.format,
                         configFetchedAt: networkConfig.configFetchedAt,
                         subject: PrecomputedSubject(
-                            subjectKey: self.subjectKey,
-                            subjectAttributes: self.subjectAttributes
+                            subjectKey: self.subject.subjectKey,
+                            subjectAttributes: self.subject.subjectAttributes
                         ),
                         configPublishedAt: networkConfig.configPublishedAt,
                         environment: networkConfig.environment
@@ -255,6 +220,7 @@ public class EppoPrecomputedClient {
     private func notifyConfigurationChange(_ configuration: PrecomputedConfiguration) {
         configurationChangeCallback?(configuration)
     }
+    
     
     /// Resets the client state (useful for testing)
     public static func resetForTesting() {
@@ -420,9 +386,9 @@ public class EppoPrecomputedClient {
             flagKey: flagKey,
             allocationKey: decodedAllocationKey,
             variation: decodedVariationKey,
-            subject: subjectKey,
+            subject: subject.subjectKey,
             timestamp: ISO8601DateFormatter().string(from: Date()),
-            subjectAttributes: subjectAttributes,
+            subjectAttributes: subject.subjectAttributes,
             metaData: [
                 "obfuscated": "true",
                 "sdkName": sdkName,
