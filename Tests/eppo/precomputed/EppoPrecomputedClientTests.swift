@@ -220,4 +220,21 @@ class EppoPrecomputedClientTests: XCTestCase {
         )
         XCTAssertEqual(result, "default")
     }
+    
+    // MARK: - Polling API Tests
+    
+    @MainActor
+    func testPollingMethodsExist() async {
+        // Test that polling methods exist and don't crash when called on uninitialized client
+        EppoPrecomputedClient.shared.stopPolling()
+        
+        // Starting polling should fail gracefully without network setup
+        do {
+            try await EppoPrecomputedClient.shared.startPolling()
+            XCTFail("Should fail without proper network initialization")
+        } catch {
+            // Expected to fail
+            XCTAssertTrue(error is EppoPrecomputedClient.InitializationError)
+        }
+    }
 }
