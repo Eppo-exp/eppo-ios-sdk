@@ -1,5 +1,28 @@
 import Foundation
 
+/// Subject information specifically for precomputed configurations
+/// This is a Codable version that can be serialized/deserialized with JSON
+public struct PrecomputedSubject: Codable {
+    public let subjectKey: String
+    public let subjectAttributes: [String: EppoValue]
+    
+    public init(subjectKey: String, subjectAttributes: [String: EppoValue] = [:]) {
+        self.subjectKey = subjectKey
+        self.subjectAttributes = subjectAttributes
+    }
+    
+    /// Create PrecomputedSubject from regular Subject
+    public init(from subject: Subject) {
+        self.subjectKey = subject.subjectKey
+        self.subjectAttributes = subject.subjectAttributes
+    }
+    
+    /// Convert to regular Subject for use with assignment logging
+    public func toSubject() -> Subject {
+        return Subject(subjectKey: subjectKey, subjectAttributes: subjectAttributes)
+    }
+}
+
 /// Represents the configuration for precomputed flag assignments
 public struct PrecomputedConfiguration: Codable {
     let flags: [String: PrecomputedFlag]
@@ -18,14 +41,14 @@ public struct PrecomputedConfiguration: Codable {
     public let environment: Environment?
     
     /// Subject information that this configuration was generated for
-    public let subject: Subject
+    public let subject: PrecomputedSubject
     
     init(
         flags: [String: PrecomputedFlag],
         salt: String,
         format: String,
         configFetchedAt: Date,
-        subject: Subject,
+        subject: PrecomputedSubject,
         configPublishedAt: Date? = nil,
         environment: Environment? = nil
     ) {
@@ -49,7 +72,7 @@ public struct PrecomputedConfiguration: Codable {
         self.configFetchedAt = Date() // Always use current time when parsing
         self.configPublishedAt = decoded.configPublishedAt
         self.environment = decoded.environment
-        self.subject = subject
+        self.subject = PrecomputedSubject(from: subject) // Convert Subject to PrecomputedSubject
     }
 }
 
@@ -115,7 +138,7 @@ extension PrecomputedConfiguration {
         configFetchedAt = Date()
         
         environment = try container.decodeIfPresent(Environment.self, forKey: .environment)
-        subject = try container.decode(Subject.self, forKey: .subject)
+        subject = try container.decode(PrecomputedSubject.self, forKey: .subject)
         
         // Note: obfuscated field is always true for precomputed configs, so we ignore it
     }

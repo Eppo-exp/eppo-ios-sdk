@@ -10,29 +10,63 @@ class EppoPrecomputedClientTests: XCTestCase {
     
     // MARK: - Singleton Tests
     
-    func testSingletonPattern() {
-        let instance1 = EppoPrecomputedClient.shared
-        let instance2 = EppoPrecomputedClient.shared
+    func testSingletonPattern() throws {
+        // Initialize first
+        let testSubject = PrecomputedSubject(subjectKey: "test-user", subjectAttributes: [:])
+        let testConfig = PrecomputedConfiguration(
+            flags: [:],
+            salt: "salt",
+            format: "PRECOMPUTED",
+            configFetchedAt: Date(),
+            subject: testSubject
+        )
+        _ = EppoPrecomputedClient.initializeOffline(
+            sdkKey: "test-key",
+            initialPrecomputedConfiguration: testConfig
+        )
+        
+        let instance1 = try EppoPrecomputedClient.shared()
+        let instance2 = try EppoPrecomputedClient.shared()
         
         XCTAssertTrue(instance1 === instance2, "Should return the same instance")
     }
     
-    func testSingletonIsNotNil() {
-        XCTAssertNotNil(EppoPrecomputedClient.shared)
+    func testSingletonThrowsWhenNotInitialized() {
+        XCTAssertThrowsError(try EppoPrecomputedClient.shared()) { error in
+            XCTAssertTrue(error is EppoPrecomputedClient.InitializationError)
+        }
     }
     
     // MARK: - Thread Safety Tests
     
-    func testConcurrentSingletonAccess() {
+    func testConcurrentSingletonAccess() throws {
+        // Initialize first
+        let testSubject = PrecomputedSubject(subjectKey: "test-user", subjectAttributes: [:])
+        let testConfig = PrecomputedConfiguration(
+            flags: [:],
+            salt: "salt",
+            format: "PRECOMPUTED",
+            configFetchedAt: Date(),
+            subject: testSubject
+        )
+        _ = EppoPrecomputedClient.initializeOffline(
+            sdkKey: "test-key",
+            initialPrecomputedConfiguration: testConfig
+        )
+        
         let expectation = XCTestExpectation(description: "Concurrent access completes")
         expectation.expectedFulfillmentCount = 100
         var instances: [EppoPrecomputedClient] = []
         let queue = DispatchQueue(label: "test.concurrent", attributes: .concurrent)
         
         DispatchQueue.concurrentPerform(iterations: 100) { _ in
-            let instance = EppoPrecomputedClient.shared
-            queue.async(flags: .barrier) {
-                instances.append(instance)
+            do {
+                let instance = try EppoPrecomputedClient.shared()
+                queue.async(flags: .barrier) {
+                    instances.append(instance)
+                }
+            } catch {
+                XCTFail("Should not throw: \(error)")
             }
             expectation.fulfill()
         }
@@ -48,46 +82,90 @@ class EppoPrecomputedClientTests: XCTestCase {
     
     // MARK: - Reset Tests
     
-    func testResetForTesting() {
+    func testResetForTesting() throws {
+        // Initialize first
+        let testSubject = PrecomputedSubject(subjectKey: "test-user", subjectAttributes: [:])
+        let testConfig = PrecomputedConfiguration(
+            flags: [:],
+            salt: "salt",
+            format: "PRECOMPUTED",
+            configFetchedAt: Date(),
+            subject: testSubject
+        )
+        _ = EppoPrecomputedClient.initializeOffline(
+            sdkKey: "test-key",
+            initialPrecomputedConfiguration: testConfig
+        )
+        
+        // Verify initialized
+        XCTAssertNoThrow(try EppoPrecomputedClient.shared())
+        
+        // Reset and verify it throws
         EppoPrecomputedClient.resetForTesting()
-        XCTAssertNotNil(EppoPrecomputedClient.shared)
+        XCTAssertThrowsError(try EppoPrecomputedClient.shared())
     }
     
-    func testMultipleResets() {
+    func testMultipleResets() throws {
+        // Initialize first
+        let testSubject = PrecomputedSubject(subjectKey: "test-user", subjectAttributes: [:])
+        let testConfig = PrecomputedConfiguration(
+            flags: [:],
+            salt: "salt",
+            format: "PRECOMPUTED",
+            configFetchedAt: Date(),
+            subject: testSubject
+        )
+        _ = EppoPrecomputedClient.initializeOffline(
+            sdkKey: "test-key",
+            initialPrecomputedConfiguration: testConfig
+        )
+        
         for _ in 0..<5 {
             EppoPrecomputedClient.resetForTesting()
         }
         
-        XCTAssertNotNil(EppoPrecomputedClient.shared)
+        XCTAssertThrowsError(try EppoPrecomputedClient.shared())
     }
     
     // MARK: - Assignment Method Tests
     
-    func testAssignmentMethodsReturnDefaultsWhenNotInitialized() {
-        XCTAssertEqual(
-            EppoPrecomputedClient.shared.getStringAssignment(flagKey: "test-flag", defaultValue: "default"),
-            "default"
-        )
-        XCTAssertEqual(
-            EppoPrecomputedClient.shared.getBooleanAssignment(flagKey: "test-flag", defaultValue: true),
-            true
-        )
+    func testAssignmentMethodsThrowWhenNotInitialized() {
+        XCTAssertThrowsError(try EppoPrecomputedClient.shared())
     }
     
-    func testConcurrentAssignmentCallsReturnDefaults() {
+    func testConcurrentAssignmentCallsReturnDefaults() throws {
+        // Initialize first with empty configuration
+        let testSubject = PrecomputedSubject(subjectKey: "test-user", subjectAttributes: [:])
+        let testConfig = PrecomputedConfiguration(
+            flags: [:],
+            salt: "salt",
+            format: "PRECOMPUTED",
+            configFetchedAt: Date(),
+            subject: testSubject
+        )
+        _ = EppoPrecomputedClient.initializeOffline(
+            sdkKey: "test-key",
+            initialPrecomputedConfiguration: testConfig
+        )
+        
         let expectation = XCTestExpectation(description: "Concurrent assignment calls complete")
         expectation.expectedFulfillmentCount = 50
         var results: [(String, String)] = []
         let queue = DispatchQueue(label: "test.results", attributes: .concurrent)
         
         DispatchQueue.concurrentPerform(iterations: 50) { i in
-            let result = EppoPrecomputedClient.shared.getStringAssignment(
-                flagKey: "flag-\(i)",
-                defaultValue: "default-\(i)"
-            )
-            
-            queue.async(flags: .barrier) {
-                results.append(("flag-\(i)", result))
+            do {
+                let client = try EppoPrecomputedClient.shared()
+                let result = client.getStringAssignment(
+                    flagKey: "flag-\(i)",
+                    defaultValue: "default-\(i)"
+                )
+                
+                queue.async(flags: .barrier) {
+                    results.append(("flag-\(i)", result))
+                }
+            } catch {
+                XCTFail("Should not throw: \(error)")
             }
             expectation.fulfill()
         }
@@ -100,20 +178,50 @@ class EppoPrecomputedClientTests: XCTestCase {
         XCTAssertEqual(results.count, 50)
         for (flagKey, result) in results {
             let expectedDefault = flagKey.replacingOccurrences(of: "flag-", with: "default-")
-            XCTAssertEqual(result, expectedDefault, "Should return default value when not initialized")
+            XCTAssertEqual(result, expectedDefault, "Should return default value when flags not found")
         }
     }
     
-    func testAssignmentWithEmptyFlagKey() {
-        let result = EppoPrecomputedClient.shared.getStringAssignment(
+    func testAssignmentWithEmptyFlagKey() throws {
+        // Initialize first
+        let testSubject = PrecomputedSubject(subjectKey: "test-user", subjectAttributes: [:])
+        let testConfig = PrecomputedConfiguration(
+            flags: [:],
+            salt: "salt",
+            format: "PRECOMPUTED",
+            configFetchedAt: Date(),
+            subject: testSubject
+        )
+        _ = EppoPrecomputedClient.initializeOffline(
+            sdkKey: "test-key",
+            initialPrecomputedConfiguration: testConfig
+        )
+        
+        let client = try EppoPrecomputedClient.shared()
+        let result = client.getStringAssignment(
             flagKey: "",
             defaultValue: "default"
         )
         XCTAssertEqual(result, "default")
     }
     
-    func testAssignmentWithSpecialCharactersInFlagKey() {
-        let result = EppoPrecomputedClient.shared.getStringAssignment(
+    func testAssignmentWithSpecialCharactersInFlagKey() throws {
+        // Initialize first
+        let testSubject = PrecomputedSubject(subjectKey: "test-user", subjectAttributes: [:])
+        let testConfig = PrecomputedConfiguration(
+            flags: [:],
+            salt: "salt",
+            format: "PRECOMPUTED",
+            configFetchedAt: Date(),
+            subject: testSubject
+        )
+        _ = EppoPrecomputedClient.initializeOffline(
+            sdkKey: "test-key",
+            initialPrecomputedConfiguration: testConfig
+        )
+        
+        let client = try EppoPrecomputedClient.shared()
+        let result = client.getStringAssignment(
             flagKey: "test-flag-@#$%^&*()",
             defaultValue: "default"
         )

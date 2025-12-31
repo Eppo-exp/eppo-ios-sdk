@@ -141,6 +141,7 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
+            subject: PrecomputedSubject(from: testSubject),
             configPublishedAt: Date(),
             environment: Environment(name: "test")
         )
@@ -161,7 +162,6 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
     private func initializeClient() {
         _ = EppoPrecomputedClient.initializeOffline(
             sdkKey: "mock-api-key",
-            subject: testSubject,
             initialPrecomputedConfiguration: testConfiguration,
             assignmentLogger: mockLogger.logger,
             assignmentCache: mockCache
@@ -170,34 +170,36 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
     
     // MARK: - Assignment Value Tests
     
-    func testAllAssignmentTypes() {
+    func testAllAssignmentTypes() throws {
         initializeClient()
         
-        let stringResult = EppoPrecomputedClient.shared.getStringAssignment(
+        let client = try EppoPrecomputedClient.shared()
+        
+        let stringResult = client.getStringAssignment(
             flagKey: "string-flag",
             defaultValue: "default"
         )
         XCTAssertEqual(stringResult, "hello world")
         
-        let boolResult = EppoPrecomputedClient.shared.getBooleanAssignment(
+        let boolResult = client.getBooleanAssignment(
             flagKey: "bool-flag",
             defaultValue: false
         )
         XCTAssertTrue(boolResult)
         
-        let intResult = EppoPrecomputedClient.shared.getIntegerAssignment(
+        let intResult = client.getIntegerAssignment(
             flagKey: "int-flag",
             defaultValue: 0
         )
         XCTAssertEqual(intResult, 42)
         
-        let numericResult = EppoPrecomputedClient.shared.getNumericAssignment(
+        let numericResult = client.getNumericAssignment(
             flagKey: "numeric-flag",
             defaultValue: 0.0
         )
         XCTAssertEqual(numericResult, 3.14159, accuracy: 0.00001)
         
-        let jsonResult = EppoPrecomputedClient.shared.getJSONStringAssignment(
+        let jsonResult = client.getJSONStringAssignment(
             flagKey: "json-flag",
             defaultValue: "{}"
         )
@@ -206,18 +208,20 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
     
     // MARK: - Type Mismatch Tests
     
-    func testTypeMismatchReturnsDefault() {
+    func testTypeMismatchReturnsDefault() throws {
         initializeClient()
         
+        let client = try EppoPrecomputedClient.shared()
+        
         // Try to get boolean value from a flag that has a string value
-        let boolResult = EppoPrecomputedClient.shared.getBooleanAssignment(
+        let boolResult = client.getBooleanAssignment(
             flagKey: "type-mismatch-flag",
             defaultValue: true
         )
         XCTAssertTrue(boolResult)
         
         // Try to get string value from boolean flag
-        let stringResult = EppoPrecomputedClient.shared.getStringAssignment(
+        let stringResult = client.getStringAssignment(
             flagKey: "bool-flag",
             defaultValue: "default"
         )
@@ -226,10 +230,11 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
     
     // MARK: - Assignment Logging Tests
     
-    func testAssignmentLoggingForValidFlag() {
+    func testAssignmentLoggingForValidFlag() throws {
         initializeClient()
         
-        _ = EppoPrecomputedClient.shared.getStringAssignment(
+        let client = try EppoPrecomputedClient.shared()
+        _ = client.getStringAssignment(
             flagKey: "string-flag",
             defaultValue: "default"
         )
@@ -248,10 +253,11 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
         XCTAssertEqual(assignment.extraLogging["holdoutVariation"], "status_quo")
     }
     
-    func testNoLoggingWhenDoLogIsFalse() {
+    func testNoLoggingWhenDoLogIsFalse() throws {
         initializeClient()
         
-        _ = EppoPrecomputedClient.shared.getStringAssignment(
+        let client = try EppoPrecomputedClient.shared()
+        _ = client.getStringAssignment(
             flagKey: "no-log-flag",
             defaultValue: "default"
         )
@@ -262,11 +268,12 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
         XCTAssertEqual(logged.count, 0)
     }
     
-    func testAssignmentDeduplication() {
+    func testAssignmentDeduplication() throws {
         initializeClient()
         
+        let client = try EppoPrecomputedClient.shared()
         for _ in 0..<5 {
-            _ = EppoPrecomputedClient.shared.getStringAssignment(
+            _ = client.getStringAssignment(
                 flagKey: "string-flag",
                 defaultValue: "default"
             )
@@ -278,18 +285,18 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
         XCTAssertEqual(logged.count, 1, "Should only log once due to caching")
     }
     
-    func testAssignmentLoggingWithoutCache() {
+    func testAssignmentLoggingWithoutCache() throws {
         _ = EppoPrecomputedClient.initializeOffline(
             sdkKey: "mock-api-key",
-            subject: testSubject,
             initialPrecomputedConfiguration: testConfiguration,
             assignmentLogger: mockLogger.logger,
             assignmentCache: nil
         )
         
+        let client = try EppoPrecomputedClient.shared()
         // Get the same assignment multiple times
         for _ in 0..<3 {
-            _ = EppoPrecomputedClient.shared.getStringAssignment(
+            _ = client.getStringAssignment(
                 flagKey: "string-flag",
                 defaultValue: "default"
             )
@@ -305,18 +312,16 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
     // MARK: - Edge Cases and Error Handling
     
     func testAssignmentWithoutInitialization() {
-        let result = EppoPrecomputedClient.shared.getStringAssignment(
-            flagKey: "string-flag",
-            defaultValue: "default"
-        )
-        
-        XCTAssertEqual(result, "default")
+        XCTAssertThrowsError(try EppoPrecomputedClient.shared()) { error in
+            XCTAssertTrue(error is EppoPrecomputedClient.InitializationError)
+        }
     }
     
-    func testAssignmentWithMissingFlag() {
+    func testAssignmentWithMissingFlag() throws {
         initializeClient()
         
-        let result = EppoPrecomputedClient.shared.getStringAssignment(
+        let client = try EppoPrecomputedClient.shared()
+        let result = client.getStringAssignment(
             flagKey: "non-existent-flag",
             defaultValue: "default"
         )
@@ -326,9 +331,10 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
     
     // MARK: - Concurrent Access Tests
     
-    func testConcurrentAssignmentLogging() {
+    func testConcurrentAssignmentLogging() throws {
         initializeClient()
         
+        let client = try EppoPrecomputedClient.shared()
         let expectation = XCTestExpectation(description: "Concurrent logging completes")
         expectation.expectedFulfillmentCount = 50
         
@@ -336,12 +342,12 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
             let flagKey = i % 2 == 0 ? "string-flag" : "bool-flag"
             
             if i % 2 == 0 {
-                _ = EppoPrecomputedClient.shared.getStringAssignment(
+                _ = client.getStringAssignment(
                     flagKey: flagKey,
                     defaultValue: "default"
                 )
             } else {
-                _ = EppoPrecomputedClient.shared.getBooleanAssignment(
+                _ = client.getBooleanAssignment(
                     flagKey: flagKey,
                     defaultValue: false
                 )

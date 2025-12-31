@@ -41,7 +41,7 @@ public class EppoPrecomputedClient {
         
         // Extract subject from configuration or use placeholder
         if let configuration = initialPrecomputedConfiguration {
-            self.subject = configuration.subject
+            self.subject = configuration.subject.toSubject() // Convert PrecomputedSubject to Subject
             self.configurationStore = PrecomputedConfigurationStore(withPersistentCache: withPersistentCache)
             self.configurationStore.setConfiguration(configuration)
         } else {

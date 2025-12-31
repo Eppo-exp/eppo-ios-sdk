@@ -16,7 +16,7 @@ public enum Errors: Error {
 public typealias SubjectAttributes = [String: EppoValue]
 public typealias ConfigurationChangeCallback = (Configuration) -> Void
 
-public struct Subject: Codable {
+public struct Subject {
     public let subjectKey: String
     public let subjectAttributes: SubjectAttributes
     

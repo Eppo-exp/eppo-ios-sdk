@@ -33,12 +33,14 @@ class PrecomputedConfigurationTests: XCTestCase {
         let fetchedAt = Date()
         let publishedAt = Date(timeIntervalSinceNow: -3600) // 1 hour ago
         let environment = Environment(name: "production")
+        let testSubject = PrecomputedSubject(subjectKey: "test-user", subjectAttributes: [:])
         
         let config = PrecomputedConfiguration(
             flags: flags,
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: fetchedAt,
+            subject: testSubject,
             configPublishedAt: publishedAt,
             environment: environment
         )
@@ -52,11 +54,13 @@ class PrecomputedConfigurationTests: XCTestCase {
     }
     
     func testInitializationWithMinimalData() {
+        let testSubject = PrecomputedSubject(subjectKey: "test-user", subjectAttributes: [:])
         let config = PrecomputedConfiguration(
             flags: [:],
             salt: "minimal-salt",
             format: "PRECOMPUTED",
-            configFetchedAt: Date()
+            configFetchedAt: Date(),
+            subject: testSubject
         )
         
         XCTAssertTrue(config.flags.isEmpty)
@@ -68,11 +72,13 @@ class PrecomputedConfigurationTests: XCTestCase {
     // MARK: - Codable Tests
     
     func testJSONEncodingDecoding() throws {
+        let testSubject = PrecomputedSubject(subjectKey: "test-user", subjectAttributes: [:])
         let originalConfig = PrecomputedConfiguration(
             flags: createSampleFlags(),
             salt: "encode-test-salt",
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
+            subject: testSubject,
             configPublishedAt: Date(timeIntervalSinceNow: -7200),
             environment: Environment(name: "staging")
         )
@@ -167,7 +173,8 @@ class PrecomputedConfigurationTests: XCTestCase {
         """
         
         let jsonData = json.data(using: .utf8)!
-        let config = try PrecomputedConfiguration(precomputedConfigurationJson: jsonData)
+        let testSubject = Subject(subjectKey: "test-user", subjectAttributes: [:])
+        let config = try PrecomputedConfiguration(precomputedConfigurationJson: jsonData, subject: testSubject)
         
         XCTAssertEqual(config.salt, "dGVzdC1zYWx0")
         XCTAssertEqual(config.format, "PRECOMPUTED")
@@ -185,8 +192,9 @@ class PrecomputedConfigurationTests: XCTestCase {
     func testJSONConvenienceInitializerWithInvalidJSON() {
         let invalidJSON = "{ invalid json }"
         let jsonData = invalidJSON.data(using: .utf8)!
+        let testSubject = Subject(subjectKey: "test-user", subjectAttributes: [:])
         
-        XCTAssertThrowsError(try PrecomputedConfiguration(precomputedConfigurationJson: jsonData)) { error in
+        XCTAssertThrowsError(try PrecomputedConfiguration(precomputedConfigurationJson: jsonData, subject: testSubject)) { error in
             XCTAssertTrue(error is DecodingError)
         }
     }
@@ -215,7 +223,11 @@ class PrecomputedConfigurationTests: XCTestCase {
         {
             "salt": "",
             "format": "PRECOMPUTED",
-            "flags": {}
+            "flags": {},
+            "subject": {
+                "subjectKey": "test-user",
+                "subjectAttributes": {}
+            }
         }
         """
         
