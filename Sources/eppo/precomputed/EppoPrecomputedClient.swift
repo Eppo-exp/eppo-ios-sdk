@@ -37,6 +37,7 @@ public class EppoPrecomputedClient {
         subject: Subject,
         assignmentLogger: AssignmentLogger? = nil,
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
+        initialPrecomputedConfiguration: PrecomputedConfiguration? = nil,
         withPersistentCache: Bool = true,
         configurationChangeCallback: ConfigurationChangeCallback? = nil
     ) {
@@ -46,6 +47,11 @@ public class EppoPrecomputedClient {
         self.assignmentCache = assignmentCache
         self.configurationStore = PrecomputedConfigurationStore(withPersistentCache: withPersistentCache)
         self.configurationChangeCallback = configurationChangeCallback
+        
+        // Set initial configuration if provided
+        if let configuration = initialPrecomputedConfiguration {
+            self.configurationStore.setConfiguration(configuration)
+        }
     }
     
     
@@ -70,12 +76,13 @@ public class EppoPrecomputedClient {
                 subject: subject,
                 assignmentLogger: assignmentLogger,
                 assignmentCache: assignmentCache,
+                initialPrecomputedConfiguration: initialPrecomputedConfiguration,
                 withPersistentCache: withPersistentCache,
                 configurationChangeCallback: configurationChangeCallback
             )
             
+            // Trigger configuration change callback if configuration was set
             if let configuration = initialPrecomputedConfiguration {
-                instance.configurationStore.setConfiguration(configuration)
                 instance.notifyConfigurationChange(configuration)
             }
             
