@@ -290,12 +290,6 @@ public class EppoPrecomputedClient {
             variationKey: variationKey
         )
         
-        let shouldLog = !cache.hasLoggedAssignment(key: cacheKey)
-        
-        if shouldLog {
-            cache.setLastLoggedAssignment(key: cacheKey)
-        }
-        
-        return shouldLog
+        return cache.shouldLogAssignment(key: cacheKey)
     }
 }

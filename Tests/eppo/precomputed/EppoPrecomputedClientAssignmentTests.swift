@@ -44,6 +44,20 @@ class MockAssignmentCache: AssignmentCache {
         }
     }
     
+    func shouldLogAssignment(key: AssignmentCacheKey) -> Bool {
+        return queue.sync(flags: .barrier) {
+            let cacheKey = "\(key.subjectKey)|\(key.flagKey)|\(key.allocationKey)|\(key.variationKey)"
+            
+            // Atomically check and set
+            if self.loggedKeys.contains(cacheKey) {
+                return false // Already logged
+            } else {
+                self.loggedKeys.insert(cacheKey)
+                return true // Should log
+            }
+        }
+    }
+    
     func reset() {
         queue.async(flags: .barrier) {
             self.loggedKeys.removeAll()

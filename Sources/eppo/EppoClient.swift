@@ -457,10 +457,10 @@ public class EppoClient {
                     variationKey: variationKey
                 )
 
-                // Check if the assignment has already been logged, if the cache is defined
-                if let cache = self.assignmentCache, cache.hasLoggedAssignment(key: assignmentCacheKey) {
-                    // The assignment has already been logged, do nothing
-                } else {
+                // Check if the assignment should be logged using atomic check-and-set
+                let shouldLog = self.assignmentCache?.shouldLogAssignment(key: assignmentCacheKey) ?? true
+                
+                if shouldLog {
                     // Either the cache is not defined, or the assignment hasn't been logged yet
                     // Perform assignment.
                     let entityId = flagEvaluation.entityId
@@ -481,7 +481,6 @@ public class EppoClient {
                     )
 
                     assignmentLogger(assignment)
-                    self.assignmentCache?.setLastLoggedAssignment(key: assignmentCacheKey)
                 }
             }
         }
