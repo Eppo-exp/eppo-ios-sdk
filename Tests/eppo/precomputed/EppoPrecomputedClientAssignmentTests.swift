@@ -141,7 +141,7 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
-            subject: PrecomputedSubject(from: testSubject),
+            subject: PrecomputedSubject(subjectKey: testSubject.subjectKey, subjectAttributes: testSubject.subjectAttributes),
             configPublishedAt: Date(),
             environment: Environment(name: "test")
         )
@@ -161,7 +161,6 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
     
     private func initializeClient() {
         _ = EppoPrecomputedClient.initializeOffline(
-            sdkKey: "mock-api-key",
             initialPrecomputedConfiguration: testConfiguration,
             assignmentLogger: mockLogger.logger,
             assignmentCache: mockCache
@@ -287,7 +286,6 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
     
     func testAssignmentLoggingWithoutCache() throws {
         _ = EppoPrecomputedClient.initializeOffline(
-            sdkKey: "mock-api-key",
             initialPrecomputedConfiguration: testConfiguration,
             assignmentLogger: mockLogger.logger,
             assignmentCache: nil

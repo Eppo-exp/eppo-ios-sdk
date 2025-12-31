@@ -26,18 +26,15 @@ public class EppoPrecomputedClient {
     private let assignmentLogger: AssignmentLogger?
     private let assignmentCache: AssignmentCache?
     
-    private let sdkKey: String
     private var configurationChangeCallback: ConfigurationChangeCallback?
     
     private init(
-        sdkKey: String,
         assignmentLogger: AssignmentLogger? = nil,
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
         initialPrecomputedConfiguration: PrecomputedConfiguration? = nil,
         withPersistentCache: Bool = true,
         configurationChangeCallback: ConfigurationChangeCallback? = nil
     ) {
-        self.sdkKey = sdkKey
         
         // Extract subject from configuration or use placeholder
         if let configuration = initialPrecomputedConfiguration {
@@ -59,7 +56,6 @@ public class EppoPrecomputedClient {
     /// Initialize the precomputed client offline with provided configuration
     /// The subject information is extracted from the precomputed configuration
     public static func initializeOffline(
-        sdkKey: String,
         initialPrecomputedConfiguration: PrecomputedConfiguration,
         assignmentLogger: AssignmentLogger? = nil,
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
@@ -72,7 +68,6 @@ public class EppoPrecomputedClient {
             }
             
             let instance = EppoPrecomputedClient(
-                sdkKey: sdkKey,
                 assignmentLogger: assignmentLogger,
                 assignmentCache: assignmentCache,
                 initialPrecomputedConfiguration: initialPrecomputedConfiguration,

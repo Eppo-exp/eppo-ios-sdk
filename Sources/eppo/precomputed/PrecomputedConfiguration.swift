@@ -1,5 +1,6 @@
 import Foundation
 
+
 /// Subject information specifically for precomputed configurations
 /// This is a Codable version that can be serialized/deserialized with JSON
 public struct PrecomputedSubject: Codable {
@@ -9,12 +10,6 @@ public struct PrecomputedSubject: Codable {
     public init(subjectKey: String, subjectAttributes: [String: EppoValue] = [:]) {
         self.subjectKey = subjectKey
         self.subjectAttributes = subjectAttributes
-    }
-    
-    /// Create PrecomputedSubject from regular Subject
-    public init(from subject: Subject) {
-        self.subjectKey = subject.subjectKey
-        self.subjectAttributes = subject.subjectAttributes
     }
     
     /// Convert to regular Subject for use with assignment logging
@@ -61,18 +56,38 @@ public struct PrecomputedConfiguration: Codable {
         self.subject = subject
     }
     
-    public init(precomputedConfigurationJson: Data, subject: Subject) throws {
+    /// Initialize from precomputed configuration string (from the Node SDK's getPrecomputedConfiguration method)
+    public init(precomputedConfiguration: String) throws {
+        guard let data = precomputedConfiguration.data(using: .utf8) else {
+            throw EncodingError.invalidValue(precomputedConfiguration, EncodingError.Context(
+                codingPath: [],
+                debugDescription: "Failed to convert precomputed configuration string to UTF-8 data"
+            ))
+        }
+        try self.init(precomputedConfigurationJson: data)
+    }
+    
+    internal init(precomputedConfigurationJson: Data) throws {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        let decoded = try decoder.decode(PrecomputedConfigurationFromJSON.self, from: precomputedConfigurationJson)
+        let wireFormat = try decoder.decode(PrecomputedConfigurationWireFormat.self, from: precomputedConfigurationJson)
         
-        self.flags = decoded.flags
-        self.salt = decoded.salt
-        self.format = decoded.format
-        self.configFetchedAt = Date() // Always use current time when parsing
-        self.configPublishedAt = decoded.configPublishedAt
-        self.environment = decoded.environment
-        self.subject = PrecomputedSubject(from: subject) // Convert Subject to PrecomputedSubject
+        // Parse the inner response JSON
+        let responseData = wireFormat.precomputed.response.data(using: .utf8) ?? Data()
+        let responseDecoded = try decoder.decode(PrecomputedConfigurationFromJSON.self, from: responseData)
+        
+        self.flags = responseDecoded.flags
+        self.salt = responseDecoded.salt
+        self.format = responseDecoded.format
+        self.configFetchedAt = wireFormat.precomputed.fetchedAt
+        self.configPublishedAt = responseDecoded.configPublishedAt
+        self.environment = responseDecoded.environment
+        
+        // Convert wire format subject to PrecomputedSubject
+        self.subject = PrecomputedSubject(
+            subjectKey: wireFormat.precomputed.subjectKey,
+            subjectAttributes: wireFormat.precomputed.subjectAttributes.toDictionary()
+        )
     }
 }
 
@@ -158,5 +173,62 @@ extension PrecomputedConfiguration {
         
         try container.encodeIfPresent(environment, forKey: .environment)
         try container.encode(subject, forKey: .subject)
+    }
+}
+
+// MARK: - Wire Format Structures (JS SDK API Compatibility)
+
+/// Wire format structure matching JS SDK precomputed configuration format
+private struct PrecomputedConfigurationWireFormat: Decodable {
+    let version: Int
+    let precomputed: PrecomputedWireData
+}
+
+private struct PrecomputedWireData: Decodable {
+    let subjectKey: String
+    let subjectAttributes: WireSubjectAttributes
+    let fetchedAt: Date
+    let response: String
+    
+    private enum CodingKeys: String, CodingKey {
+        case subjectKey, subjectAttributes, fetchedAt, response
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        subjectKey = try container.decode(String.self, forKey: .subjectKey)
+        subjectAttributes = try container.decode(WireSubjectAttributes.self, forKey: .subjectAttributes)
+        response = try container.decode(String.self, forKey: .response)
+        
+        // Parse fetchedAt with custom date handling
+        let fetchedAtString = try container.decode(String.self, forKey: .fetchedAt)
+        if let parsedDate = parseUtcISODateElement(fetchedAtString) {
+            fetchedAt = parsedDate
+        } else {
+            throw DecodingError.dataCorrupted(DecodingError.Context(
+                codingPath: decoder.codingPath,
+                debugDescription: "Unable to parse fetchedAt date: \(fetchedAtString)"
+            ))
+        }
+    }
+}
+
+private struct WireSubjectAttributes: Decodable {
+    let categoricalAttributes: [String: EppoValue]?
+    let numericAttributes: [String: EppoValue]?
+    
+    func toDictionary() -> [String: EppoValue] {
+        var result: [String: EppoValue] = [:]
+        
+        if let categorical = categoricalAttributes {
+            result.merge(categorical) { _, new in new }
+        }
+        
+        if let numeric = numericAttributes {
+            result.merge(numeric) { _, new in new }
+        }
+        
+        return result
     }
 }

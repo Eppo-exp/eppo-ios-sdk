@@ -60,7 +60,7 @@ In both cases the SDK will perform a network request to fetch the latest flag co
 If you'd like to initialize Eppo's client without performing a network request, you can pass in a pre-fetched configuration JSON string.
 
 ```swift
-try EppoClient.initializeOffline(
+EppoClient.initializeOffline(
     sdkKey: "SDK-KEY-FROM-DASHBOARD",
     initialConfiguration: try Configuration(
         flagsConfigurationJson: Data(#"{ "pre-loaded-JSON": "passed in here" }"#.utf8),
@@ -78,7 +78,7 @@ The initialization method is synchronous and allows you to perform assignments i
 After the client has been initialized, you can use `load()` to asynchronously fetch the latest flag configuration from the remote source.
 
 ```swift
-try EppoClient.initializeOffline(
+EppoClient.initializeOffline(
     sdkKey: "SDK-KEY-FROM-DASHBOARD",
     initialConfiguration: try Configuration(
         flagsConfigurationJson: Data(#"{ "pre-loaded-JSON": "passed in here" }"#.utf8),
@@ -97,24 +97,28 @@ As modern iOS devices have substantial memory, applications are often kept in me
 
 It is recommended to use the `load()` method to fetch the latest flag configurations when the application is launched.
 
-#### Precomputed Client (Offline-First)
+#### Precomputed Client
 
-For applications that need to work entirely offline or with precomputed flag values, use the `EppoPrecomputedClient`:
+For applications that need to work with precomputed flag values, use the `EppoPrecomputedClient`. The precomputed flag is more performant due to a smaller config size and more secure due to removal of targeting rules.
 
+**The offline initialization workflow:**
+
+1. **Server-side** - Generate precomputed configuration using the [Node SDK](https://docs.geteppo.com/sdks/client-sdks/javascript/precomputed-assignments/#initialize-offline-bootstrapped-precomputed-client)
+
+2. **Swift app** - Use the precomputed configuration:
 ```swift
-let client = EppoPrecomputedClient.initializeOffline(
-    sdkKey: "SDK-KEY-FROM-DASHBOARD", 
-    subject: Subject(subjectKey: "user-123", subjectAttributes: ["age": EppoValue(value: 25)]),
-    initialPrecomputedConfiguration: try PrecomputedConfiguration(
-        precomputedConfigurationJson: Data(#"{ "precomputed-JSON": "from server or embedded" }"#.utf8)
-    )
-);
+let config = try PrecomputedConfiguration(
+    precomputedConfiguration: precomputedConfig // String from server
+)
 
-// Direct assignment without network dependency
-let assignment = client.getStringAssignment(flagKey: "feature-flag", defaultValue: "default");
+EppoPrecomputedClient.initializeOffline(
+    initialPrecomputedConfiguration: config
+)
+
+// Access via shared instance for assignments
+let client = try EppoPrecomputedClient.shared()
+let theme = client.getStringAssignment(flagKey: "mobile-theme", defaultValue: "light")
 ```
-
-The precomputed client is designed for scenarios where flag values are pre-calculated and embedded in the app, eliminating the need for network requests during assignment evaluation.
 
 #### Assign anywhere
 

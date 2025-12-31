@@ -51,13 +51,12 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
+            subject: PrecomputedSubject(subjectKey: testSubject.subjectKey, subjectAttributes: testSubject.subjectAttributes),
             configPublishedAt: Date(),
             environment: Environment(name: "test")
         )
         
         let client = EppoPrecomputedClient.initializeOffline(
-            sdkKey: "mock-api-key",
-            subject: testSubject,
             initialPrecomputedConfiguration: testConfig,
             assignmentLogger: mockLogger.logger,
             configurationChangeCallback: mockConfigChangeCallback.callback
@@ -83,18 +82,15 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
+            subject: PrecomputedSubject(subjectKey: testSubject.subjectKey, subjectAttributes: testSubject.subjectAttributes),
             configPublishedAt: nil,
             environment: nil
         )
         
         let originalClient = EppoPrecomputedClient.initializeOffline(
-            sdkKey: "mock-api-key",
-            subject: testSubject,
             initialPrecomputedConfiguration: testConfig
         )
         let client2 = EppoPrecomputedClient.initializeOffline(
-            sdkKey: "different-key",
-            subject: Subject(subjectKey: "different-user"),
             initialPrecomputedConfiguration: testConfig
         )
         
@@ -110,13 +106,12 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
+            subject: PrecomputedSubject(subjectKey: testSubject.subjectKey, subjectAttributes: testSubject.subjectAttributes),
             configPublishedAt: nil,
             environment: nil
         )
         
         let client = EppoPrecomputedClient.initializeOffline(
-            sdkKey: "mock-api-key",
-            subject: testSubject,
             initialPrecomputedConfiguration: testConfig,
             assignmentLogger: nil
         )
@@ -133,11 +128,12 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
     
     func testInitializationCleanupOnError() async {
         EppoPrecomputedClient.resetForTesting()
-        let result = EppoPrecomputedClient.shared.getStringAssignment(
-            flagKey: "any-flag",
-            defaultValue: "default"
-        )
-        XCTAssertEqual(result, "default")
+        do {
+            _ = try EppoPrecomputedClient.shared()
+            XCTFail("Should have thrown an error when not initialized")
+        } catch {
+            XCTAssertTrue(error is EppoPrecomputedClient.InitializationError)
+        }
     }
     
     // MARK: - Configuration Change Callback Tests
@@ -148,13 +144,12 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
+            subject: PrecomputedSubject(subjectKey: testSubject.subjectKey, subjectAttributes: testSubject.subjectAttributes),
             configPublishedAt: nil,
             environment: nil
         )
         
         _ = EppoPrecomputedClient.initializeOffline(
-            sdkKey: "mock-api-key",
-            subject: testSubject,
             initialPrecomputedConfiguration: testConfig,
             configurationChangeCallback: mockConfigChangeCallback.callback
         )
@@ -172,12 +167,11 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
+            subject: PrecomputedSubject(subjectKey: testSubject.subjectKey, subjectAttributes: testSubject.subjectAttributes),
             configPublishedAt: nil,
             environment: nil
         )
         let client = EppoPrecomputedClient.initializeOffline(
-            sdkKey: "mock-api-key",
-            subject: testSubject,
             initialPrecomputedConfiguration: testConfig
         )
         

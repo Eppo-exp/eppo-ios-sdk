@@ -96,40 +96,24 @@ class PrecomputedConfigurationTests: XCTestCase {
         XCTAssertEqual(decodedConfig.environment?.name, originalConfig.environment?.name)
     }
     
-    func testDecodingFromServerResponse() throws {
-        let json = """
+    func testPublicStringAPIWithComplexFlags() throws {
+        // Test public String API with multiple flags and complex scenarios
+        let wireFormatJSON = """
         {
-            "createdAt": "2024-11-18T14:23:25.123Z",
-            "format": "PRECOMPUTED",
-            "salt": "c29kaXVtY2hsb3JpZGU=",
-            "obfuscated": true,
-            "environment": {
-                "name": "Test"
-            },
-            "flags": {
-                "string-flag": {
-                    "allocationKey": "YWxsb2NhdGlvbi0xMjM=",
-                    "variationKey": "dmFyaWF0aW9uLTEyMw==",
-                    "variationType": "STRING",
-                    "variationValue": "cmVk",
-                    "extraLogging": {},
-                    "doLog": true
+            "version": 1,
+            "precomputed": {
+                "subjectKey": "test-user",
+                "subjectAttributes": {
+                    "categoricalAttributes": {},
+                    "numericAttributes": {}
                 },
-                "boolean-flag": {
-                    "allocationKey": "YWxsb2NhdGlvbi0xMjQ=",
-                    "variationKey": "dmFyaWF0aW9uLTEyNA==",
-                    "variationType": "BOOLEAN",
-                    "variationValue": true,
-                    "extraLogging": {"aG9sZG91dEtleQ==": "ZmVhdHVyZS1yb2xsb3V0", "aG9sZG91dFZhcmlhdGlvbg==": "YWxsX3NoaXBwZWQ="},
-                    "doLog": false
-                }
+                "fetchedAt": "2024-11-18T14:23:25.123Z",
+                "response": "{\\"createdAt\\":\\"2024-11-18T14:23:25.123Z\\",\\"format\\":\\"PRECOMPUTED\\",\\"salt\\":\\"c29kaXVtY2hsb3JpZGU=\\",\\"obfuscated\\":true,\\"environment\\":{\\"name\\":\\"Test\\"},\\"flags\\":{\\"string-flag\\":{\\"allocationKey\\":\\"YWxsb2NhdGlvbi0xMjM=\\",\\"variationKey\\":\\"dmFyaWF0aW9uLTEyMw==\\",\\"variationType\\":\\"STRING\\",\\"variationValue\\":\\"cmVk\\",\\"extraLogging\\":{},\\"doLog\\":true},\\"boolean-flag\\":{\\"allocationKey\\":\\"YWxsb2NhdGlvbi0xMjQ=\\",\\"variationKey\\":\\"dmFyaWF0aW9uLTEyNA==\\",\\"variationType\\":\\"BOOLEAN\\",\\"variationValue\\":true,\\"extraLogging\\":{\\"aG9sZG91dEtleQ==\\":\\"ZmVhdHVyZS1yb2xsb3V0\\",\\"aG9sZG91dFZhcmlhdGlvbg==\\":\\"YWxsX3NoaXBwZWQ=\\"},\\"doLog\\":false}}}"
             }
         }
         """
         
-        let data = json.data(using: .utf8)!
-        let decoder = JSONDecoder()
-        let config = try decoder.decode(PrecomputedConfiguration.self, from: data)
+        let config = try PrecomputedConfiguration(precomputedConfiguration: wireFormatJSON)
         
         XCTAssertEqual(config.salt, "c29kaXVtY2hsb3JpZGU=")
         XCTAssertEqual(config.format, "PRECOMPUTED")
@@ -150,38 +134,55 @@ class PrecomputedConfigurationTests: XCTestCase {
         XCTAssertFalse(boolFlag?.doLog ?? true)
     }
     
-    func testJSONConvenienceInitializer() throws {
-        let json = """
+    
+    func testStringAPIWithInvalidJSON() {
+        let invalidJSON = "{ invalid json }"
+        
+        XCTAssertThrowsError(try PrecomputedConfiguration(precomputedConfiguration: invalidJSON)) { error in
+            XCTAssertTrue(error is DecodingError)
+        }
+    }
+    
+    func testInternalDataAPIWithSubjectParsing() throws {
+        // Test internal Data API with rich subject attribute parsing
+        let wireFormatJSON = """
         {
-            "createdAt": "2024-11-18T14:23:25.123Z",
-            "format": "PRECOMPUTED",
-            "salt": "dGVzdC1zYWx0",
-            "environment": {
-                "name": "Production"
-            },
-            "flags": {
-                "test-flag": {
-                    "allocationKey": "YWxsb2NhdGlvbi0xMjM=",
-                    "variationKey": "dmFyaWF0aW9uLTEyMw==",
-                    "variationType": "STRING",
-                    "variationValue": "dGVzdC12YWx1ZQ==",
-                    "extraLogging": {},
-                    "doLog": true
-                }
+            "version": 1,
+            "precomputed": {
+                "subjectKey": "test-subject-key",
+                "subjectAttributes": {
+                    "categoricalAttributes": {
+                        "platform": "ios",
+                        "language": "en-US"
+                    },
+                    "numericAttributes": {
+                        "age": 25,
+                        "score": 98.5
+                    }
+                },
+                "fetchedAt": "2024-11-18T14:23:39.456Z",
+                "response": "{\\"createdAt\\":\\"2024-11-18T14:23:25.123Z\\",\\"format\\":\\"PRECOMPUTED\\",\\"salt\\":\\"dGVzdC1zYWx0\\",\\"environment\\":{\\"name\\":\\"Test\\"},\\"flags\\":{\\"test-flag\\":{\\"allocationKey\\":\\"YWxsb2NhdGlvbi0xMjM=\\",\\"variationKey\\":\\"dmFyaWF0aW9uLTEyMw==\\",\\"variationType\\":\\"STRING\\",\\"variationValue\\":\\"dGVzdC12YWx1ZQ==\\",\\"extraLogging\\":{},\\"doLog\\":true}}}"
             }
         }
         """
         
-        let jsonData = json.data(using: .utf8)!
-        let testSubject = Subject(subjectKey: "test-user", subjectAttributes: [:])
-        let config = try PrecomputedConfiguration(precomputedConfigurationJson: jsonData, subject: testSubject)
+        let wireFormatData = wireFormatJSON.data(using: .utf8)!
+        let config = try PrecomputedConfiguration(precomputedConfigurationJson: wireFormatData)
         
+        // Verify configuration properties
         XCTAssertEqual(config.salt, "dGVzdC1zYWx0")
         XCTAssertEqual(config.format, "PRECOMPUTED")
-        XCTAssertEqual(config.environment?.name, "Production")
+        XCTAssertEqual(config.environment?.name, "Test")
         XCTAssertEqual(config.flags.count, 1)
-        XCTAssertNotNil(config.configFetchedAt) // Should be set to current time
         
+        // Verify subject was parsed correctly
+        XCTAssertEqual(config.subject.subjectKey, "test-subject-key")
+        XCTAssertEqual(try config.subject.subjectAttributes["platform"]?.getStringValue(), "ios")
+        XCTAssertEqual(try config.subject.subjectAttributes["language"]?.getStringValue(), "en-US")
+        XCTAssertEqual(try config.subject.subjectAttributes["age"]?.getDoubleValue(), 25.0)
+        XCTAssertEqual(try config.subject.subjectAttributes["score"]?.getDoubleValue(), 98.5)
+        
+        // Verify flag was parsed correctly
         let testFlag = config.flags["test-flag"]
         XCTAssertNotNil(testFlag)
         XCTAssertEqual(testFlag?.allocationKey, "YWxsb2NhdGlvbi0xMjM=")
@@ -189,15 +190,6 @@ class PrecomputedConfigurationTests: XCTestCase {
         XCTAssertTrue(testFlag?.doLog ?? false)
     }
     
-    func testJSONConvenienceInitializerWithInvalidJSON() {
-        let invalidJSON = "{ invalid json }"
-        let jsonData = invalidJSON.data(using: .utf8)!
-        let testSubject = Subject(subjectKey: "test-user", subjectAttributes: [:])
-        
-        XCTAssertThrowsError(try PrecomputedConfiguration(precomputedConfigurationJson: jsonData, subject: testSubject)) { error in
-            XCTAssertTrue(error is DecodingError)
-        }
-    }
     
     // MARK: - Salt Validation Tests
     

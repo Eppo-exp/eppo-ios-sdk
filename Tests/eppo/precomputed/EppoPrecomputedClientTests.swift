@@ -21,7 +21,6 @@ class EppoPrecomputedClientTests: XCTestCase {
             subject: testSubject
         )
         _ = EppoPrecomputedClient.initializeOffline(
-            sdkKey: "test-key",
             initialPrecomputedConfiguration: testConfig
         )
         
@@ -50,7 +49,6 @@ class EppoPrecomputedClientTests: XCTestCase {
             subject: testSubject
         )
         _ = EppoPrecomputedClient.initializeOffline(
-            sdkKey: "test-key",
             initialPrecomputedConfiguration: testConfig
         )
         
@@ -93,7 +91,6 @@ class EppoPrecomputedClientTests: XCTestCase {
             subject: testSubject
         )
         _ = EppoPrecomputedClient.initializeOffline(
-            sdkKey: "test-key",
             initialPrecomputedConfiguration: testConfig
         )
         
@@ -116,7 +113,6 @@ class EppoPrecomputedClientTests: XCTestCase {
             subject: testSubject
         )
         _ = EppoPrecomputedClient.initializeOffline(
-            sdkKey: "test-key",
             initialPrecomputedConfiguration: testConfig
         )
         
@@ -144,7 +140,6 @@ class EppoPrecomputedClientTests: XCTestCase {
             subject: testSubject
         )
         _ = EppoPrecomputedClient.initializeOffline(
-            sdkKey: "test-key",
             initialPrecomputedConfiguration: testConfig
         )
         
@@ -193,7 +188,6 @@ class EppoPrecomputedClientTests: XCTestCase {
             subject: testSubject
         )
         _ = EppoPrecomputedClient.initializeOffline(
-            sdkKey: "test-key",
             initialPrecomputedConfiguration: testConfig
         )
         
@@ -216,7 +210,6 @@ class EppoPrecomputedClientTests: XCTestCase {
             subject: testSubject
         )
         _ = EppoPrecomputedClient.initializeOffline(
-            sdkKey: "test-key",
             initialPrecomputedConfiguration: testConfig
         )
         
