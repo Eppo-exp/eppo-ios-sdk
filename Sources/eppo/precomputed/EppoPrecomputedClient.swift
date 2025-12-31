@@ -22,7 +22,8 @@ public class EppoPrecomputedClient {
     }
     
     private let configurationStore: PrecomputedConfigurationStore
-    private let subject: Subject
+    private let subjectKey: String
+    private let subjectAttributes: [String: EppoValue]
     private let assignmentLogger: AssignmentLogger?
     private let assignmentCache: AssignmentCache?
     
@@ -36,14 +37,16 @@ public class EppoPrecomputedClient {
         configurationChangeCallback: ConfigurationChangeCallback? = nil
     ) {
         
-        // Extract subject from configuration or use placeholder
+        // Extract subject information from configuration or use placeholder
         if let configuration = initialPrecomputedConfiguration {
-            self.subject = configuration.subject.toSubject() // Convert PrecomputedSubject to Subject
+            self.subjectKey = configuration.subject.subjectKey
+            self.subjectAttributes = configuration.subject.subjectAttributes
             self.configurationStore = PrecomputedConfigurationStore(withPersistentCache: withPersistentCache)
             self.configurationStore.setConfiguration(configuration)
         } else {
-            // Create a placeholder subject for offline-only initialization
-            self.subject = Subject(subjectKey: "", subjectAttributes: [:])
+            // Create placeholder subject information for offline-only initialization
+            self.subjectKey = ""
+            self.subjectAttributes = [:]
             self.configurationStore = PrecomputedConfigurationStore(withPersistentCache: withPersistentCache)
         }
         
@@ -258,9 +261,9 @@ public class EppoPrecomputedClient {
             flagKey: flagKey,
             allocationKey: decodedAllocationKey,
             variation: decodedVariationKey,
-            subject: subject.subjectKey,
+            subject: subjectKey,
             timestamp: ISO8601DateFormatter().string(from: Date()),
-            subjectAttributes: subject.subjectAttributes,
+            subjectAttributes: subjectAttributes,
             metaData: [
                 "obfuscated": "true",
                 "sdkName": sdkName,

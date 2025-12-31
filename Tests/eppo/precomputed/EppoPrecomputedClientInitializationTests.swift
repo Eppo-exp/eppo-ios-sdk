@@ -15,17 +15,16 @@ class MockConfigurationChangeCallback {
 
 class EppoPrecomputedClientInitializationTests: XCTestCase {
     var mockConfigChangeCallback: MockConfigurationChangeCallback!
-    var testSubject: Subject!
+    var testSubjectKey: String!
+    var testSubjectAttributes: [String: EppoValue]!
     var mockLogger: MockAssignmentLogger!
     
     override func setUp() {
         super.setUp()
         EppoPrecomputedClient.resetForTesting()
         mockConfigChangeCallback = MockConfigurationChangeCallback()
-        testSubject = Subject(
-            subjectKey: "test-user-123",
-            subjectAttributes: ["age": EppoValue(value: 25)]
-        )
+        testSubjectKey = "test-user-123"
+        testSubjectAttributes = ["age": EppoValue(value: 25)]
         mockLogger = MockAssignmentLogger()
     }
     
@@ -51,7 +50,7 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
-            subject: PrecomputedSubject(subjectKey: testSubject.subjectKey, subjectAttributes: testSubject.subjectAttributes),
+            subject: PrecomputedSubject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
             configPublishedAt: Date(),
             environment: Environment(name: "test")
         )
@@ -82,7 +81,7 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
-            subject: PrecomputedSubject(subjectKey: testSubject.subjectKey, subjectAttributes: testSubject.subjectAttributes),
+            subject: PrecomputedSubject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
             configPublishedAt: nil,
             environment: nil
         )
@@ -106,7 +105,7 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
-            subject: PrecomputedSubject(subjectKey: testSubject.subjectKey, subjectAttributes: testSubject.subjectAttributes),
+            subject: PrecomputedSubject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
             configPublishedAt: nil,
             environment: nil
         )
@@ -144,7 +143,7 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
-            subject: PrecomputedSubject(subjectKey: testSubject.subjectKey, subjectAttributes: testSubject.subjectAttributes),
+            subject: PrecomputedSubject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
             configPublishedAt: nil,
             environment: nil
         )
@@ -167,7 +166,7 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
-            subject: PrecomputedSubject(subjectKey: testSubject.subjectKey, subjectAttributes: testSubject.subjectAttributes),
+            subject: PrecomputedSubject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
             configPublishedAt: nil,
             environment: nil
         )

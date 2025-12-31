@@ -68,7 +68,8 @@ class MockAssignmentCache: AssignmentCache {
 class EppoPrecomputedClientAssignmentTests: XCTestCase {
     var mockLogger: MockAssignmentLogger!
     var mockCache: MockAssignmentCache!
-    var testSubject: Subject!
+    var testSubjectKey: String!
+    var testSubjectAttributes: [String: EppoValue]!
     var testConfiguration: PrecomputedConfiguration!
     var configStore: PrecomputedConfigurationStore!
     
@@ -77,10 +78,8 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
         EppoPrecomputedClient.resetForTesting()
         mockLogger = MockAssignmentLogger()
         mockCache = MockAssignmentCache()
-        testSubject = Subject(
-            subjectKey: "test-user-123",
-            subjectAttributes: ["age": EppoValue(value: 25)]
-        )
+        testSubjectKey = "test-user-123"
+        testSubjectAttributes = ["age": EppoValue(value: 25)]
         
         let testFlags: [String: PrecomputedFlag] = [
             getMD5Hex("string-flag", salt: "test-salt"): PrecomputedFlag(
@@ -155,7 +154,7 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
-            subject: PrecomputedSubject(subjectKey: testSubject.subjectKey, subjectAttributes: testSubject.subjectAttributes),
+            subject: PrecomputedSubject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
             configPublishedAt: Date(),
             environment: Environment(name: "test")
         )

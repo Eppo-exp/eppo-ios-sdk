@@ -1,6 +1,5 @@
 import Foundation
 
-
 /// Subject information specifically for precomputed configurations
 /// This is a Codable version that can be serialized/deserialized with JSON
 public struct PrecomputedSubject: Codable {
@@ -10,11 +9,6 @@ public struct PrecomputedSubject: Codable {
     public init(subjectKey: String, subjectAttributes: [String: EppoValue] = [:]) {
         self.subjectKey = subjectKey
         self.subjectAttributes = subjectAttributes
-    }
-    
-    /// Convert to regular Subject for use with assignment logging
-    public func toSubject() -> Subject {
-        return Subject(subjectKey: subjectKey, subjectAttributes: subjectAttributes)
     }
 }
 
