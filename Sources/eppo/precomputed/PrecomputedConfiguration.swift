@@ -17,11 +17,15 @@ public struct PrecomputedConfiguration: Codable {
     
     public let environment: Environment?
     
+    /// Subject information that this configuration was generated for
+    public let subject: Subject
+    
     init(
         flags: [String: PrecomputedFlag],
         salt: String,
         format: String,
         configFetchedAt: Date,
+        subject: Subject,
         configPublishedAt: Date? = nil,
         environment: Environment? = nil
     ) {
@@ -31,12 +35,13 @@ public struct PrecomputedConfiguration: Codable {
         self.configFetchedAt = configFetchedAt
         self.configPublishedAt = configPublishedAt
         self.environment = environment
+        self.subject = subject
     }
     
-    public init(precomputedConfigurationJson: Data) throws {
+    public init(precomputedConfigurationJson: Data, subject: Subject) throws {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        let decoded = try decoder.decode(PrecomputedConfiguration.self, from: precomputedConfigurationJson)
+        let decoded = try decoder.decode(PrecomputedConfigurationFromJSON.self, from: precomputedConfigurationJson)
         
         self.flags = decoded.flags
         self.salt = decoded.salt
@@ -44,7 +49,17 @@ public struct PrecomputedConfiguration: Codable {
         self.configFetchedAt = Date() // Always use current time when parsing
         self.configPublishedAt = decoded.configPublishedAt
         self.environment = decoded.environment
+        self.subject = subject
     }
+}
+
+/// Helper struct for parsing JSON configuration without embedded subject
+private struct PrecomputedConfigurationFromJSON: Decodable {
+    let flags: [String: PrecomputedFlag]
+    let salt: String
+    let format: String
+    let configPublishedAt: Date?
+    let environment: Environment?
     
     private enum CodingKeys: String, CodingKey {
         case flags
@@ -52,6 +67,35 @@ public struct PrecomputedConfiguration: Codable {
         case format
         case createdAt
         case environment
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        flags = try container.decode([String: PrecomputedFlag].self, forKey: .flags)
+        salt = try container.decode(String.self, forKey: .salt)
+        format = try container.decode(String.self, forKey: .format)
+        
+        // Handle dates with base64 support
+        if let createdAtString = try? container.decode(String.self, forKey: .createdAt) {
+            configPublishedAt = parseUtcISODateElement(createdAtString)
+        } else {
+            configPublishedAt = nil
+        }
+        
+        environment = try container.decodeIfPresent(Environment.self, forKey: .environment)
+    }
+}
+
+extension PrecomputedConfiguration {
+    
+    private enum CodingKeys: String, CodingKey {
+        case flags
+        case salt
+        case format
+        case createdAt
+        case environment
+        case subject
     }
     
     public init(from decoder: Decoder) throws {
@@ -71,6 +115,7 @@ public struct PrecomputedConfiguration: Codable {
         configFetchedAt = Date()
         
         environment = try container.decodeIfPresent(Environment.self, forKey: .environment)
+        subject = try container.decode(Subject.self, forKey: .subject)
         
         // Note: obfuscated field is always true for precomputed configs, so we ignore it
     }
@@ -89,5 +134,6 @@ public struct PrecomputedConfiguration: Codable {
         }
         
         try container.encodeIfPresent(environment, forKey: .environment)
+        try container.encode(subject, forKey: .subject)
     }
 }

@@ -31,7 +31,6 @@ public class EppoPrecomputedClient {
     
     private init(
         sdkKey: String,
-        subject: Subject,
         assignmentLogger: AssignmentLogger? = nil,
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
         initialPrecomputedConfiguration: PrecomputedConfiguration? = nil,
@@ -39,24 +38,29 @@ public class EppoPrecomputedClient {
         configurationChangeCallback: ConfigurationChangeCallback? = nil
     ) {
         self.sdkKey = sdkKey
-        self.subject = subject
+        
+        // Extract subject from configuration or use placeholder
+        if let configuration = initialPrecomputedConfiguration {
+            self.subject = configuration.subject
+            self.configurationStore = PrecomputedConfigurationStore(withPersistentCache: withPersistentCache)
+            self.configurationStore.setConfiguration(configuration)
+        } else {
+            // Create a placeholder subject for offline-only initialization
+            self.subject = Subject(subjectKey: "", subjectAttributes: [:])
+            self.configurationStore = PrecomputedConfigurationStore(withPersistentCache: withPersistentCache)
+        }
+        
         self.assignmentLogger = assignmentLogger
         self.assignmentCache = assignmentCache
-        self.configurationStore = PrecomputedConfigurationStore(withPersistentCache: withPersistentCache)
         self.configurationChangeCallback = configurationChangeCallback
-        
-        // Set initial configuration if provided
-        if let configuration = initialPrecomputedConfiguration {
-            self.configurationStore.setConfiguration(configuration)
-        }
     }
     
     
     /// Initialize the precomputed client offline with provided configuration
+    /// The subject information is extracted from the precomputed configuration
     public static func initializeOffline(
         sdkKey: String,
-        subject: Subject,
-        initialPrecomputedConfiguration: PrecomputedConfiguration?,
+        initialPrecomputedConfiguration: PrecomputedConfiguration,
         assignmentLogger: AssignmentLogger? = nil,
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
         withPersistentCache: Bool = true,
@@ -69,7 +73,6 @@ public class EppoPrecomputedClient {
             
             let instance = EppoPrecomputedClient(
                 sdkKey: sdkKey,
-                subject: subject,
                 assignmentLogger: assignmentLogger,
                 assignmentCache: assignmentCache,
                 initialPrecomputedConfiguration: initialPrecomputedConfiguration,
@@ -77,10 +80,8 @@ public class EppoPrecomputedClient {
                 configurationChangeCallback: configurationChangeCallback
             )
             
-            // Trigger configuration change callback if configuration was set
-            if let configuration = initialPrecomputedConfiguration {
-                instance.notifyConfigurationChange(configuration)
-            }
+            // Trigger configuration change callback
+            instance.notifyConfigurationChange(initialPrecomputedConfiguration)
             
             sharedInstance = instance
             return instance
