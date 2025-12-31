@@ -143,7 +143,11 @@ class PrecomputedRequestorRetryTests: XCTestCase {
         {
             "flags": {},
             "salt": "test-salt",
-            "format": "PRECOMPUTED"
+            "format": "PRECOMPUTED",
+            "subject": {
+                "subjectKey": "test-user",
+                "subjectAttributes": {"age": 25}
+            }
         }
         """.data(using: .utf8)!
         
@@ -172,7 +176,11 @@ class PrecomputedRequestorRetryTests: XCTestCase {
         {
             "flags": {},
             "salt": "test-salt",
-            "format": "PRECOMPUTED"
+            "format": "PRECOMPUTED",
+            "subject": {
+                "subjectKey": "test-user",
+                "subjectAttributes": {"age": 25}
+            }
         }
         """.data(using: .utf8)!
         
@@ -239,7 +247,11 @@ class PrecomputedRequestorRetryTests: XCTestCase {
         {
             "flags": {},
             "salt": "test-salt", 
-            "format": "PRECOMPUTED"
+            "format": "PRECOMPUTED",
+            "subject": {
+                "subjectKey": "test-user",
+                "subjectAttributes": {"age": 25}
+            }
         }
         """.data(using: .utf8)!
         
@@ -308,7 +320,11 @@ class PrecomputedRequestorRetryTests: XCTestCase {
         {
             "flags": {},
             "salt": "test-salt",
-            "format": "PRECOMPUTED"
+            "format": "PRECOMPUTED",
+            "subject": {
+                "subjectKey": "test-user",
+                "subjectAttributes": {"age": 25}
+            }
         }
         """.data(using: .utf8)!
         

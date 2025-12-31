@@ -262,7 +262,7 @@ class EppoPrecomputedClientTests: XCTestCase {
     func testPollingMethodsExist() async {
         // Test that polling methods exist and don't crash when called on uninitialized client
         do {
-            try await EppoPrecomputedClient.shared().stopPolling()
+            try EppoPrecomputedClient.shared().stopPolling()
         } catch {
             // Expected - shared() throws when not initialized
         }
