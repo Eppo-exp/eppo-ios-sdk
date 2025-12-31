@@ -6,66 +6,85 @@ public class EppoPrecomputedClient {
     public typealias ConfigurationChangeCallback = (PrecomputedConfiguration) -> Void
     
     public enum InitializationError: Error {
-        case alreadyInitialized
+        case notConfigured
     }
     private static let sharedLock = NSLock()
     private static var sharedInstance: EppoPrecomputedClient?
     private static let initializerQueue = DispatchQueue(label: "cloud.eppo.precomputed.initializer")
     
-    public static var shared: EppoPrecomputedClient {
-        sharedLock.withLock {
-            if let instance = sharedInstance {
-                return instance
+    public static func shared() throws -> EppoPrecomputedClient {
+        try sharedLock.withLock {
+            guard let instance = sharedInstance else {
+                throw InitializationError.notConfigured
             }
-            let instance = EppoPrecomputedClient()
-            sharedInstance = instance
             return instance
         }
     }
     
-    private var configurationStore: PrecomputedConfigurationStore?
-    private var subject: Subject?
-    private var assignmentLogger: AssignmentLogger?
-    private var assignmentCache: AssignmentCache?
+    private let configurationStore: PrecomputedConfigurationStore
+    private let subject: Subject
+    private let assignmentLogger: AssignmentLogger?
+    private let assignmentCache: AssignmentCache?
     
-    private var sdkKey: String?
+    private let sdkKey: String
     private var configurationChangeCallback: ConfigurationChangeCallback?
     
-    private init() {}
+    private init(
+        sdkKey: String,
+        subject: Subject,
+        assignmentLogger: AssignmentLogger? = nil,
+        assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
+        initialPrecomputedConfiguration: PrecomputedConfiguration? = nil,
+        withPersistentCache: Bool = true,
+        configurationChangeCallback: ConfigurationChangeCallback? = nil
+    ) {
+        self.sdkKey = sdkKey
+        self.subject = subject
+        self.assignmentLogger = assignmentLogger
+        self.assignmentCache = assignmentCache
+        self.configurationStore = PrecomputedConfigurationStore(withPersistentCache: withPersistentCache)
+        self.configurationChangeCallback = configurationChangeCallback
+        
+        // Set initial configuration if provided
+        if let configuration = initialPrecomputedConfiguration {
+            self.configurationStore.setConfiguration(configuration)
+        }
+    }
     
     
     /// Initialize the precomputed client offline with provided configuration
     public static func initializeOffline(
         sdkKey: String,
         subject: Subject,
-        initialPrecomputedConfiguration: PrecomputedConfiguration,
+        initialPrecomputedConfiguration: PrecomputedConfiguration?,
         assignmentLogger: AssignmentLogger? = nil,
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
         withPersistentCache: Bool = true,
         configurationChangeCallback: ConfigurationChangeCallback? = nil
     ) -> EppoPrecomputedClient {
-        let result = Self.sharedLock.withLock { () -> EppoPrecomputedClient in
+        return Self.sharedLock.withLock {
             if let instance = sharedInstance {
                 return instance
             }
             
-            let instance = EppoPrecomputedClient()
-            instance.sdkKey = sdkKey
-            instance.subject = subject
-            instance.assignmentLogger = assignmentLogger
-            instance.assignmentCache = assignmentCache
-            let store = PrecomputedConfigurationStore()
-            store.setConfiguration(initialPrecomputedConfiguration)
-            instance.configurationStore = store
+            let instance = EppoPrecomputedClient(
+                sdkKey: sdkKey,
+                subject: subject,
+                assignmentLogger: assignmentLogger,
+                assignmentCache: assignmentCache,
+                initialPrecomputedConfiguration: initialPrecomputedConfiguration,
+                withPersistentCache: withPersistentCache,
+                configurationChangeCallback: configurationChangeCallback
+            )
             
-            instance.configurationChangeCallback = configurationChangeCallback
-            instance.notifyConfigurationChange(initialPrecomputedConfiguration)
+            // Trigger configuration change callback if configuration was set
+            if let configuration = initialPrecomputedConfiguration {
+                instance.notifyConfigurationChange(configuration)
+            }
             
             sharedInstance = instance
             return instance
         }
-        
-        return result
     }
     
     // MARK: - Lifecycle Management
@@ -116,12 +135,11 @@ public class EppoPrecomputedClient {
         defaultValue: T,
         expectedType: VariationType
     ) -> T {
-        guard let store = configurationStore,
-              store.isInitialized() else {
+        guard configurationStore.isInitialized() else {
             return defaultValue
         }
         
-        guard let salt = store.salt else {
+        guard let salt = configurationStore.salt else {
             return defaultValue
         }
         
@@ -131,7 +149,7 @@ public class EppoPrecomputedClient {
         
         let hashedFlagKey = getMD5Hex(flagKey, salt: decodedSalt)
         
-        guard let flag = store.getFlag(forKey: hashedFlagKey) else {
+        guard let flag = configurationStore.getFlag(forKey: hashedFlagKey) else {
             return defaultValue
         }
         
@@ -150,8 +168,7 @@ public class EppoPrecomputedClient {
             if flag.doLog {
                 logAssignment(
                     flagKey: flagKey,
-                    flag: flag,
-                    subject: subject
+                    flag: flag
                 )
             }
             
@@ -212,10 +229,8 @@ public class EppoPrecomputedClient {
     
     private func logAssignment(
         flagKey: String,
-        flag: PrecomputedFlag,
-        subject: Subject?
+        flag: PrecomputedFlag
     ) {
-        guard let subj = subject else { return }
         
         var decodedAllocationKey: String = flag.allocationKey ?? ""
         if let allocationKey = flag.allocationKey,
@@ -247,9 +262,9 @@ public class EppoPrecomputedClient {
             flagKey: flagKey,
             allocationKey: decodedAllocationKey,
             variation: decodedVariationKey,
-            subject: subj.subjectKey,
+            subject: subject.subjectKey,
             timestamp: ISO8601DateFormatter().string(from: Date()),
-            subjectAttributes: subj.subjectAttributes,
+            subjectAttributes: subject.subjectAttributes,
             metaData: [
                 "obfuscated": "true",
                 "sdkName": sdkName,
