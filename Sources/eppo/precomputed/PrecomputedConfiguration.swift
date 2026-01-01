@@ -1,17 +1,5 @@
 import Foundation
 
-/// Subject information specifically for precomputed configurations
-/// This is a Codable version that can be serialized/deserialized with JSON
-public struct PrecomputedSubject: Codable {
-    public let subjectKey: String
-    public let subjectAttributes: [String: EppoValue]
-    
-    public init(subjectKey: String, subjectAttributes: [String: EppoValue] = [:]) {
-        self.subjectKey = subjectKey
-        self.subjectAttributes = subjectAttributes
-    }
-}
-
 /// Represents the configuration for precomputed flag assignments
 public struct PrecomputedConfiguration: Codable {
     let flags: [String: PrecomputedFlag]
@@ -30,14 +18,14 @@ public struct PrecomputedConfiguration: Codable {
     public let environment: Environment?
     
     /// Subject information that this configuration was generated for
-    public let subject: PrecomputedSubject
+    let subject: Subject
     
     init(
         flags: [String: PrecomputedFlag],
         salt: String,
         format: String,
         configFetchedAt: Date,
-        subject: PrecomputedSubject,
+        subject: Subject,
         configPublishedAt: Date? = nil,
         environment: Environment? = nil
     ) {
@@ -77,8 +65,8 @@ public struct PrecomputedConfiguration: Codable {
         self.configPublishedAt = responseDecoded.configPublishedAt
         self.environment = responseDecoded.environment
         
-        // Convert wire format subject to PrecomputedSubject
-        self.subject = PrecomputedSubject(
+        // Convert wire format subject to internal Subject
+        self.subject = Subject(
             subjectKey: wireFormat.precomputed.subjectKey,
             subjectAttributes: wireFormat.precomputed.subjectAttributes.toDictionary()
         )
@@ -147,7 +135,7 @@ extension PrecomputedConfiguration {
         configFetchedAt = Date()
         
         environment = try container.decodeIfPresent(Environment.self, forKey: .environment)
-        subject = try container.decode(PrecomputedSubject.self, forKey: .subject)
+        subject = try container.decode(Subject.self, forKey: .subject)
         
         // Note: obfuscated field is always true for precomputed configs, so we ignore it
     }
@@ -170,9 +158,8 @@ extension PrecomputedConfiguration {
     }
 }
 
-// MARK: - Wire Format Structures (JS SDK API Compatibility)
+// MARK: - Wire Format Structure
 
-/// Wire format structure matching JS SDK precomputed configuration format
 private struct PrecomputedConfigurationWireFormat: Decodable {
     let version: Int
     let precomputed: PrecomputedWireData
@@ -224,5 +211,21 @@ private struct WireSubjectAttributes: Decodable {
         }
         
         return result
+    }
+}
+
+// MARK: - Internal Subject Type
+
+/// Internal subject representation specifically for precomputed flag assignments
+/// Used for storing subject data (subjectKey + subjectAttributes) extracted from:
+/// - Precompute objects (online initialization input)
+/// - Network configuration responses (wire format and direct JSON)
+struct Subject: Codable {
+    let subjectKey: String
+    let subjectAttributes: [String: EppoValue]
+    
+    init(subjectKey: String, subjectAttributes: [String: EppoValue] = [:]) {
+        self.subjectKey = subjectKey
+        self.subjectAttributes = subjectAttributes
     }
 }

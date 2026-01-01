@@ -50,7 +50,7 @@ class MockURLSessionWithRetry: URLProtocol {
 
 class PrecomputedRequestorRetryTests: XCTestCase {
     var requestor: PrecomputedRequestor!
-    var testSubject: Subject!
+    var testPrecompute: Precompute!
     var mockSession: URLSession!
     
     override func setUp() {
@@ -64,13 +64,13 @@ class PrecomputedRequestorRetryTests: XCTestCase {
         config.protocolClasses = [MockURLSessionWithRetry.self]
         mockSession = URLSession(configuration: config)
         
-        testSubject = Subject(
+        testPrecompute = Precompute(
             subjectKey: "test-user",
             subjectAttributes: ["age": EppoValue(value: 25)]
         )
         
         requestor = PrecomputedRequestor(
-            subject: testSubject,
+            precompute: testPrecompute,
             sdkKey: "test-key",
             sdkName: "test-sdk",
             sdkVersion: "1.0.0",

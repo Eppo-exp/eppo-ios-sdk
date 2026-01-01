@@ -2,12 +2,17 @@ import Foundation
 
 /// Handles HTTP requests to fetch precomputed flag configurations
 class PrecomputedRequestor {
-    private let subject: Subject
+    private let _precompute: Precompute
     private let host: String
     private let sdkKey: String
     private let sdkName: String
     private let sdkVersion: String
     private let urlSession: URLSession
+    
+    /// The precompute configuration used for this requestor
+    var precompute: Precompute {
+        return _precompute
+    }
     
     // Retry configuration
     private let maxRetryAttempts: Int
@@ -16,7 +21,7 @@ class PrecomputedRequestor {
     // MARK: - Initialization
     
     init(
-        subject: Subject,
+        precompute: Precompute,
         sdkKey: String,
         sdkName: String,
         sdkVersion: String,
@@ -25,7 +30,7 @@ class PrecomputedRequestor {
         initialRetryDelay: TimeInterval = 1.0,
         urlSession: URLSession = .shared
     ) {
-        self.subject = subject
+        self._precompute = precompute
         self.sdkKey = sdkKey
         self.sdkName = sdkName
         self.sdkVersion = sdkVersion
@@ -40,8 +45,8 @@ class PrecomputedRequestor {
     /// Fetches precomputed flags from the server
     func fetchPrecomputedFlags() async throws -> PrecomputedConfiguration {
         let payload = PrecomputedFlagsPayload(
-            subjectKey: subject.subjectKey,
-            subjectAttributes: subject.subjectAttributes
+            subjectKey: _precompute.subjectKey,
+            subjectAttributes: _precompute.subjectAttributes
         )
         
         let url = try buildURL()

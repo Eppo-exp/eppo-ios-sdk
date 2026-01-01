@@ -2,13 +2,13 @@ import XCTest
 @testable import EppoFlagging
 
 class EppoPrecomputedClientBasicPerformanceTests: XCTestCase {
-    var testSubject: Subject!
+    var testPrecompute: Precompute!
     
     override func setUp() {
         super.setUp()
         EppoPrecomputedClient.resetForTesting()
         
-        testSubject = Subject(
+        testPrecompute = Precompute(
             subjectKey: "performance-test-user",
             subjectAttributes: ["age": EppoValue(value: 25)]
         )
@@ -25,7 +25,6 @@ class EppoPrecomputedClientBasicPerformanceTests: XCTestCase {
         
         _ = EppoPrecomputedClient.initializeOffline(
             sdkKey: "performance-test-key",
-            subject: testSubject,
             initialPrecomputedConfiguration: testConfig
         )
         
@@ -57,7 +56,6 @@ class EppoPrecomputedClientBasicPerformanceTests: XCTestCase {
         
         _ = EppoPrecomputedClient.initializeOffline(
             sdkKey: "performance-test-key",
-            subject: testSubject,
             initialPrecomputedConfiguration: testConfig
         )
         
@@ -86,7 +84,6 @@ class EppoPrecomputedClientBasicPerformanceTests: XCTestCase {
         
         _ = EppoPrecomputedClient.initializeOffline(
             sdkKey: "performance-test-key",
-            subject: testSubject,
             initialPrecomputedConfiguration: testConfig
         )
         
@@ -169,7 +166,6 @@ class EppoPrecomputedClientBasicPerformanceTests: XCTestCase {
             
             _ = EppoPrecomputedClient.initializeOffline(
                 sdkKey: "performance-test-key-\(flagCount)",
-                subject: testSubject,
                 initialPrecomputedConfiguration: testConfig
             )
             
@@ -203,9 +199,9 @@ class EppoPrecomputedClientBasicPerformanceTests: XCTestCase {
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
-            subject: PrecomputedSubject(
-                subjectKey: testSubject.subjectKey,
-                subjectAttributes: testSubject.subjectAttributes
+            subject: Subject(
+                subjectKey: testPrecompute.subjectKey,
+                subjectAttributes: testPrecompute.subjectAttributes
             ),
             configPublishedAt: nil,
             environment: nil
@@ -270,9 +266,9 @@ class EppoPrecomputedClientBasicPerformanceTests: XCTestCase {
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
-            subject: PrecomputedSubject(
-                subjectKey: testSubject.subjectKey,
-                subjectAttributes: testSubject.subjectAttributes
+            subject: Subject(
+                subjectKey: testPrecompute.subjectKey,
+                subjectAttributes: testPrecompute.subjectAttributes
             ),
             configPublishedAt: nil,
             environment: nil

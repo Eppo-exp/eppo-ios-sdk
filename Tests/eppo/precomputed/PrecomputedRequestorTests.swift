@@ -5,11 +5,11 @@ class PrecomputedRequestorTests: XCTestCase {
     
     // MARK: - Test Setup
     
-    var subject: Subject!
+    var subject: Precompute!
     
     override func setUp() {
         super.setUp()
-        subject = Subject(
+        subject = Precompute(
             subjectKey: "test-user",
             subjectAttributes: ["age": .valueOf(25), "country": .valueOf("US")]
         )
@@ -19,7 +19,7 @@ class PrecomputedRequestorTests: XCTestCase {
     
     func testInitializationWithDefaultHost() {
         let requestor = PrecomputedRequestor(
-            subject: subject,
+            precompute: subject,
             sdkKey: "test-sdk-key",
             sdkName: "ios",
             sdkVersion: "1.0.0"
@@ -29,7 +29,7 @@ class PrecomputedRequestorTests: XCTestCase {
     
     func testInitializationWithCustomHost() {
         let requestor = PrecomputedRequestor(
-            subject: subject,
+            precompute: subject,
             sdkKey: "test-sdk-key",
             sdkName: "ios",
             sdkVersion: "1.0.0",
@@ -39,9 +39,9 @@ class PrecomputedRequestorTests: XCTestCase {
     }
     
     func testInitializationWithEmptySubjectAttributes() {
-        let emptySubject = Subject(subjectKey: "test-user", subjectAttributes: [:])
+        let emptySubject = Precompute(subjectKey: "test-user", subjectAttributes: [:])
         let requestor = PrecomputedRequestor(
-            subject: emptySubject,
+            precompute: emptySubject,
             sdkKey: "test-sdk-key",
             sdkName: "ios",
             sdkVersion: "1.0.0"
@@ -50,7 +50,7 @@ class PrecomputedRequestorTests: XCTestCase {
     }
     
     func testInitializationWithComplexSubjectAttributes() {
-        let complexSubject = Subject(
+        let complexSubject = Precompute(
             subjectKey: "test-user",
             subjectAttributes: [
                 "age": .valueOf(25),
@@ -61,7 +61,7 @@ class PrecomputedRequestorTests: XCTestCase {
             ]
         )
         let requestor = PrecomputedRequestor(
-            subject: complexSubject,
+            precompute: complexSubject,
             sdkKey: "test-sdk-key",
             sdkName: "ios",
             sdkVersion: "1.0.0"
@@ -70,12 +70,12 @@ class PrecomputedRequestorTests: XCTestCase {
     }
     
     func testInitializationWithSpecialCharactersInSubjectKey() {
-        let specialSubject = Subject(
+        let specialSubject = Precompute(
             subjectKey: "user-123@example.com",
             subjectAttributes: ["type": .valueOf("special")]
         )
         let requestor = PrecomputedRequestor(
-            subject: specialSubject,
+            precompute: specialSubject,
             sdkKey: "test-sdk-key",
             sdkName: "ios",
             sdkVersion: "1.0.0"

@@ -50,7 +50,7 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
-            subject: PrecomputedSubject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
+            subject: Subject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
             configPublishedAt: Date(),
             environment: Environment(name: "test")
         )
@@ -69,14 +69,13 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
-            subject: PrecomputedSubject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
+            subject: Subject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
             configPublishedAt: nil,
             environment: nil
         )
         
         let client1 = EppoPrecomputedClient.initializeOffline(
             sdkKey: "test-sdk-key",
-            subject: Subject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
             initialPrecomputedConfiguration: testConfig2,
             configurationChangeCallback: mockConfigChangeCallback.callback
         )
@@ -87,7 +86,6 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
         // Test that subsequent offline initialization returns same instance
         let client2 = EppoPrecomputedClient.initializeOffline(
             sdkKey: "test-sdk-key-2",
-            subject: Subject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
             initialPrecomputedConfiguration: testConfig2
         )
         
@@ -122,14 +120,13 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
-            subject: PrecomputedSubject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
+            subject: Subject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
             configPublishedAt: Date(),
             environment: Environment(name: "test")
         )
         
         let client = EppoPrecomputedClient.initializeOffline(
             sdkKey: "mock-api-key",
-            subject: Subject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
             initialPrecomputedConfiguration: testConfig,
             assignmentLogger: mockLogger.logger,
             configurationChangeCallback: mockConfigChangeCallback.callback
@@ -155,19 +152,17 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
-            subject: PrecomputedSubject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
+            subject: Subject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
             configPublishedAt: nil,
             environment: nil
         )
         
         let originalClient = EppoPrecomputedClient.initializeOffline(
             sdkKey: "mock-api-key",
-            subject: Subject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
             initialPrecomputedConfiguration: testConfig
         )
         let client2 = EppoPrecomputedClient.initializeOffline(
             sdkKey: "mock-api-key-2",
-            subject: Subject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
             initialPrecomputedConfiguration: testConfig
         )
         
@@ -183,14 +178,13 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
-            subject: PrecomputedSubject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
+            subject: Subject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
             configPublishedAt: nil,
             environment: nil
         )
         
         let client = EppoPrecomputedClient.initializeOffline(
             sdkKey: "mock-api-key",
-            subject: Subject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
             initialPrecomputedConfiguration: testConfig,
             assignmentLogger: nil
         )
@@ -227,14 +221,13 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
-            subject: PrecomputedSubject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
+            subject: Subject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
             configPublishedAt: nil,
             environment: nil
         )
         
         _ = EppoPrecomputedClient.initializeOffline(
             sdkKey: "mock-api-key",
-            subject: Subject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
             initialPrecomputedConfiguration: testConfig,
             configurationChangeCallback: mockConfigChangeCallback.callback
         )
@@ -252,13 +245,12 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
-            subject: PrecomputedSubject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
+            subject: Subject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
             configPublishedAt: nil,
             environment: nil
         )
         let client = EppoPrecomputedClient.initializeOffline(
             sdkKey: "mock-api-key",
-            subject: Subject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
             initialPrecomputedConfiguration: testConfig
         )
         

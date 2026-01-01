@@ -4,7 +4,7 @@ import XCTest
 @MainActor
 class EppoPrecomputedClientPollingTests: XCTestCase {
     var mockConfigChangeCallback: MockConfigurationChangeCallback!
-    var testSubject: Subject!
+    var testPrecompute: Precompute!
     var testConfiguration: PrecomputedConfiguration!
     
     override func setUp() async throws {
@@ -12,7 +12,7 @@ class EppoPrecomputedClientPollingTests: XCTestCase {
         EppoPrecomputedClient.resetForTesting()
         
         mockConfigChangeCallback = MockConfigurationChangeCallback()
-        testSubject = Subject(
+        testPrecompute = Precompute(
             subjectKey: "test-user-123",
             subjectAttributes: ["age": EppoValue(value: 25)]
         )
@@ -31,9 +31,9 @@ class EppoPrecomputedClientPollingTests: XCTestCase {
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
-            subject: PrecomputedSubject(
-                subjectKey: testSubject.subjectKey,
-                subjectAttributes: testSubject.subjectAttributes
+            subject: Subject(
+                subjectKey: testPrecompute.subjectKey,
+                subjectAttributes: testPrecompute.subjectAttributes
             ),
             configPublishedAt: Date(),
             environment: Environment(name: "test")
@@ -51,7 +51,6 @@ class EppoPrecomputedClientPollingTests: XCTestCase {
         // Initialize offline-only client
         _ = EppoPrecomputedClient.initializeOffline(
             sdkKey: "mock-api-key",
-            subject: testSubject,
             initialPrecomputedConfiguration: testConfiguration
         )
         
@@ -71,7 +70,6 @@ class EppoPrecomputedClientPollingTests: XCTestCase {
         // Initialize offline-only client
         _ = EppoPrecomputedClient.initializeOffline(
             sdkKey: "mock-api-key",
-            subject: testSubject,
             initialPrecomputedConfiguration: testConfiguration
         )
         
@@ -86,7 +84,6 @@ class EppoPrecomputedClientPollingTests: XCTestCase {
         // First initialize offline
         let client = EppoPrecomputedClient.initializeOffline(
             sdkKey: "test-sdk-key",
-            subject: testSubject,
             initialPrecomputedConfiguration: testConfiguration,
             configurationChangeCallback: mockConfigChangeCallback.callback
         )
@@ -107,7 +104,6 @@ class EppoPrecomputedClientPollingTests: XCTestCase {
         // Initialize offline-only client for API validation
         _ = EppoPrecomputedClient.initializeOffline(
             sdkKey: "mock-api-key",
-            subject: testSubject,
             initialPrecomputedConfiguration: testConfiguration
         )
         
@@ -125,7 +121,6 @@ class EppoPrecomputedClientPollingTests: XCTestCase {
         // Initialize offline-only client for API validation
         _ = EppoPrecomputedClient.initializeOffline(
             sdkKey: "mock-api-key",
-            subject: testSubject,
             initialPrecomputedConfiguration: testConfiguration
         )
         
@@ -143,7 +138,6 @@ class EppoPrecomputedClientPollingTests: XCTestCase {
         // Initialize offline-only client
         _ = EppoPrecomputedClient.initializeOffline(
             sdkKey: "mock-api-key",
-            subject: testSubject,
             initialPrecomputedConfiguration: testConfiguration
         )
         
@@ -161,7 +155,6 @@ class EppoPrecomputedClientPollingTests: XCTestCase {
         // Test that configuration callback integration is properly set up
         _ = EppoPrecomputedClient.initializeOffline(
             sdkKey: "mock-api-key",
-            subject: testSubject,
             initialPrecomputedConfiguration: testConfiguration,
             configurationChangeCallback: mockConfigChangeCallback.callback
         )

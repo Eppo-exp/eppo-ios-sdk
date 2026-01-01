@@ -21,7 +21,6 @@ public class EppoPrecomputedClient {
     }
     
     private let configurationStore: PrecomputedConfigurationStore
-    private let subject: Subject
     private let assignmentLogger: AssignmentLogger?
     private let assignmentCache: AssignmentCache?
     
@@ -32,9 +31,17 @@ public class EppoPrecomputedClient {
     private var host: String?
     private var configurationChangeCallback: ConfigurationChangeCallback?
     
+    /// Get the current precompute configuration from the loaded configuration
+    private var currentPrecompute: Precompute? {
+        guard let config = configurationStore.getConfiguration() else { return nil }
+        return Precompute(
+            subjectKey: config.subject.subjectKey,
+            subjectAttributes: config.subject.subjectAttributes
+        )
+    }
+    
     private init(
         sdkKey: String,
-        subject: Subject,
         assignmentLogger: AssignmentLogger? = nil,
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
         initialPrecomputedConfiguration: PrecomputedConfiguration? = nil,
@@ -42,7 +49,6 @@ public class EppoPrecomputedClient {
         configurationChangeCallback: ConfigurationChangeCallback? = nil
     ) {
         self.sdkKey = sdkKey
-        self.subject = subject
         self.assignmentLogger = assignmentLogger
         self.assignmentCache = assignmentCache
         self.configurationStore = PrecomputedConfigurationStore(withPersistentCache: withPersistentCache)
@@ -59,8 +65,7 @@ public class EppoPrecomputedClient {
     /// The subject information is extracted from the precomputed configuration
     public static func initializeOffline(
         sdkKey: String,
-        subject: Subject,
-        initialPrecomputedConfiguration: PrecomputedConfiguration?,
+        initialPrecomputedConfiguration: PrecomputedConfiguration? = nil,
         assignmentLogger: AssignmentLogger? = nil,
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
         withPersistentCache: Bool = true,
@@ -73,7 +78,6 @@ public class EppoPrecomputedClient {
             
             let instance = EppoPrecomputedClient(
                 sdkKey: sdkKey,
-                subject: subject,
                 assignmentLogger: assignmentLogger,
                 assignmentCache: assignmentCache,
                 initialPrecomputedConfiguration: initialPrecomputedConfiguration,
@@ -95,7 +99,7 @@ public class EppoPrecomputedClient {
     /// Initialize the precomputed client with online configuration fetch
     public static func initialize(
         sdkKey: String,
-        subject: Subject,
+        precompute: Precompute,
         assignmentLogger: AssignmentLogger? = nil,
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
         host: String? = nil,
@@ -105,7 +109,6 @@ public class EppoPrecomputedClient {
         // Initialize offline first (without initial configuration) - returns existing instance if already initialized
         let instance = initializeOffline(
             sdkKey: sdkKey,
-            subject: subject,
             initialPrecomputedConfiguration: nil,
             assignmentLogger: assignmentLogger,
             assignmentCache: assignmentCache,
@@ -114,18 +117,18 @@ public class EppoPrecomputedClient {
         )
         
         // Load configuration from network - this will trigger the configuration callback
-        try await instance.load(host: host)
+        try await instance.load(precompute: precompute, host: host)
         
         return instance
     }
     
     
     /// Load configuration from network
-    public func load(host: String? = nil) async throws {
+    public func load(precompute: Precompute, host: String? = nil) async throws {
         let resolvedHost = host ?? precomputedBaseUrl
         
         let requestor = PrecomputedRequestor(
-            subject: self.subject,
+            precompute: precompute,
             sdkKey: self.sdkKey,
             sdkName: sdkName,
             sdkVersion: sdkVersion,
@@ -134,15 +137,15 @@ public class EppoPrecomputedClient {
         
         let networkConfig = try await requestor.fetchPrecomputedFlags()
         
-        // Create full configuration preserving subject info
+        // Create full configuration preserving precompute info
         let fullConfig = PrecomputedConfiguration(
             flags: networkConfig.flags,
             salt: networkConfig.salt,
             format: networkConfig.format,
             configFetchedAt: networkConfig.configFetchedAt,
-            subject: PrecomputedSubject(
-                subjectKey: self.subject.subjectKey,
-                subjectAttributes: self.subject.subjectAttributes
+            subject: Subject(
+                subjectKey: precompute.subjectKey,
+                subjectAttributes: precompute.subjectAttributes
             ),
             configPublishedAt: networkConfig.configPublishedAt,
             environment: networkConfig.environment
@@ -181,15 +184,15 @@ public class EppoPrecomputedClient {
                 do {
                     let networkConfig = try await requestor.fetchPrecomputedFlags()
                     
-                    // Create full configuration preserving subject info
+                    // Create full configuration preserving precompute info from requestor
                     let fullConfig = PrecomputedConfiguration(
                         flags: networkConfig.flags,
                         salt: networkConfig.salt,
                         format: networkConfig.format,
                         configFetchedAt: networkConfig.configFetchedAt,
-                        subject: PrecomputedSubject(
-                            subjectKey: self.subject.subjectKey,
-                            subjectAttributes: self.subject.subjectAttributes
+                        subject: Subject(
+                            subjectKey: requestor.precompute.subjectKey,
+                            subjectAttributes: requestor.precompute.subjectAttributes
                         ),
                         configPublishedAt: networkConfig.configPublishedAt,
                         environment: networkConfig.environment
@@ -361,6 +364,10 @@ public class EppoPrecomputedClient {
         flagKey: String,
         flag: PrecomputedFlag
     ) {
+        guard let precompute = currentPrecompute else {
+            // No configuration loaded, cannot log assignment
+            return
+        }
         
         // Precomputed configs are always obfuscated, so decode base64 values for assignment logging
         var decodedAllocationKey: String = flag.allocationKey ?? ""
@@ -393,9 +400,9 @@ public class EppoPrecomputedClient {
             flagKey: flagKey,
             allocationKey: decodedAllocationKey,
             variation: decodedVariationKey,
-            subject: subject.subjectKey,
+            subject: precompute.subjectKey,
             timestamp: ISO8601DateFormatter().string(from: Date()),
-            subjectAttributes: subject.subjectAttributes,
+            subjectAttributes: precompute.subjectAttributes,
             metaData: [
                 "obfuscated": "true",
                 "sdkName": sdkName,

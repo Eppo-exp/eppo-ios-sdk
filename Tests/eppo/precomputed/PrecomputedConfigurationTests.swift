@@ -33,14 +33,14 @@ class PrecomputedConfigurationTests: XCTestCase {
         let fetchedAt = Date()
         let publishedAt = Date(timeIntervalSinceNow: -3600) // 1 hour ago
         let environment = Environment(name: "production")
-        let testSubject = PrecomputedSubject(subjectKey: "test-user", subjectAttributes: [:])
+        let testPrecompute = Precompute(subjectKey: "test-user", subjectAttributes: [:])
         
         let config = PrecomputedConfiguration(
             flags: flags,
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: fetchedAt,
-            subject: testSubject,
+            subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
             configPublishedAt: publishedAt,
             environment: environment
         )
@@ -54,13 +54,13 @@ class PrecomputedConfigurationTests: XCTestCase {
     }
     
     func testInitializationWithMinimalData() {
-        let testSubject = PrecomputedSubject(subjectKey: "test-user", subjectAttributes: [:])
+        let testPrecompute = Precompute(subjectKey: "test-user", subjectAttributes: [:])
         let config = PrecomputedConfiguration(
             flags: [:],
             salt: "minimal-salt",
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
-            subject: testSubject
+            subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes)
         )
         
         XCTAssertTrue(config.flags.isEmpty)
@@ -72,13 +72,13 @@ class PrecomputedConfigurationTests: XCTestCase {
     // MARK: - Codable Tests
     
     func testJSONEncodingDecoding() throws {
-        let testSubject = PrecomputedSubject(subjectKey: "test-user", subjectAttributes: [:])
+        let testPrecompute = Precompute(subjectKey: "test-user", subjectAttributes: [:])
         let originalConfig = PrecomputedConfiguration(
             flags: createSampleFlags(),
             salt: "encode-test-salt",
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
-            subject: testSubject,
+            subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
             configPublishedAt: Date(timeIntervalSinceNow: -7200),
             environment: Environment(name: "staging")
         )

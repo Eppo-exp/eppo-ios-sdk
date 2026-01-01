@@ -100,13 +100,13 @@ class PrecomputedConfigurationStoreTests: XCTestCase {
         
         // Create configuration with old fetch time
         let oldDate = Date(timeIntervalSinceNow: -400) // 400 seconds ago
-        let testSubject = PrecomputedSubject(subjectKey: "test-user", subjectAttributes: [:])
+        let testPrecompute = Precompute(subjectKey: "test-user", subjectAttributes: [:])
         let config = PrecomputedConfiguration(
             flags: [:],
             salt: "old-salt",
             format: "PRECOMPUTED",
             configFetchedAt: oldDate,
-            subject: testSubject
+            subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes)
         )
         
         store.setConfiguration(config)
@@ -144,13 +144,13 @@ class PrecomputedConfigurationStoreTests: XCTestCase {
         expectation.expectedFulfillmentCount = 50
         
         DispatchQueue.concurrentPerform(iterations: 50) { index in
-            let testSubject = PrecomputedSubject(subjectKey: "test-user-\(index)", subjectAttributes: [:])
+            let testPrecompute = Precompute(subjectKey: "test-user-\(index)", subjectAttributes: [:])
             let config = PrecomputedConfiguration(
                 flags: ["flag\(index)": createSampleFlag()],
                 salt: "salt-\(index)",
                 format: "PRECOMPUTED",
                 configFetchedAt: Date(),
-                subject: testSubject
+                subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes)
             )
             store.setConfiguration(config)
             expectation.fulfill()
@@ -222,13 +222,13 @@ class PrecomputedConfigurationStoreTests: XCTestCase {
             "flag2": createSampleFlag(variationKey: "variation-2")
         ]
         
-        let testSubject = PrecomputedSubject(subjectKey: "test-user", subjectAttributes: [:])
+        let testPrecompute = Precompute(subjectKey: "test-user", subjectAttributes: [:])
         return PrecomputedConfiguration(
             flags: flags,
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
-            subject: testSubject,
+            subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
             configPublishedAt: Date(timeIntervalSinceNow: -3600),
             environment: Environment(name: "test")
         )

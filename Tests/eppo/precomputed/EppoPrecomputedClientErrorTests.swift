@@ -96,7 +96,7 @@ class ErrorTestLogger {
 }
 
 class EppoPrecomputedClientErrorTests: XCTestCase {
-    var testSubject: Subject!
+    var testPrecompute: Precompute!
     var mockSession: URLSession!
     
     override func setUp() {
@@ -112,7 +112,7 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
         // Register URLProtocol globally so URLSession.shared uses it
         URLProtocol.registerClass(MockURLSessionForErrors.self)
         
-        testSubject = Subject(
+        testPrecompute = Precompute(
             subjectKey: "test-user",
             subjectAttributes: ["age": EppoValue(value: 25)]
         )
@@ -134,7 +134,7 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
         do {
             _ = try await EppoPrecomputedClient.initialize(
                 sdkKey: "test-key",
-                subject: testSubject
+                precompute: testPrecompute
             )
             XCTFail("Should throw network error")
         } catch {
@@ -159,7 +159,7 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
         do {
             _ = try await EppoPrecomputedClient.initialize(
                 sdkKey: "test-key",
-                subject: testSubject
+                precompute: testPrecompute
             )
             XCTFail("Should throw timeout error")
         } catch {
@@ -173,7 +173,7 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
         do {
             _ = try await EppoPrecomputedClient.initialize(
                 sdkKey: "test-key",
-                subject: testSubject
+                precompute: testPrecompute
             )
             XCTFail("Should throw server error")
         } catch {
@@ -200,7 +200,7 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
         do {
             _ = try await EppoPrecomputedClient.initialize(
                 sdkKey: "test-key",
-                subject: testSubject
+                precompute: testPrecompute
             )
             XCTFail("Should throw decoding error")
         } catch {
@@ -236,7 +236,7 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
         do {
             _ = try await EppoPrecomputedClient.initialize(
                 sdkKey: "test-key",
-                subject: testSubject
+                precompute: testPrecompute
             )
             XCTFail("Should throw decoding error")
         } catch {
@@ -265,14 +265,13 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
-            subject: PrecomputedSubject(subjectKey: testSubject.subjectKey, subjectAttributes: testSubject.subjectAttributes),
+            subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
             configPublishedAt: nil,
             environment: nil
         )
         
         _ = EppoPrecomputedClient.initializeOffline(
             sdkKey: "test-key",
-            subject: testSubject,
             initialPrecomputedConfiguration: testConfig
         )
         
@@ -303,14 +302,13 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
-            subject: PrecomputedSubject(subjectKey: testSubject.subjectKey, subjectAttributes: testSubject.subjectAttributes),
+            subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
             configPublishedAt: nil,
             environment: nil
         )
         
         _ = EppoPrecomputedClient.initializeOffline(
             sdkKey: "test-key",
-            subject: testSubject,
             initialPrecomputedConfiguration: testConfig
         )
         
@@ -331,9 +329,9 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
-            subject: PrecomputedSubject(
-                subjectKey: testSubject.subjectKey,
-                subjectAttributes: testSubject.subjectAttributes
+            subject: Subject(
+                subjectKey: testPrecompute.subjectKey,
+                subjectAttributes: testPrecompute.subjectAttributes
             ),
             configPublishedAt: nil,
             environment: nil
@@ -366,7 +364,7 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
                     do {
                         let client = try await EppoPrecomputedClient.initialize(
                             sdkKey: "test-key",
-                            subject: self.testSubject
+                            precompute: self.testPrecompute
                         )
                         await collector.add(.success(client))
                     } catch {
@@ -422,14 +420,13 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: oldDate,
-            subject: PrecomputedSubject(subjectKey: testSubject.subjectKey, subjectAttributes: testSubject.subjectAttributes),
+            subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
             configPublishedAt: oldDate,
             environment: nil
         )
         
         _ = EppoPrecomputedClient.initializeOffline(
             sdkKey: "test-key",
-            subject: testSubject,
             initialPrecomputedConfiguration: testConfig,
             assignmentLogger: testLogger.logger
         )
@@ -460,14 +457,13 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
-            subject: PrecomputedSubject(subjectKey: testSubject.subjectKey, subjectAttributes: testSubject.subjectAttributes),
+            subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
             configPublishedAt: nil,
             environment: nil
         )
         
         _ = EppoPrecomputedClient.initializeOffline(
             sdkKey: "test-key",
-            subject: testSubject,
             initialPrecomputedConfiguration: testConfig
         )
         
@@ -498,7 +494,7 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
-            subject: PrecomputedSubject(subjectKey: testSubject.subjectKey, subjectAttributes: testSubject.subjectAttributes),
+            subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
             configPublishedAt: nil,
             environment: nil
         )
@@ -506,7 +502,6 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
         // Initialize without logger - should be safe with new bypass implementation
         _ = EppoPrecomputedClient.initializeOffline(
             sdkKey: "test-key",
-            subject: testSubject,
             initialPrecomputedConfiguration: testConfig
         )
         
@@ -546,7 +541,7 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
-            subject: PrecomputedSubject(subjectKey: testSubject.subjectKey, subjectAttributes: testSubject.subjectAttributes),
+            subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
             configPublishedAt: nil,
             environment: nil
         )
@@ -555,7 +550,6 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
         
         _ = EppoPrecomputedClient.initializeOffline(
             sdkKey: "test-key",
-            subject: testSubject,
             initialPrecomputedConfiguration: testConfig
         )
         
@@ -613,9 +607,9 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
-            subject: PrecomputedSubject(
-                subjectKey: testSubject.subjectKey,
-                subjectAttributes: testSubject.subjectAttributes
+            subject: Subject(
+                subjectKey: testPrecompute.subjectKey,
+                subjectAttributes: testPrecompute.subjectAttributes
             ),
             configPublishedAt: nil,
             environment: nil
@@ -623,7 +617,6 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
         
         _ = EppoPrecomputedClient.initializeOffline(
             sdkKey: "test-key",
-            subject: testSubject,
             initialPrecomputedConfiguration: testConfig,
             assignmentCache: FailingAssignmentCache()
         )

@@ -1,7 +1,7 @@
 import XCTest
 @testable import EppoFlagging
 
-class SubjectTests: XCTestCase {
+class PrecomputeTests: XCTestCase {
     
     // MARK: - Initialization Tests
     
@@ -12,7 +12,7 @@ class SubjectTests: XCTestCase {
             "isPremium": .valueOf(true)
         ]
         
-        let subject = Subject(subjectKey: "user-123", subjectAttributes: attributes)
+        let subject = Precompute(subjectKey: "user-123", subjectAttributes: attributes)
         
         XCTAssertEqual(subject.subjectKey, "user-123")
         XCTAssertEqual(subject.subjectAttributes.count, 3)
@@ -22,14 +22,14 @@ class SubjectTests: XCTestCase {
     }
     
     func testInitializationWithoutAttributes() {
-        let subject = Subject(subjectKey: "user-456")
+        let subject = Precompute(subjectKey: "user-456")
         
         XCTAssertEqual(subject.subjectKey, "user-456")
         XCTAssertTrue(subject.subjectAttributes.isEmpty)
     }
     
     func testInitializationWithEmptyAttributes() {
-        let subject = Subject(subjectKey: "user-789", subjectAttributes: [:])
+        let subject = Precompute(subjectKey: "user-789", subjectAttributes: [:])
         
         XCTAssertEqual(subject.subjectKey, "user-789")
         XCTAssertTrue(subject.subjectAttributes.isEmpty)
@@ -39,7 +39,7 @@ class SubjectTests: XCTestCase {
     
     func testEmptySubjectKeyIsAllowed() {
         // Empty subject keys are allowed
-        let subject = Subject(subjectKey: "", subjectAttributes: [:])
+        let subject = Precompute(subjectKey: "", subjectAttributes: [:])
         XCTAssertEqual(subject.subjectKey, "")
         XCTAssertTrue(subject.subjectAttributes.isEmpty)
     }
@@ -53,13 +53,13 @@ class SubjectTests: XCTestCase {
             "features": .valueOf(["feature1", "feature2"])
         ]
         
-        let originalSubject = Subject(subjectKey: "company-123", subjectAttributes: attributes)
+        let originalSubject = Precompute(subjectKey: "company-123", subjectAttributes: attributes)
         
         let encoder = JSONEncoder()
         let data = try encoder.encode(originalSubject)
         
         let decoder = JSONDecoder()
-        let decodedSubject = try decoder.decode(Subject.self, from: data)
+        let decodedSubject = try decoder.decode(Precompute.self, from: data)
         
         XCTAssertEqual(decodedSubject.subjectKey, originalSubject.subjectKey)
         XCTAssertEqual(decodedSubject.subjectAttributes["plan"], originalSubject.subjectAttributes["plan"])
@@ -81,7 +81,7 @@ class SubjectTests: XCTestCase {
         
         let data = json.data(using: .utf8)!
         let decoder = JSONDecoder()
-        let subject = try decoder.decode(Subject.self, from: data)
+        let subject = try decoder.decode(Precompute.self, from: data)
         
         XCTAssertEqual(subject.subjectKey, "device-xyz")
         XCTAssertEqual(subject.subjectAttributes["os"], .valueOf("iOS"))
@@ -103,7 +103,7 @@ class SubjectTests: XCTestCase {
         
         let data = json.data(using: .utf8)!
         let decoder = JSONDecoder()
-        let subject = try decoder.decode(Subject.self, from: data)
+        let subject = try decoder.decode(Precompute.self, from: data)
         
         XCTAssertEqual(subject.subjectKey, "user-with-nulls")
         XCTAssertEqual(subject.subjectAttributes["name"], .valueOf("John"))
@@ -111,35 +111,41 @@ class SubjectTests: XCTestCase {
         XCTAssertEqual(try subject.subjectAttributes["score"]?.getDoubleValue(), 100.0)
     }
     
-    // MARK: - Equatable Tests
+    // MARK: - Comparison Tests
     
-    func testEquality() {
-        let subject1 = Subject(
+    func testSubjectComparison() {
+        let subject1 = Precompute(
             subjectKey: "user-123",
             subjectAttributes: ["role": .valueOf("admin")]
         )
         
-        let subject2 = Subject(
+        let subject2 = Precompute(
             subjectKey: "user-123",
             subjectAttributes: ["role": .valueOf("admin")]
         )
         
-        let subject3 = Subject(
+        let subject3 = Precompute(
             subjectKey: "user-456",
             subjectAttributes: ["role": .valueOf("admin")]
         )
         
-        let subject4 = Subject(
+        let subject4 = Precompute(
             subjectKey: "user-123",
             subjectAttributes: ["role": .valueOf("user")]
         )
         
-        XCTAssertEqual(subject1, subject2)
-        XCTAssertNotEqual(subject1, subject3) // Different key
-        XCTAssertNotEqual(subject1, subject4) // Different attributes
+        // Test that subjects with same data have same properties
+        XCTAssertEqual(subject1.subjectKey, subject2.subjectKey)
+        XCTAssertEqual(subject1.subjectAttributes["role"], subject2.subjectAttributes["role"])
+        
+        // Test that subjects with different keys have different keys
+        XCTAssertNotEqual(subject1.subjectKey, subject3.subjectKey)
+        
+        // Test that subjects with different attributes have different attributes
+        XCTAssertNotEqual(subject1.subjectAttributes["role"], subject4.subjectAttributes["role"])
     }
     
-    func testEqualityWithComplexAttributes() {
+    func testComparisonWithComplexAttributes() {
         let attrs1: [String: EppoValue] = [
             "tags": .valueOf(["ios", "mobile"]),
             "score": .valueOf(95.5),
@@ -152,40 +158,58 @@ class SubjectTests: XCTestCase {
             "active": .valueOf(true)
         ]
         
-        let subject1 = Subject(subjectKey: "user-1", subjectAttributes: attrs1)
-        let subject2 = Subject(subjectKey: "user-1", subjectAttributes: attrs2)
+        let subject1 = Precompute(subjectKey: "user-1", subjectAttributes: attrs1)
+        let subject2 = Precompute(subjectKey: "user-1", subjectAttributes: attrs2)
         
-        XCTAssertEqual(subject1, subject2)
+        // Verify properties match
+        XCTAssertEqual(subject1.subjectKey, subject2.subjectKey)
+        XCTAssertEqual(subject1.subjectAttributes["tags"], subject2.subjectAttributes["tags"])
+        XCTAssertEqual(subject1.subjectAttributes["score"], subject2.subjectAttributes["score"])
+        XCTAssertEqual(subject1.subjectAttributes["active"], subject2.subjectAttributes["active"])
     }
     
-    // MARK: - Hashable Tests
+    // MARK: - Collection Tests
     
-    func testHashableConformance() {
-        let subject1 = Subject(
+    func testSubjectInCollections() {
+        let subject1 = Precompute(
             subjectKey: "user-123",
             subjectAttributes: ["tier": .valueOf("gold")]
         )
         
-        let subject2 = Subject(
+        let subject2 = Precompute(
             subjectKey: "user-123",
             subjectAttributes: ["tier": .valueOf("silver")]
         )
         
-        let subject3 = Subject(
+        let subject3 = Precompute(
             subjectKey: "user-456",
             subjectAttributes: ["tier": .valueOf("gold")]
         )
         
-        var set = Set<Subject>()
-        set.insert(subject1)
-        set.insert(subject2)
-        set.insert(subject3)
+        var subjects = [Precompute]()
+        subjects.append(subject1)
+        subjects.append(subject2)
+        subjects.append(subject3)
         
-        // Note: subject1 and subject2 have same key but different attributes
-        // Our hash implementation only uses subjectKey, so they might collide
-        // but equality check will distinguish them
-        XCTAssertTrue(set.contains(subject1))
-        XCTAssertTrue(set.contains(subject3))
+        // Test that subjects can be stored in collections
+        XCTAssertEqual(subjects.count, 3)
+        
+        // Test that we can retrieve subjects by index
+        XCTAssertEqual(subjects[0].subjectKey, "user-123")
+        XCTAssertEqual(subjects[0].subjectAttributes["tier"], .valueOf("gold"))
+        
+        XCTAssertEqual(subjects[1].subjectKey, "user-123")
+        XCTAssertEqual(subjects[1].subjectAttributes["tier"], .valueOf("silver"))
+        
+        XCTAssertEqual(subjects[2].subjectKey, "user-456")
+        XCTAssertEqual(subjects[2].subjectAttributes["tier"], .valueOf("gold"))
+        
+        // Test that we can find subjects by custom logic
+        let goldTierSubjects = subjects.filter { subject in
+            guard let tier = subject.subjectAttributes["tier"] else { return false }
+            return tier == .valueOf("gold")
+        }
+        XCTAssertEqual(goldTierSubjects.count, 2)
     }
     
     // MARK: - Edge Cases
@@ -196,14 +220,14 @@ class SubjectTests: XCTestCase {
             attributes["attr\(i)"] = .valueOf("value\(i)")
         }
         
-        let subject = Subject(subjectKey: "user-many-attrs", subjectAttributes: attributes)
+        let subject = Precompute(subjectKey: "user-many-attrs", subjectAttributes: attributes)
         
         XCTAssertEqual(subject.subjectAttributes.count, 100)
         XCTAssertEqual(subject.subjectAttributes["attr50"], .valueOf("value50"))
     }
     
     func testSubjectWithSpecialCharactersInKey() {
-        let subject = Subject(
+        let subject = Precompute(
             subjectKey: "user@example.com",
             subjectAttributes: ["source": .valueOf("email")]
         )
@@ -212,7 +236,7 @@ class SubjectTests: XCTestCase {
     }
     
     func testSubjectWithUnicodeInAttributes() {
-        let subject = Subject(
+        let subject = Precompute(
             subjectKey: "international-user",
             subjectAttributes: [
                 "name": .valueOf("José García"),
