@@ -68,7 +68,6 @@ class EppoPrecomputedClientPerformanceTests: XCTestCase {
         let totalTime = CFAbsoluteTimeGetCurrent() - startTime
         let averageTime = (totalTime * 1000) / Double(iterations) // Convert to ms
         
-        print("Average assignment time: \(String(format: "%.3f", averageTime))ms over \(iterations) calls")
         
         // Verify <1ms requirement
         XCTAssertLessThan(averageTime, 1.0, "Average assignment time should be less than 1ms, got \(averageTime)ms")
@@ -109,7 +108,6 @@ class EppoPrecomputedClientPerformanceTests: XCTestCase {
         let totalAssignments = 10 * 100
         let averageTime = (totalTime * 1000) / Double(totalAssignments)
         
-        print("Concurrent average assignment time: \(String(format: "%.3f", averageTime))ms over \(totalAssignments) calls")
         
         // Allow slightly higher time for concurrent access due to lock contention
         XCTAssertLessThan(averageTime, 2.0, "Concurrent assignment average should be reasonable, got \(averageTime)ms")
@@ -141,7 +139,6 @@ class EppoPrecomputedClientPerformanceTests: XCTestCase {
         let finalMemory = getCurrentMemoryUsage()
         let memoryIncrease = finalMemory - initialMemory
         
-        print("Memory increase: \(memoryIncrease / 1024 / 1024) MB for 1000 flags")
         
         // Memory usage should be reasonable (less than 50MB for 1000 flags)
         XCTAssertLessThan(memoryIncrease, 50 * 1024 * 1024, "Memory usage should be reasonable")
@@ -166,7 +163,6 @@ class EppoPrecomputedClientPerformanceTests: XCTestCase {
             
             let initTime = (CFAbsoluteTimeGetCurrent() - startTime) * 1000 // Convert to ms
             
-            print("Initialization time for \(flagCount) flags: \(String(format: "%.2f", initTime))ms")
             
             // Initialization should be fast even with many flags (<100ms)
             XCTAssertLessThan(initTime, 100, "Initialization should be fast for \(flagCount) flags")
@@ -224,7 +220,6 @@ class EppoPrecomputedClientPerformanceTests: XCTestCase {
         let totalTime = CFAbsoluteTimeGetCurrent() - startTime
         let averageTime = (totalTime * 1000) / Double(iterations)
         
-        print("Mixed type assignment average time: \(String(format: "%.3f", averageTime))ms")
         
         XCTAssertLessThan(averageTime, 1.0, "Mixed type assignments should be fast")
     }

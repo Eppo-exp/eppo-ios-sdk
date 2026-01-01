@@ -43,8 +43,6 @@ class EppoPrecomputedClientBasicPerformanceTests: XCTestCase {
         let totalTime = CFAbsoluteTimeGetCurrent() - startTime
         let averageTime = (totalTime * 1000) / Double(iterations) // Convert to ms
         
-        print("Average assignment time: \(String(format: "%.6f", averageTime))ms over \(iterations) calls")
-        print("Total time: \(String(format: "%.3f", totalTime * 1000))ms")
         
         // Verify <1ms requirement
         XCTAssertLessThan(averageTime, 1.0, "Average assignment time should be less than 1ms, got \(averageTime)ms")
@@ -74,7 +72,6 @@ class EppoPrecomputedClientBasicPerformanceTests: XCTestCase {
         let totalTime = CFAbsoluteTimeGetCurrent() - startTime
         let averageTime = (totalTime * 1000) / Double(iterations)
         
-        print("Medium config average time: \(String(format: "%.6f", averageTime))ms over \(iterations) calls")
         
         XCTAssertLessThan(averageTime, 1.0, "Average assignment time should be less than 1ms with 50 flags")
     }
@@ -140,11 +137,6 @@ class EppoPrecomputedClientBasicPerformanceTests: XCTestCase {
         }
         let jsonTime = ((CFAbsoluteTimeGetCurrent() - startTime) * 1000) / Double(iterations)
         
-        print("String assignment time: \(String(format: "%.6f", stringTime))ms")
-        print("Boolean assignment time: \(String(format: "%.6f", boolTime))ms")
-        print("Integer assignment time: \(String(format: "%.6f", intTime))ms")
-        print("Numeric assignment time: \(String(format: "%.6f", numericTime))ms")
-        print("JSON assignment time: \(String(format: "%.6f", jsonTime))ms")
         
         // All should be under 1ms
         XCTAssertLessThan(stringTime, 1.0, "String assignments should be fast")
@@ -170,7 +162,6 @@ class EppoPrecomputedClientBasicPerformanceTests: XCTestCase {
             )
             
             let initTime = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
-            print("Initialization time for \(flagCount) flags: \(String(format: "%.3f", initTime))ms")
             
             // Initialization should be very fast for small configs
             XCTAssertLessThan(initTime, 50, "Initialization should be fast for \(flagCount) flags")

@@ -178,7 +178,6 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
             XCTFail("Should throw server error")
         } catch {
             // The error might be from retry logic, check request count
-            print("Request count: \(MockURLSessionForErrors.requestCount)")
             if let networkError = error as? NetworkError {
                 if case .httpError(let code) = networkError {
                     // Accept either 500 or the last error after retries
