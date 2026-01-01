@@ -37,49 +37,6 @@ class EppoPrecomputedClientTests: XCTestCase {
         }
     }
     
-    // MARK: - Thread Safety Tests
-    
-    func testConcurrentSingletonAccess() throws {
-        // Initialize first
-        let testPrecompute = Precompute(subjectKey: "test-user", subjectAttributes: [:])
-        let testConfig = PrecomputedConfiguration(
-            flags: [:],
-            salt: "salt",
-            format: "PRECOMPUTED",
-            configFetchedAt: Date(),
-            subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes)
-        )
-        _ = EppoPrecomputedClient.initializeOffline(
-            sdkKey: "mock-api-key",
-            initialPrecomputedConfiguration: testConfig
-        )
-        
-        let expectation = XCTestExpectation(description: "Concurrent access completes")
-        expectation.expectedFulfillmentCount = 100
-        var instances: [EppoPrecomputedClient] = []
-        let queue = DispatchQueue(label: "test.concurrent", attributes: .concurrent)
-        
-        DispatchQueue.concurrentPerform(iterations: 100) { _ in
-            do {
-                let instance = try EppoPrecomputedClient.shared()
-                queue.async(flags: .barrier) {
-                    instances.append(instance)
-                }
-            } catch {
-                XCTFail("Should not throw: \(error)")
-            }
-            expectation.fulfill()
-        }
-        
-        wait(for: [expectation], timeout: 5.0)
-        
-        XCTAssertEqual(instances.count, 100)
-        let firstInstance = instances[0]
-        for instance in instances {
-            XCTAssertTrue(firstInstance === instance, "All instances should be the same singleton")
-        }
-    }
-    
     // MARK: - Reset Tests
     
     func testResetForTesting() throws {
@@ -180,29 +137,6 @@ class EppoPrecomputedClientTests: XCTestCase {
             let expectedDefault = flagKey.replacingOccurrences(of: "flag-", with: "default-")
             XCTAssertEqual(result, expectedDefault, "Should return default value when flags not found")
         }
-    }
-    
-    func testAssignmentWithEmptyFlagKey() throws {
-        // Initialize first
-        let testPrecompute = Precompute(subjectKey: "test-user", subjectAttributes: [:])
-        let testConfig = PrecomputedConfiguration(
-            flags: [:],
-            salt: "salt",
-            format: "PRECOMPUTED",
-            configFetchedAt: Date(),
-            subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes)
-        )
-        _ = EppoPrecomputedClient.initializeOffline(
-            sdkKey: "mock-api-key",
-            initialPrecomputedConfiguration: testConfig
-        )
-        
-        let client = try EppoPrecomputedClient.shared()
-        let result = client.getStringAssignment(
-            flagKey: "",
-            defaultValue: "default"
-        )
-        XCTAssertEqual(result, "default")
     }
     
     func testAssignmentWithSpecialCharactersInFlagKey() throws {

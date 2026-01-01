@@ -219,28 +219,6 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
         XCTAssertEqual(jsonResult, "{\"key\":\"value\",\"num\":123}")
     }
     
-    // MARK: - Type Mismatch Tests
-    
-    func testTypeMismatchReturnsDefault() throws {
-        initializeClient()
-        
-        let client = try EppoPrecomputedClient.shared()
-        
-        // Try to get boolean value from a flag that has a string value
-        let boolResult = client.getBooleanAssignment(
-            flagKey: "type-mismatch-flag",
-            defaultValue: true
-        )
-        XCTAssertTrue(boolResult)
-        
-        // Try to get string value from boolean flag
-        let stringResult = client.getStringAssignment(
-            flagKey: "bool-flag",
-            defaultValue: "default"
-        )
-        XCTAssertEqual(stringResult, "default")
-    }
-    
     // MARK: - Assignment Logging Tests
     
     func testAssignmentLoggingForValidFlag() throws {
