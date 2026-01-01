@@ -143,8 +143,8 @@ class PrecomputedConfigurationTests: XCTestCase {
         }
     }
     
-    func testInternalDataAPIWithSubjectParsing() throws {
-        // Test internal Data API with rich subject attribute parsing
+    func testPublicStringAPIWithSubjectParsing() throws {
+        // Test public String API with rich subject attribute parsing
         let wireFormatJSON = """
         {
             "version": 1,
@@ -166,8 +166,7 @@ class PrecomputedConfigurationTests: XCTestCase {
         }
         """
         
-        let wireFormatData = wireFormatJSON.data(using: .utf8)!
-        let config = try PrecomputedConfiguration(precomputedConfigurationJson: wireFormatData)
+        let config = try PrecomputedConfiguration(precomputedConfiguration: wireFormatJSON)
         
         // Verify configuration properties
         XCTAssertEqual(config.salt, "dGVzdC1zYWx0")
