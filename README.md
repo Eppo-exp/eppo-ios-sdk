@@ -190,7 +190,7 @@ struct ContentView: View {
 
 ## Precomputed client
 
-For applications requiring high performance, security, or minimal network overhead, you can use precomputed assignments calculated via Eppo's globally distributed edge functions. The precomputed client is more performant due to smaller config size and more secure due to removal of targeting rules.
+For applications requiring high performance, security, or minimal network overhead, you can use precomputed assignments calculated via Eppo's globally distributed edge functions.
 
 #### Online initialization
 
