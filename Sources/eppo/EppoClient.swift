@@ -46,9 +46,6 @@ public class EppoClient {
     private var configurationChangeCallback: ConfigurationChangeCallback?
 
     private let state = EppoClientState()
-    private let debugCallback: ((String, Double, Double) -> Void)?
-    private var debugInitStartTime: Date?
-    private var debugLastStepTime: Date?
 
     private init(
         sdkKey: String,
@@ -56,15 +53,11 @@ public class EppoClient {
         assignmentLogger: AssignmentLogger? = nil,
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
         initialConfiguration: Configuration?,
-        withPersistentCache: Bool = true,
-        debugCallback: ((String, Double, Double) -> Void)? = nil
+        withPersistentCache: Bool = true
     ) {
         self.sdkKey = SDKKey(sdkKey)
         self.assignmentLogger = assignmentLogger
         self.assignmentCache = assignmentCache
-        self.debugCallback = debugCallback
-        self.debugInitStartTime = nil
-        self.debugLastStepTime = nil
 
         let endpoints = ApiEndpoints(baseURL: host, sdkKey: self.sdkKey)
         self.host = endpoints.baseURL
@@ -78,15 +71,6 @@ public class EppoClient {
             // Note: Callbacks will be registered after init, so initial config callback will be triggered during loadIfNeeded
         }
         
-        // Set up debug logging for ConfigurationRequester and ConfigurationStore after all properties are initialized
-        if debugCallback != nil {
-            self.configurationRequester.setDebugLogger { [weak self] message in
-                self?.debugLog(message)
-            }
-            self.configurationStore.setDebugLogger { [weak self] message in
-                self?.debugLog(message)
-            }
-        }
     }
 
     /// Initialize client without loading remote configuration.
@@ -99,8 +83,7 @@ public class EppoClient {
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
         initialConfiguration: Configuration?,
         withPersistentCache: Bool = true,
-        configurationChangeCallback: ConfigurationChangeCallback? = nil,
-        debugCallback: ((String, Double, Double) -> Void)? = nil
+        configurationChangeCallback: ConfigurationChangeCallback? = nil
     ) -> EppoClient {
         return sharedLock.withLock {
             if let instance = sharedInstance {
@@ -112,8 +95,7 @@ public class EppoClient {
                   assignmentLogger: assignmentLogger,
                   assignmentCache: assignmentCache,
                   initialConfiguration: initialConfiguration,
-                  withPersistentCache: withPersistentCache,
-                  debugCallback: debugCallback
+                  withPersistentCache: withPersistentCache
                 )
                 
                 if let callback = configurationChangeCallback {
@@ -136,8 +118,7 @@ public class EppoClient {
         pollingIntervalMs: Int = PollerConstants.DEFAULT_POLL_INTERVAL_MS,
         pollingJitterMs: Int = PollerConstants.DEFAULT_POLL_INTERVAL_MS / PollerConstants.DEFAULT_JITTER_INTERVAL_RATIO,
         withPersistentCache: Bool = true,
-        configurationChangeCallback: ConfigurationChangeCallback? = nil,
-        debugCallback: ((String, Double, Double) -> Void)? = nil
+        configurationChangeCallback: ConfigurationChangeCallback? = nil
     ) async throws -> EppoClient {
         let instance = Self.initializeOffline(
             sdkKey: sdkKey,
@@ -146,40 +127,27 @@ public class EppoClient {
             assignmentCache: assignmentCache,
             initialConfiguration: initialConfiguration,
             withPersistentCache: withPersistentCache,
-            configurationChangeCallback: configurationChangeCallback,
-            debugCallback: debugCallback
+            configurationChangeCallback: configurationChangeCallback
         )
 
         return try await withCheckedThrowingContinuation { continuation in
             initializerQueue.async {
                 Task {
                     do {
-                        instance.resetDebugTiming()
-                        instance.debugLog("Starting Eppo SDK initialization")
-                        
-                        // Ensure persistent storage is loaded with debug timing
+                        // Ensure persistent storage is loaded
                         instance.configurationStore.loadInitialConfiguration()
                         
                         try await instance.loadIfNeeded()
                         
-                        instance.debugLog("Configuration loading completed")
-                        
                         if pollingEnabled {
-                            instance.debugLog("Starting polling setup")
-                            
                             try await instance.startPolling(
                                 intervalMs: pollingIntervalMs,
                                 jitterMs: pollingJitterMs
                             )
-                            
-                            instance.debugLog("Polling setup completed")
                         }
-                        
-                        instance.debugLog("Total SDK initialization completed")
                         
                         continuation.resume(returning: instance)
                     } catch {
-                        instance.debugLog("SDK initialization failed with error: \(error.localizedDescription)")
                         continuation.resume(throwing: error)
                     }
                 }
@@ -201,18 +169,9 @@ public class EppoClient {
     // This function can be called from multiple threads; synchronization is provided to safely update
     // the configuration cache but each invocation will execute a new network request with billing impact.
     public func load() async throws {
-        debugLog("Starting configuration fetch from remote")
-        
         let config = try await self.configurationRequester.fetchConfigurations()
-        
-        debugLog("Network fetch and parsing completed")
-        
-        debugLog("Starting configuration storage")
-        
         self.configurationStore.setConfiguration(configuration: config)
         notifyConfigurationChange(config)
-        
-        debugLog("Configuration storage and load completed")
     }
 
     public static func resetSharedInstance() {
@@ -222,10 +181,8 @@ public class EppoClient {
     }
 
     private func loadIfNeeded() async throws {
-        debugLog("Checking if SDK already loaded")
         let alreadyLoaded = await state.checkAndSetLoaded()
         guard !alreadyLoaded else { 
-            debugLog("SDK already loaded, using existing configuration")
             // If already loaded but we have an existing configuration, notify callbacks
             if let existingConfig = configurationStore.getConfiguration() {
                 notifyConfigurationChange(existingConfig)
@@ -233,7 +190,6 @@ public class EppoClient {
             return 
         }
 
-        debugLog("First-time initialization detected, loading configuration")
         try await self.load()
     }
 
@@ -912,33 +868,6 @@ public class EppoClient {
     /// Notifies the registered callback when configuration changes.
     private func notifyConfigurationChange(_ configuration: Configuration) {
         configurationChangeCallback?(configuration)
-    }
-    
-    /// Internal debug logging with timing context
-    private func resetDebugTiming() {
-        debugInitStartTime = nil
-        debugLastStepTime = nil
-    }
-    
-    private func debugLog(_ message: String) {
-        guard let callback = debugCallback else { return }
-        
-        let now = Date()
-        
-        // Initialize timing on first call
-        if debugInitStartTime == nil {
-            debugInitStartTime = now
-            debugLastStepTime = now
-            callback(message, 0.0, 0.0)
-            return
-        }
-        
-        // Calculate elapsed and step times in milliseconds
-        let elapsedTimeMs = now.timeIntervalSince(debugInitStartTime!) * 1000.0
-        let stepDurationMs = debugLastStepTime != nil ? now.timeIntervalSince(debugLastStepTime!) * 1000.0 : 0.0
-        
-        debugLastStepTime = now
-        callback(message, elapsedTimeMs, stepDurationMs)
     }
     
 }
