@@ -104,7 +104,10 @@ public class EppoPrecomputedClient {
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
         host: String? = nil,
         withPersistentCache: Bool = true,
-        configurationChangeCallback: ConfigurationChangeCallback? = nil
+        configurationChangeCallback: ConfigurationChangeCallback? = nil,
+        pollingEnabled: Bool = false,
+        pollingIntervalMs: Int = PollerConstants.DEFAULT_POLL_INTERVAL_MS,
+        pollingJitterMs: Int = PollerConstants.DEFAULT_POLL_INTERVAL_MS / PollerConstants.DEFAULT_JITTER_INTERVAL_RATIO
     ) async throws -> EppoPrecomputedClient {
         // Initialize offline first (without initial configuration) - returns existing instance if already initialized
         let instance = initializeOffline(
@@ -118,6 +121,11 @@ public class EppoPrecomputedClient {
         
         // Load configuration from network - this will trigger the configuration callback
         try await instance.load(precompute: precompute, host: host)
+        
+        // Auto-start polling if enabled
+        if pollingEnabled {
+            try await instance.startPolling(intervalMs: pollingIntervalMs, jitterMs: pollingJitterMs)
+        }
         
         return instance
     }
@@ -163,11 +171,12 @@ public class EppoPrecomputedClient {
     
     /// Starts configuration polling for regular updates
     @MainActor
-    public func startPolling(intervalMs: Int = PollerConstants.DEFAULT_POLL_INTERVAL_MS) async throws {
+    public func startPolling(
+        intervalMs: Int = PollerConstants.DEFAULT_POLL_INTERVAL_MS,
+        jitterMs: Int = PollerConstants.DEFAULT_POLL_INTERVAL_MS / PollerConstants.DEFAULT_JITTER_INTERVAL_RATIO
+    ) async throws {
         // Stop existing polling if running
         stopPolling()
-        
-        let jitterMs = intervalMs / PollerConstants.DEFAULT_JITTER_INTERVAL_RATIO
         
         poller = await Poller(
             intervalMs: intervalMs,

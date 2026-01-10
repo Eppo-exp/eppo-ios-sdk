@@ -14,10 +14,6 @@ class PrecomputedRequestor {
         return _precompute
     }
     
-    // Retry configuration
-    private let maxRetryAttempts: Int
-    private let initialRetryDelay: TimeInterval
-    
     // MARK: - Initialization
     
     init(
@@ -26,8 +22,6 @@ class PrecomputedRequestor {
         sdkName: String,
         sdkVersion: String,
         host: String = precomputedBaseUrl,
-        maxRetryAttempts: Int = 3,
-        initialRetryDelay: TimeInterval = 1.0,
         urlSession: URLSession = .shared
     ) {
         self._precompute = precompute
@@ -35,8 +29,6 @@ class PrecomputedRequestor {
         self.sdkName = sdkName
         self.sdkVersion = sdkVersion
         self.host = host
-        self.maxRetryAttempts = max(1, maxRetryAttempts) // Ensure at least one attempt
-        self.initialRetryDelay = max(0.1, initialRetryDelay) // Minimum 100ms delay
         self.urlSession = urlSession
     }
     
@@ -112,97 +104,8 @@ extension PrecomputedRequestor {
         encoder.keyEncodingStrategy = .convertToSnakeCase
         request.httpBody = try encoder.encode(payload)
         
-        // Perform request with retry logic
-        return try await performRequestWithRetry(request: request)
-    }
-    
-    /// Performs a request with exponential backoff retry logic
-    func performRequestWithRetry(request: URLRequest) async throws -> (Data, URLResponse) {
-        var lastError: Error?
-        
-        for attempt in 0..<maxRetryAttempts {
-            do {
-                let (data, response) = try await urlSession.data(for: request)
-                
-                // Check if we should retry based on response
-                if let httpResponse = response as? HTTPURLResponse {
-                    // Success (2xx, 3xx) - return immediately
-                    if httpResponse.statusCode < 400 {
-                        return (data, response)
-                    }
-                    
-                    // Don't retry on client errors (4xx) except for 429 (rate limit)
-                    if httpResponse.statusCode >= 400 && httpResponse.statusCode < 500 && httpResponse.statusCode != 429 {
-                        return (data, response)
-                    }
-                    
-                    // Rate limit (429) or server error (5xx) - will retry
-                    lastError = NetworkError.httpError(statusCode: httpResponse.statusCode)
-                } else {
-                    return (data, response)
-                }
-            } catch {
-                lastError = error
-                
-                if !isRetryableError(error) {
-                    throw error
-                }
-            }
-            
-            // If not the last attempt, wait before retrying
-            if attempt < maxRetryAttempts - 1 {
-                let delay = calculateRetryDelay(attempt: attempt)
-                try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
-            }
-        }
-        
-        // All retries exhausted
-        throw lastError ?? NetworkError.invalidResponse
-    }
-    
-    /// Calculates the retry delay using exponential backoff with jitter
-    internal func calculateRetryDelay(attempt: Int) -> TimeInterval {
-        // Exponential backoff: delay = initialDelay * 2^attempt
-        let exponentialDelay = initialRetryDelay * pow(2.0, Double(attempt))
-        
-        // Add jitter (±25%) to prevent thundering herd
-        let jitterRange = exponentialDelay * 0.25
-        let jitter = Double.random(in: -jitterRange...jitterRange)
-        
-        // Cap at 60 seconds
-        return min(exponentialDelay + jitter, 60.0)
-    }
-    
-    /// Determines if an error is retryable
-    internal func isRetryableError(_ error: Error) -> Bool {
-        // Retry on URLError cases that indicate temporary issues
-        if let urlError = error as? URLError {
-            switch urlError.code {
-            case .timedOut,
-                 .cannotFindHost,
-                 .cannotConnectToHost,
-                 .networkConnectionLost,
-                 .dnsLookupFailed,
-                 .notConnectedToInternet,
-                 .dataNotAllowed:
-                return true
-            default:
-                return false
-            }
-        }
-        
-        // Retry on our own network errors
-        if let networkError = error as? NetworkError {
-            switch networkError {
-            case .httpError(let statusCode):
-                // Retry on server errors (5xx) and rate limiting (429)
-                return statusCode >= 500 || statusCode == 429
-            default:
-                return false
-            }
-        }
-        
-        return false
+        // Simple single request like NetworkEppoHttpClient
+        return try await urlSession.data(for: request)
     }
 }
 
