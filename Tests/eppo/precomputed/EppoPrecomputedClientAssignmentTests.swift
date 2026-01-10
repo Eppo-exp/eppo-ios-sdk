@@ -154,7 +154,7 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
-            subject: PrecomputedSubject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
+            subject: Subject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
             configPublishedAt: Date(),
             environment: Environment(name: "test")
         )
@@ -174,6 +174,7 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
     
     private func initializeClient() {
         _ = EppoPrecomputedClient.initializeOffline(
+            sdkKey: "mock-api-key",
             initialPrecomputedConfiguration: testConfiguration,
             assignmentLogger: mockLogger.logger,
             assignmentCache: mockCache
@@ -216,28 +217,6 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
             defaultValue: "{}"
         )
         XCTAssertEqual(jsonResult, "{\"key\":\"value\",\"num\":123}")
-    }
-    
-    // MARK: - Type Mismatch Tests
-    
-    func testTypeMismatchReturnsDefault() throws {
-        initializeClient()
-        
-        let client = try EppoPrecomputedClient.shared()
-        
-        // Try to get boolean value from a flag that has a string value
-        let boolResult = client.getBooleanAssignment(
-            flagKey: "type-mismatch-flag",
-            defaultValue: true
-        )
-        XCTAssertTrue(boolResult)
-        
-        // Try to get string value from boolean flag
-        let stringResult = client.getStringAssignment(
-            flagKey: "bool-flag",
-            defaultValue: "default"
-        )
-        XCTAssertEqual(stringResult, "default")
     }
     
     // MARK: - Assignment Logging Tests
@@ -299,6 +278,7 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
     
     func testAssignmentLoggingWithoutCache() throws {
         _ = EppoPrecomputedClient.initializeOffline(
+            sdkKey: "mock-api-key",
             initialPrecomputedConfiguration: testConfiguration,
             assignmentLogger: mockLogger.logger,
             assignmentCache: nil

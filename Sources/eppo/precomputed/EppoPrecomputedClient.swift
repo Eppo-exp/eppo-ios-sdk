@@ -10,7 +10,6 @@ public class EppoPrecomputedClient {
     }
     private static let sharedLock = NSLock()
     private static var sharedInstance: EppoPrecomputedClient?
-    private static let initializerQueue = DispatchQueue(label: "cloud.eppo.precomputed.initializer")
     
     public static func shared() throws -> EppoPrecomputedClient {
         try sharedLock.withLock {
@@ -22,44 +21,51 @@ public class EppoPrecomputedClient {
     }
     
     private let configurationStore: PrecomputedConfigurationStore
-    private let subjectKey: String
-    private let subjectAttributes: [String: EppoValue]
     private let assignmentLogger: AssignmentLogger?
     private let assignmentCache: AssignmentCache?
     
+    // MARK: - Network Components  
+    private var requestor: PrecomputedRequestor?
+    private var poller: Poller?
+    private let sdkKey: String
+    private var host: String?
     private var configurationChangeCallback: ConfigurationChangeCallback?
     
+    /// Get the current precompute configuration from the loaded configuration
+    private var currentPrecompute: Precompute? {
+        guard let config = configurationStore.getConfiguration() else { return nil }
+        return Precompute(
+            subjectKey: config.subject.subjectKey,
+            subjectAttributes: config.subject.subjectAttributes
+        )
+    }
+    
     private init(
+        sdkKey: String,
         assignmentLogger: AssignmentLogger? = nil,
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
         initialPrecomputedConfiguration: PrecomputedConfiguration? = nil,
         withPersistentCache: Bool = true,
         configurationChangeCallback: ConfigurationChangeCallback? = nil
     ) {
-        
-        // Extract subject information from configuration or use placeholder
-        if let configuration = initialPrecomputedConfiguration {
-            self.subjectKey = configuration.subject.subjectKey
-            self.subjectAttributes = configuration.subject.subjectAttributes
-            self.configurationStore = PrecomputedConfigurationStore(withPersistentCache: withPersistentCache)
-            self.configurationStore.setConfiguration(configuration)
-        } else {
-            // Create placeholder subject information for offline-only initialization
-            self.subjectKey = ""
-            self.subjectAttributes = [:]
-            self.configurationStore = PrecomputedConfigurationStore(withPersistentCache: withPersistentCache)
-        }
-        
+        self.sdkKey = sdkKey
         self.assignmentLogger = assignmentLogger
         self.assignmentCache = assignmentCache
+        self.configurationStore = PrecomputedConfigurationStore(withPersistentCache: withPersistentCache)
         self.configurationChangeCallback = configurationChangeCallback
+        
+        // Set initial configuration if provided
+        if let configuration = initialPrecomputedConfiguration {
+            self.configurationStore.setConfiguration(configuration)
+        }
     }
     
     
     /// Initialize the precomputed client offline with provided configuration
     /// The subject information is extracted from the precomputed configuration
     public static func initializeOffline(
-        initialPrecomputedConfiguration: PrecomputedConfiguration,
+        sdkKey: String,
+        initialPrecomputedConfiguration: PrecomputedConfiguration? = nil,
         assignmentLogger: AssignmentLogger? = nil,
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
         withPersistentCache: Bool = true,
@@ -71,6 +77,7 @@ public class EppoPrecomputedClient {
             }
             
             let instance = EppoPrecomputedClient(
+                sdkKey: sdkKey,
                 assignmentLogger: assignmentLogger,
                 assignmentCache: assignmentCache,
                 initialPrecomputedConfiguration: initialPrecomputedConfiguration,
@@ -78,12 +85,147 @@ public class EppoPrecomputedClient {
                 configurationChangeCallback: configurationChangeCallback
             )
             
-            // Trigger configuration change callback
-            instance.notifyConfigurationChange(initialPrecomputedConfiguration)
+            // Trigger configuration change callback if configuration was set
+            if let configuration = initialPrecomputedConfiguration {
+                instance.notifyConfigurationChange(configuration)
+            }
             
             sharedInstance = instance
             return instance
         }
+    }
+    
+    
+    /// Initialize the precomputed client with online configuration fetch
+    public static func initialize(
+        sdkKey: String,
+        precompute: Precompute,
+        assignmentLogger: AssignmentLogger? = nil,
+        assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
+        host: String? = nil,
+        withPersistentCache: Bool = true,
+        configurationChangeCallback: ConfigurationChangeCallback? = nil,
+        pollingEnabled: Bool = false,
+        pollingIntervalMs: Int = PollerConstants.DEFAULT_POLL_INTERVAL_MS,
+        pollingJitterMs: Int = PollerConstants.DEFAULT_POLL_INTERVAL_MS / PollerConstants.DEFAULT_JITTER_INTERVAL_RATIO
+    ) async throws -> EppoPrecomputedClient {
+        // Initialize offline first (without initial configuration) - returns existing instance if already initialized
+        let instance = initializeOffline(
+            sdkKey: sdkKey,
+            initialPrecomputedConfiguration: nil,
+            assignmentLogger: assignmentLogger,
+            assignmentCache: assignmentCache,
+            withPersistentCache: withPersistentCache,
+            configurationChangeCallback: configurationChangeCallback
+        )
+        
+        // Load configuration from network - this will trigger the configuration callback
+        try await instance.load(precompute: precompute, host: host)
+        
+        // Auto-start polling if enabled
+        if pollingEnabled {
+            try await instance.startPolling(intervalMs: pollingIntervalMs, jitterMs: pollingJitterMs)
+        }
+        
+        return instance
+    }
+    
+    
+    /// Load configuration from network
+    public func load(precompute: Precompute, host: String? = nil) async throws {
+        let resolvedHost = host ?? precomputedBaseUrl
+        
+        let requestor = PrecomputedRequestor(
+            precompute: precompute,
+            sdkKey: self.sdkKey,
+            sdkName: sdkName,
+            sdkVersion: sdkVersion,
+            host: resolvedHost
+        )
+        
+        let networkConfig = try await requestor.fetchPrecomputedFlags()
+        
+        // Create full configuration preserving precompute info
+        let fullConfig = PrecomputedConfiguration(
+            flags: networkConfig.flags,
+            salt: networkConfig.salt,
+            format: networkConfig.format,
+            configFetchedAt: networkConfig.configFetchedAt,
+            subject: Subject(
+                subjectKey: precompute.subjectKey,
+                subjectAttributes: precompute.subjectAttributes
+            ),
+            configPublishedAt: networkConfig.configPublishedAt,
+            environment: networkConfig.environment
+        )
+        
+        Self.sharedLock.withLock {
+            self.requestor = requestor
+            self.host = resolvedHost
+            self.configurationStore.setConfiguration(fullConfig)
+            self.notifyConfigurationChange(fullConfig)
+        }
+    }
+    
+    // MARK: - Polling Management
+    
+    /// Starts configuration polling for regular updates
+    @MainActor
+    public func startPolling(
+        intervalMs: Int = PollerConstants.DEFAULT_POLL_INTERVAL_MS,
+        jitterMs: Int = PollerConstants.DEFAULT_POLL_INTERVAL_MS / PollerConstants.DEFAULT_JITTER_INTERVAL_RATIO
+    ) async throws {
+        // Stop existing polling if running
+        stopPolling()
+        
+        poller = await Poller(
+            intervalMs: intervalMs,
+            jitterMs: jitterMs,
+            callback: { [weak self] in
+                guard let self = self else { return }
+                
+                // Handle gracefully if network components aren't initialized yet
+                guard let requestor = self.requestor else {
+                    // Skip this polling cycle - network not initialized yet
+                    return
+                }
+                
+                do {
+                    let networkConfig = try await requestor.fetchPrecomputedFlags()
+                    
+                    // Create full configuration preserving precompute info from requestor
+                    let fullConfig = PrecomputedConfiguration(
+                        flags: networkConfig.flags,
+                        salt: networkConfig.salt,
+                        format: networkConfig.format,
+                        configFetchedAt: networkConfig.configFetchedAt,
+                        subject: Subject(
+                            subjectKey: requestor.precompute.subjectKey,
+                            subjectAttributes: requestor.precompute.subjectAttributes
+                        ),
+                        configPublishedAt: networkConfig.configPublishedAt,
+                        environment: networkConfig.environment
+                    )
+                    
+                    Self.sharedLock.withLock {
+                        self.configurationStore.setConfiguration(fullConfig)
+                        self.notifyConfigurationChange(fullConfig)
+                    }
+                } catch {
+                    // Poller will handle retry logic
+                    throw error
+                }
+            }
+        )
+        
+        try await poller?.start()
+    }
+    
+    /// Stops configuration polling
+    @MainActor
+    public func stopPolling() {
+        poller?.stop()
+        poller = nil
     }
     
     // MARK: - Lifecycle Management
@@ -97,6 +239,7 @@ public class EppoPrecomputedClient {
     private func notifyConfigurationChange(_ configuration: PrecomputedConfiguration) {
         configurationChangeCallback?(configuration)
     }
+    
     
     /// Resets the client state (useful for testing)
     public static func resetForTesting() {
@@ -163,7 +306,7 @@ public class EppoPrecomputedClient {
                 defaultValue: defaultValue
             )
             
-            // Log assignment if needed (now that initialization deadlock is fixed)
+            // Log assignment if needed
             if flag.doLog {
                 logAssignment(
                     flagKey: flagKey,
@@ -230,7 +373,12 @@ public class EppoPrecomputedClient {
         flagKey: String,
         flag: PrecomputedFlag
     ) {
+        guard let precompute = currentPrecompute else {
+            // No configuration loaded, cannot log assignment
+            return
+        }
         
+        // Precomputed configs are always obfuscated, so decode base64 values for assignment logging
         var decodedAllocationKey: String = flag.allocationKey ?? ""
         if let allocationKey = flag.allocationKey,
            let decoded = base64Decode(allocationKey) {
@@ -261,9 +409,9 @@ public class EppoPrecomputedClient {
             flagKey: flagKey,
             allocationKey: decodedAllocationKey,
             variation: decodedVariationKey,
-            subject: subjectKey,
+            subject: precompute.subjectKey,
             timestamp: ISO8601DateFormatter().string(from: Date()),
-            subjectAttributes: subjectAttributes,
+            subjectAttributes: precompute.subjectAttributes,
             metaData: [
                 "obfuscated": "true",
                 "sdkName": sdkName,

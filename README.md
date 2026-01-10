@@ -14,6 +14,7 @@ The [primary documentation](https://docs.geteppo.com/sdks/client-sdks/ios/) expl
 - A/B/n experiments
 - Mutually exclusive experiments (Layers)
 - Dynamic configuration
+- Precomputed assignments
 
 ## Installation
 
@@ -97,28 +98,6 @@ As modern iOS devices have substantial memory, applications are often kept in me
 
 It is recommended to use the `load()` method to fetch the latest flag configurations when the application is launched.
 
-#### Precomputed Client
-
-For applications that need to work with precomputed flag values, use the `EppoPrecomputedClient`. The precomputed flag is more performant due to a smaller config size and more secure due to removal of targeting rules.
-
-**The offline initialization workflow:**
-
-1. **Server-side** - Generate precomputed configuration using the [Node SDK](https://docs.geteppo.com/sdks/client-sdks/javascript/precomputed-assignments/#initialize-offline-bootstrapped-precomputed-client)
-
-2. **Swift app** - Use the precomputed configuration:
-```swift
-let config = try PrecomputedConfiguration(
-    precomputedConfiguration: precomputedConfig // String from server
-)
-
-EppoPrecomputedClient.initializeOffline(
-    initialPrecomputedConfiguration: config
-)
-
-// Access via shared instance for assignments
-let client = try EppoPrecomputedClient.shared()
-let theme = client.getStringAssignment(flagKey: "mobile-theme", defaultValue: "light")
-```
 
 #### Assign anywhere
 
@@ -207,6 +186,52 @@ struct ContentView: View {
         }
     }
 }
+```
+
+## Precomputed client
+
+For applications requiring high performance, security, or minimal network overhead, you can use precomputed assignments calculated via Eppo's globally distributed edge functions.
+
+#### Online initialization
+
+For dynamic precomputed assignments, initialize with network fetching:
+
+```swift
+Task {
+    try await EppoPrecomputedClient.initialize(
+        sdkKey: "SDK-KEY-FROM-DASHBOARD",
+        precompute: Precompute(subjectKey: "user-123", subjectAttributes: ["plan": EppoValue(value: "premium")])
+    )
+}
+```
+
+#### Offline initialization
+
+Initialize with precomputed data to avoid performing a network request. This workflow requires two steps:
+
+1. **Server-side** - Generate precomputed configuration using the [Node SDK](https://docs.geteppo.com/sdks/client-sdks/javascript/precomputed-assignments/#initialize-offline-bootstrapped-precomputed-client)
+
+2. **Swift app** - Use the precomputed configuration:
+
+```swift
+// Parse configuration from server
+let config = try PrecomputedConfiguration(
+    precomputedConfiguration: precomputedConfigString
+)
+
+// Initialize offline
+EppoPrecomputedClient.initializeOffline(
+    sdkKey: "SDK-KEY-FROM-DASHBOARD",
+    initialPrecomputedConfiguration: config
+)
+```
+
+#### Assign precomputed values
+
+Assignment is synchronous and uses the same typed functions:
+
+```swift
+let assignment = try EppoPrecomputedClient.shared().getStringAssignment(flagKey: "new-feature", defaultValue: "control")
 ```
 
 ## Assignment functions
