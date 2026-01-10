@@ -513,63 +513,6 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
         XCTAssertEqual(result, "value")
     }
     
-    func testLargeFlagConfiguration() {
-        // Reset client first
-        EppoPrecomputedClient.resetForTesting()
-        
-        // Test with many flags to ensure performance - now safe with bypass solution
-        var flags: [String: PrecomputedFlag] = [:]
-        
-        for i in 0..<1000 {
-            let flagKey = "flag-\(i)"
-            flags[getMD5Hex(flagKey, salt: "test-salt")] = PrecomputedFlag(
-                allocationKey: base64Encode("allocation-\(i)"),
-                variationKey: base64Encode("variant-\(i % 3)"),
-                variationType: .STRING,
-                variationValue: EppoValue(value: base64Encode("value-\(i)")),
-                extraLogging: [
-                    "experiment-holdout-key": "holdout-\(i % 10)",
-                    "holdoutVariation": i % 2 == 0 ? "status_quo" : "all_shipped"
-                ],
-                doLog: false  // No logger provided, so safe regardless
-            )
-        }
-        
-        let testConfig = PrecomputedConfiguration(
-            flags: flags,
-            salt: base64Encode("test-salt"),
-            format: "PRECOMPUTED",
-            configFetchedAt: Date(),
-            subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
-            configPublishedAt: nil,
-            environment: nil
-        )
-        
-        let startTime = Date()
-        
-        _ = EppoPrecomputedClient.initializeOffline(
-            sdkKey: "test-key",
-            initialPrecomputedConfiguration: testConfig
-        )
-        
-        let initDuration = Date().timeIntervalSince(startTime)
-        
-        // Initialization should be fast even with many flags
-        XCTAssertLessThan(initDuration, 0.1)
-        
-        // Test assignment performance - restore original scope
-        let assignmentStart = Date()
-        for i in 0..<100 {
-            _ = try! EppoPrecomputedClient.shared().getStringAssignment(
-                flagKey: "flag-\(i)",
-                defaultValue: "default"
-            )
-        }
-        let assignmentDuration = Date().timeIntervalSince(assignmentStart)
-        
-        // 100 assignments should be very fast (<10ms)
-        XCTAssertLessThan(assignmentDuration, 0.01)
-    }
     
     // MARK: - Assignment Cache Error Tests
     

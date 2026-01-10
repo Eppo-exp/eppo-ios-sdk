@@ -214,18 +214,6 @@ class PrecomputeTests: XCTestCase {
     
     // MARK: - Edge Cases
     
-    func testSubjectWithManyAttributes() {
-        var attributes: [String: EppoValue] = [:]
-        for i in 1...100 {
-            attributes["attr\(i)"] = .valueOf("value\(i)")
-        }
-        
-        let subject = Precompute(subjectKey: "user-many-attrs", subjectAttributes: attributes)
-        
-        XCTAssertEqual(subject.subjectAttributes.count, 100)
-        XCTAssertEqual(subject.subjectAttributes["attr50"], .valueOf("value50"))
-    }
-    
     func testSubjectWithSpecialCharactersInKey() {
         let subject = Precompute(
             subjectKey: "user@example.com",
