@@ -33,7 +33,7 @@ public class EppoPrecomputedClient {
     
     /// Get the current precompute configuration from the loaded configuration
     private var currentPrecompute: Precompute? {
-        guard let config = configurationStore.getConfiguration() else { return nil }
+        guard let config = configurationStore.getDecodedConfiguration() else { return nil }
         return Precompute(
             subjectKey: config.subject.subjectKey,
             subjectAttributes: config.subject.subjectAttributes
@@ -281,17 +281,13 @@ public class EppoPrecomputedClient {
             return defaultValue
         }
         
-        guard let salt = configurationStore.salt else {
+        guard let decodedConfig = configurationStore.getDecodedConfiguration() else {
             return defaultValue
         }
         
-        guard let decodedSalt = base64Decode(salt) else {
-            return defaultValue
-        }
+        let hashedFlagKey = getMD5Hex(flagKey, salt: decodedConfig.decodedSalt)
         
-        let hashedFlagKey = getMD5Hex(flagKey, salt: decodedSalt)
-        
-        guard let flag = configurationStore.getFlag(forKey: hashedFlagKey) else {
+        guard let flag = configurationStore.getDecodedFlag(forKey: hashedFlagKey) else {
             return defaultValue
         }
         
@@ -306,14 +302,13 @@ public class EppoPrecomputedClient {
                 defaultValue: defaultValue
             )
             
-            // Log assignment if needed
             if flag.doLog {
                 logAssignment(
                     flagKey: flagKey,
                     flag: flag
                 )
             }
-            
+
             return convertedValue
         } catch {
             return defaultValue
@@ -330,40 +325,31 @@ public class EppoPrecomputedClient {
         switch expectedType {
         case .STRING:
             let stringValue = try eppoValue.getStringValue()
-            // Precomputed configs are always obfuscated - decode base64 string
-            let decodedValue = try base64DecodeOrThrow(stringValue)
-            if let result = decodedValue as? T {
+            if let result = stringValue as? T {
                 return result
             }
-            
         case .BOOLEAN:
             let boolValue = try eppoValue.getBoolValue()
             if let result = boolValue as? T {
                 return result
             }
-            
         case .INTEGER:
             let doubleValue = try eppoValue.getDoubleValue()
             let intValue = Int(doubleValue)
             if let result = intValue as? T {
                 return result
             }
-            
         case .NUMERIC:
             let doubleValue = try eppoValue.getDoubleValue()
             if let result = doubleValue as? T {
                 return result
             }
-            
         case .JSON:
             let stringValue = try eppoValue.getStringValue()
-            // Precomputed configs are always obfuscated - decode base64 JSON string
-            let decodedValue = try base64DecodeOrThrow(stringValue)
-            if let result = decodedValue as? T {
+            if let result = stringValue as? T {
                 return result
             }
         }
-        
         throw Errors.variationWrongType
     }
     
@@ -371,44 +357,16 @@ public class EppoPrecomputedClient {
     
     private func logAssignment(
         flagKey: String,
-        flag: PrecomputedFlag
+        flag: DecodedPrecomputedFlag
     ) {
         guard let precompute = currentPrecompute else {
-            // No configuration loaded, cannot log assignment
             return
         }
-        
-        // Precomputed configs are always obfuscated, so decode base64 values for assignment logging
-        var decodedAllocationKey: String = flag.allocationKey ?? ""
-        if let allocationKey = flag.allocationKey,
-           let decoded = base64Decode(allocationKey) {
-            decodedAllocationKey = decoded
-        }
-        
-        var decodedVariationKey: String = flag.variationKey ?? ""
-        if let variationKey = flag.variationKey,
-           let decoded = base64Decode(variationKey) {
-            decodedVariationKey = decoded
-        }
-        
-        // Decode extraLogging keys and values
-        var decodedExtraLogging: [String: String] = [:]
-        for (key, value) in flag.extraLogging {
-            do {
-                // Decode both key and value if they are base64 encoded
-                let decodedKey = try base64DecodeOrThrow(key)
-                let decodedValue = try base64DecodeOrThrow(value)
-                decodedExtraLogging[decodedKey] = decodedValue
-            } catch {
-                print("Warning: Failed to decode extraLogging entry - key: \(key), value: \(value), error: \(error.localizedDescription)")
-                // Skip this entry - don't add it to decodedExtraLogging
-            }
-        }
-        
+
         let assignment = Assignment(
             flagKey: flagKey,
-            allocationKey: decodedAllocationKey,
-            variation: decodedVariationKey,
+            allocationKey: flag.allocationKey ?? "",
+            variation: flag.variationKey ?? "",
             subject: precompute.subjectKey,
             timestamp: ISO8601DateFormatter().string(from: Date()),
             subjectAttributes: precompute.subjectAttributes,
@@ -417,9 +375,9 @@ public class EppoPrecomputedClient {
                 "sdkName": sdkName,
                 "sdkVersion": sdkVersion
             ],
-            extraLogging: decodedExtraLogging
+            extraLogging: flag.extraLogging
         )
-        
+
         if shouldLogAssignment(assignment) {
             if let logger = assignmentLogger {
                 logger(assignment)

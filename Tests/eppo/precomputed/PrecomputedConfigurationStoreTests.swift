@@ -20,7 +20,7 @@ class PrecomputedConfigurationStoreTests: XCTestCase {
     
     func testInitializationWithPersistentCache() {
         store = PrecomputedConfigurationStore(withPersistentCache: true)
-        XCTAssertNil(store.getConfiguration())
+        XCTAssertNil(store.getDecodedConfiguration())
         XCTAssertFalse(store.isInitialized())
     }
     
@@ -33,9 +33,9 @@ class PrecomputedConfigurationStoreTests: XCTestCase {
         let config = createSampleConfiguration()
         store.setConfiguration(config)
         
-        let retrieved = store.getConfiguration()
+        let retrieved = store.getDecodedConfiguration()
         XCTAssertNotNil(retrieved)
-        XCTAssertEqual(retrieved?.salt, base64Encode("test-salt"))
+        XCTAssertEqual(retrieved?.decodedSalt, "test-salt")
         XCTAssertEqual(retrieved?.format, "PRECOMPUTED")
         XCTAssertEqual(retrieved?.flags.count, 2)
         XCTAssertTrue(store.isInitialized())
@@ -47,11 +47,11 @@ class PrecomputedConfigurationStoreTests: XCTestCase {
         let config = createSampleConfiguration()
         store.setConfiguration(config)
         
-        let flag1 = store.getFlag(forKey: "flag1")
+        let flag1 = store.getDecodedFlag(forKey: "flag1")
         XCTAssertNotNil(flag1)
         XCTAssertEqual(flag1?.variationKey, "variation-1")
-        
-        let nonExistent = store.getFlag(forKey: "non-existent")
+
+        let nonExistent = store.getDecodedFlag(forKey: "non-existent")
         XCTAssertNil(nonExistent)
     }
     
@@ -70,12 +70,12 @@ class PrecomputedConfigurationStoreTests: XCTestCase {
     func testGetSalt() {
         store = PrecomputedConfigurationStore(withPersistentCache: false)
         
-        XCTAssertNil(store.salt) // No configuration yet
+        XCTAssertNil(store.getDecodedConfiguration()?.decodedSalt)
         
         let config = createSampleConfiguration()
         store.setConfiguration(config)
         
-        XCTAssertEqual(store.salt, base64Encode("test-salt"))
+        XCTAssertEqual(store.getDecodedConfiguration()?.decodedSalt, "test-salt")
     }
     
     // MARK: - Expiration Tests
@@ -103,7 +103,7 @@ class PrecomputedConfigurationStoreTests: XCTestCase {
         let testPrecompute = Precompute(subjectKey: "test-user", subjectAttributes: [:])
         let config = PrecomputedConfiguration(
             flags: [:],
-            salt: "old-salt",
+            salt: base64Encode("old-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: oldDate,
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes)
@@ -127,9 +127,9 @@ class PrecomputedConfigurationStoreTests: XCTestCase {
         expectation.expectedFulfillmentCount = 100
         
         DispatchQueue.concurrentPerform(iterations: 100) { _ in
-            _ = store.getConfiguration()
-            _ = store.getFlag(forKey: "flag1")
-            _ = store.salt
+            _ = store.getDecodedConfiguration()
+            _ = store.getDecodedFlag(forKey: "flag1")
+            _ = store.getDecodedConfiguration()?.decodedSalt
             _ = store.isInitialized()
             expectation.fulfill()
         }
@@ -147,7 +147,7 @@ class PrecomputedConfigurationStoreTests: XCTestCase {
             let testPrecompute = Precompute(subjectKey: "test-user-\(index)", subjectAttributes: [:])
             let config = PrecomputedConfiguration(
                 flags: ["flag\(index)": createSampleFlag()],
-                salt: "salt-\(index)",
+                salt: base64Encode("salt-\(index)"),
                 format: "PRECOMPUTED",
                 configFetchedAt: Date(),
                 subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes)
@@ -158,7 +158,7 @@ class PrecomputedConfigurationStoreTests: XCTestCase {
         
         wait(for: [expectation], timeout: 5.0)
         
-        XCTAssertNotNil(store.getConfiguration())
+        XCTAssertNotNil(store.getDecodedConfiguration())
         XCTAssertTrue(store.isInitialized())
     }
     
@@ -180,9 +180,9 @@ class PrecomputedConfigurationStoreTests: XCTestCase {
         let newStore = PrecomputedConfigurationStore(withPersistentCache: true)
         newStore.loadInitialConfiguration()
         
-        let loaded = newStore.getConfiguration()
+        let loaded = newStore.getDecodedConfiguration()
         XCTAssertNotNil(loaded)
-        XCTAssertEqual(loaded?.salt, base64Encode("test-salt"))
+        XCTAssertEqual(loaded?.decodedSalt, "test-salt")
         XCTAssertEqual(loaded?.flags.count, 2)
     }
     
@@ -194,11 +194,11 @@ class PrecomputedConfigurationStoreTests: XCTestCase {
         Thread.sleep(forTimeInterval: 0.5)
         
         let newStore = PrecomputedConfigurationStore(withPersistentCache: true)
-        XCTAssertNil(newStore.getConfiguration()) // Not loaded yet
+        XCTAssertNil(newStore.getDecodedConfiguration()) // Not loaded yet
         
         newStore.loadInitialConfiguration()
-        XCTAssertNotNil(newStore.getConfiguration()) // Now loaded
-        XCTAssertEqual(newStore.getConfiguration()?.salt, base64Encode("test-salt"))
+        XCTAssertNotNil(newStore.getDecodedConfiguration()) // Now loaded
+        XCTAssertEqual(newStore.getDecodedConfiguration()?.decodedSalt, "test-salt")
     }
     
     func testClearPersistentCache() {
@@ -211,7 +211,7 @@ class PrecomputedConfigurationStoreTests: XCTestCase {
         
         let newStore = PrecomputedConfigurationStore(withPersistentCache: true)
         newStore.loadInitialConfiguration()
-        XCTAssertNil(newStore.getConfiguration())
+        XCTAssertNil(newStore.getDecodedConfiguration())
     }
     
     // MARK: - Helper Methods
@@ -236,10 +236,10 @@ class PrecomputedConfigurationStoreTests: XCTestCase {
     
     private func createSampleFlag(variationKey: String = "test-variation") -> PrecomputedFlag {
         return PrecomputedFlag(
-            allocationKey: "test-allocation",
-            variationKey: variationKey,
+            allocationKey: base64Encode("test-allocation"),
+            variationKey: base64Encode(variationKey),
             variationType: .STRING,
-            variationValue: .valueOf("test-value"),
+            variationValue: .valueOf(base64Encode("test-value")),
             extraLogging: [:],
             doLog: true
         )

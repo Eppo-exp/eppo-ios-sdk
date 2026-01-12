@@ -223,9 +223,119 @@ private struct WireSubjectAttributes: Decodable {
 struct Subject: Codable {
     let subjectKey: String
     let subjectAttributes: [String: EppoValue]
-    
+
     init(subjectKey: String, subjectAttributes: [String: EppoValue] = [:]) {
         self.subjectKey = subjectKey
         self.subjectAttributes = subjectAttributes
+    }
+}
+
+// MARK: - Decoded Configuration Types
+
+struct DecodedPrecomputedFlag: Codable {
+    let allocationKey: String?
+    let variationKey: String?
+    let variationType: VariationType
+    let variationValue: EppoValue
+    let extraLogging: [String: String]
+    let doLog: Bool
+}
+
+struct DecodedPrecomputedConfiguration: Codable {
+    let flags: [String: DecodedPrecomputedFlag]
+    let decodedSalt: String
+    let format: String
+    let configFetchedAt: Date
+    let configPublishedAt: Date?
+    let environment: Environment?
+    let subject: Subject
+}
+
+// MARK: - Decoding Logic
+
+extension PrecomputedConfiguration {
+    func decode() -> DecodedPrecomputedConfiguration? {
+        guard let decodedSalt = base64Decode(self.salt) else {
+            return nil
+        }
+        
+        var decodedFlags: [String: DecodedPrecomputedFlag] = [:]
+        for (key, flag) in self.flags {
+            guard let decodedFlag = decodeFlag(flag) else {
+                continue
+            }
+            decodedFlags[key] = decodedFlag
+        }
+        
+        return DecodedPrecomputedConfiguration(
+            flags: decodedFlags,
+            decodedSalt: decodedSalt,
+            format: self.format,
+            configFetchedAt: self.configFetchedAt,
+            configPublishedAt: self.configPublishedAt,
+            environment: self.environment,
+            subject: self.subject
+        )
+    }
+    
+    private func decodeFlag(_ flag: PrecomputedFlag) -> DecodedPrecomputedFlag? {
+        let decodedAllocationKey: String?
+        if let allocationKey = flag.allocationKey {
+            if let decoded = base64Decode(allocationKey) {
+                decodedAllocationKey = decoded
+            } else {
+                print("Warning: Failed to decode allocationKey: \(allocationKey)")
+                decodedAllocationKey = nil
+            }
+        } else {
+            decodedAllocationKey = nil
+        }
+        
+        let decodedVariationKey: String?
+        if let variationKey = flag.variationKey {
+            if let decoded = base64Decode(variationKey) {
+                decodedVariationKey = decoded
+            } else {
+                print("Warning: Failed to decode variationKey: \(variationKey)")
+                decodedVariationKey = nil
+            }
+        } else {
+            decodedVariationKey = nil
+        }
+        
+        let decodedVariationValue: EppoValue
+        if flag.variationType == .STRING || flag.variationType == .JSON {
+            do {
+                let encodedString = try flag.variationValue.getStringValue()
+                let decodedString = try base64DecodeOrThrow(encodedString)
+                decodedVariationValue = EppoValue(value: decodedString)
+            } catch {
+                print("Warning: Failed to decode variationValue, skipping flag - error: \(error.localizedDescription)")
+                return nil
+            }
+        } else {
+            decodedVariationValue = flag.variationValue
+        }
+        
+        var decodedExtraLogging: [String: String] = [:]
+        for (key, value) in flag.extraLogging {
+            do {
+                let decodedKey = try base64DecodeOrThrow(key)
+                let decodedValue = try base64DecodeOrThrow(value)
+                decodedExtraLogging[decodedKey] = decodedValue
+            } catch {
+                print("Warning: Failed to decode extraLogging entry - key: \(key), value: \(value), error: \(error.localizedDescription)")
+                continue
+            }
+        }
+        
+        return DecodedPrecomputedFlag(
+            allocationKey: decodedAllocationKey,
+            variationKey: decodedVariationKey,
+            variationType: flag.variationType,
+            variationValue: decodedVariationValue,
+            extraLogging: decodedExtraLogging,
+            doLog: flag.doLog
+        )
     }
 }
