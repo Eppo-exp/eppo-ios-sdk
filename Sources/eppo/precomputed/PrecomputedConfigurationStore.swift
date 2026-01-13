@@ -5,16 +5,16 @@ class PrecomputedConfigurationStore {
     private var decodedConfiguration: DecodedPrecomputedConfiguration?
     private let syncQueue = DispatchQueue(
         label: "cloud.eppo.precomputedConfigurationStoreQueue", attributes: .concurrent)
-    
+
     func getDecodedConfiguration() -> DecodedPrecomputedConfiguration? {
         return syncQueue.sync { self.decodedConfiguration }
     }
-    
+
     private let cacheFileURL: URL?
     // Serial queue for disk persistence operations
     private static let persistenceQueue = DispatchQueue(
         label: "cloud.eppo.precomputedConfigurationStorePersistence", qos: .background)
-    
+
     init(withPersistentCache: Bool = true) {
         self.cacheFileURL = if withPersistentCache {
             Self.findCacheFileURL()
@@ -22,14 +22,14 @@ class PrecomputedConfigurationStore {
             nil
         }
     }
-    
+
     /// Load initial configuration from disk
     func loadInitialConfiguration() {
         if self.decodedConfiguration == nil {
             self.decodedConfiguration = self.loadFromDisk()
         }
     }
-    
+
     /// Set configuration with disk persistence
     func setConfiguration(_ configuration: PrecomputedConfiguration) {
         syncQueue.sync(flags: .barrier) {
@@ -39,11 +39,11 @@ class PrecomputedConfigurationStore {
             }
         }
     }
-    
+
     func isInitialized() -> Bool {
         return syncQueue.sync { self.decodedConfiguration != nil }
     }
-    
+
     func getKeys() -> [String] {
         return syncQueue.sync {
             self.decodedConfiguration?.flags.keys.map { $0 } ?? []
@@ -53,24 +53,24 @@ class PrecomputedConfigurationStore {
     func getDecodedFlag(forKey key: String) -> DecodedPrecomputedFlag? {
         return syncQueue.sync { self.decodedConfiguration?.flags[key] }
     }
-    
+
     func isExpired(ttlSeconds: TimeInterval = 300) -> Bool {
         return syncQueue.sync {
             guard let config = self.decodedConfiguration else {
                 return true
             }
-            
+
             let age = Date().timeIntervalSince(config.configFetchedAt)
             return age > ttlSeconds
         }
     }
-    
+
     /// Clear the persistent cache
     static func clearPersistentCache() {
         guard let cacheFileURL = Self.findCacheFileURL() else {
             return
         }
-        
+
         Self.persistenceQueue.sync {
             if FileManager.default.fileExists(atPath: cacheFileURL.path) {
                 do {
@@ -81,14 +81,14 @@ class PrecomputedConfigurationStore {
             }
         }
     }
-    
+
     private static func findCacheFileURL() -> URL? {
         guard let cacheDirectoryURL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)
             .first?
             .appendingPathComponent("eppo", isDirectory: true) else {
             return nil
         }
-        
+
         // Ensure the directory exists
         do {
             try FileManager.default.createDirectory(
@@ -100,17 +100,17 @@ class PrecomputedConfigurationStore {
             print("Error creating cache directory: \(error)")
             return nil
         }
-        
+
         // Use precomputed-specific file name
         return cacheDirectoryURL
             .appendingPathComponent("eppo-precomputed-configuration.json", isDirectory: false)
     }
-    
+
     private func saveToDisk(decodedConfiguration: DecodedPrecomputedConfiguration) {
         guard let cacheFileURL = self.cacheFileURL else {
             return
         }
-        
+
         Self.persistenceQueue.async {
             do {
                 let encoder = JSONEncoder()
@@ -122,16 +122,16 @@ class PrecomputedConfigurationStore {
             }
         }
     }
-    
+
     private func loadFromDisk() -> DecodedPrecomputedConfiguration? {
         guard let cacheFileURL = self.cacheFileURL else {
             return nil
         }
-        
+
         guard FileManager.default.fileExists(atPath: cacheFileURL.path) else {
             return nil
         }
-        
+
         do {
             let data = try Data(contentsOf: cacheFileURL)
             let decoder = JSONDecoder()

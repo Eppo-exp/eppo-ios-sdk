@@ -8,14 +8,14 @@ class PrecomputedRequestor {
     private let sdkName: String
     private let sdkVersion: String
     private let urlSession: URLSession
-    
+
     /// The precompute configuration used for this requestor
     var precompute: Precompute {
         return _precompute
     }
-    
+
     // MARK: - Initialization
-    
+
     init(
         precompute: Precompute,
         sdkKey: String,
@@ -31,34 +31,34 @@ class PrecomputedRequestor {
         self.host = host
         self.urlSession = urlSession
     }
-    
+
     // MARK: - Public Methods
-    
+
     /// Fetches precomputed flags from the server
     func fetchPrecomputedFlags() async throws -> PrecomputedConfiguration {
         let payload = PrecomputedFlagsPayload(
             subjectKey: _precompute.subjectKey,
             subjectAttributes: _precompute.subjectAttributes
         )
-        
+
         let url = try buildURL()
-        
+
         // Make the POST request
         let (data, response) = try await performPOSTRequest(url: url, payload: payload)
-        
+
         // Validate response
         guard let httpResponse = response as? HTTPURLResponse else {
             throw NetworkError.invalidResponse
         }
-        
+
         guard (200...299).contains(httpResponse.statusCode) else {
             throw NetworkError.httpError(statusCode: httpResponse.statusCode)
         }
-        
+
         // Decode the response
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        
+
         do {
             let configuration = try decoder.decode(PrecomputedConfiguration.self, from: data)
             return configuration
@@ -71,14 +71,14 @@ class PrecomputedRequestor {
 // MARK: - Private Methods
 
 extension PrecomputedRequestor {
-    
+
     /// Builds the URL for the precomputed flags endpoint
     func buildURL() throws -> URL {
         var components = URLComponents(string: host)
-        
+
         // Append the assignments endpoint
         components?.path = "/assignments"
-        
+
         // Add query parameters
         let queryItems = [
             URLQueryItem(name: "sdkName", value: sdkName),
@@ -86,24 +86,24 @@ extension PrecomputedRequestor {
             URLQueryItem(name: "apiKey", value: sdkKey) // Server expects "apiKey" not "sdkKey"
         ]
         components?.queryItems = queryItems
-        
+
         guard let url = components?.url else {
             throw NetworkError.invalidURL
         }
-        
+
         return url
     }
-    
+
     /// Performs the POST request with the given payload
     func performPOSTRequest(url: URL, payload: PrecomputedFlagsPayload) async throws -> (Data, URLResponse) {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
+
         let encoder = JSONEncoder()
         encoder.keyEncodingStrategy = .convertToSnakeCase
         request.httpBody = try encoder.encode(payload)
-        
+
         // Simple single request like NetworkEppoHttpClient
         return try await urlSession.data(for: request)
     }
@@ -124,7 +124,7 @@ enum NetworkError: Error, LocalizedError {
     case invalidResponse
     case httpError(statusCode: Int)
     case decodingError(Error)
-    
+
     var errorDescription: String? {
         switch self {
         case .invalidURL:

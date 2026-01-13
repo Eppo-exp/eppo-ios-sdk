@@ -2,9 +2,9 @@ import XCTest
 @testable import EppoFlagging
 
 class PrecomputedFlagTests: XCTestCase {
-    
+
     // MARK: - Initialization Tests
-    
+
     func testInitialization() {
         let flag = PrecomputedFlag(
             allocationKey: "allocation-1",
@@ -14,7 +14,7 @@ class PrecomputedFlagTests: XCTestCase {
             extraLogging: ["holdoutKey": "test-holdout", "holdoutVariation": "status_quo"],
             doLog: true
         )
-        
+
         XCTAssertEqual(flag.allocationKey, "allocation-1")
         XCTAssertEqual(flag.variationKey, "control")
         XCTAssertEqual(flag.variationType, .STRING)
@@ -22,7 +22,7 @@ class PrecomputedFlagTests: XCTestCase {
         XCTAssertEqual(flag.extraLogging, ["holdoutKey": "test-holdout", "holdoutVariation": "status_quo"])
         XCTAssertTrue(flag.doLog)
     }
-    
+
     func testInitializationWithNilValues() {
         let flag = PrecomputedFlag(
             allocationKey: nil,
@@ -32,7 +32,7 @@ class PrecomputedFlagTests: XCTestCase {
             extraLogging: [:],
             doLog: false
         )
-        
+
         XCTAssertNil(flag.allocationKey)
         XCTAssertNil(flag.variationKey)
         XCTAssertEqual(flag.variationType, .BOOLEAN)
@@ -40,9 +40,9 @@ class PrecomputedFlagTests: XCTestCase {
         XCTAssertTrue(flag.extraLogging.isEmpty)
         XCTAssertFalse(flag.doLog)
     }
-    
+
     // MARK: - Codable Tests
-    
+
     func testJSONEncodingDecoding() throws {
         let originalFlag = PrecomputedFlag(
             allocationKey: "test-allocation",
@@ -52,13 +52,13 @@ class PrecomputedFlagTests: XCTestCase {
             extraLogging: ["holdoutKey": "experiment-123", "holdoutVariation": "all_shipped"],
             doLog: true
         )
-        
+
         let encoder = JSONEncoder()
         let data = try encoder.encode(originalFlag)
-        
+
         let decoder = JSONDecoder()
         let decodedFlag = try decoder.decode(PrecomputedFlag.self, from: data)
-        
+
         XCTAssertEqual(decodedFlag.allocationKey, originalFlag.allocationKey)
         XCTAssertEqual(decodedFlag.variationKey, originalFlag.variationKey)
         XCTAssertEqual(decodedFlag.variationType, originalFlag.variationType)
@@ -66,7 +66,7 @@ class PrecomputedFlagTests: XCTestCase {
         XCTAssertEqual(decodedFlag.extraLogging, originalFlag.extraLogging)
         XCTAssertEqual(decodedFlag.doLog, originalFlag.doLog)
     }
-    
+
     func testDecodingFromJSON() throws {
         let json = """
         {
@@ -81,11 +81,11 @@ class PrecomputedFlagTests: XCTestCase {
             "doLog": true
         }
         """
-        
+
         let data = json.data(using: .utf8)!
         let decoder = JSONDecoder()
         let flag = try decoder.decode(PrecomputedFlag.self, from: data)
-        
+
         XCTAssertEqual(flag.allocationKey, "allocation-123")
         XCTAssertEqual(flag.variationKey, "treatment")
         XCTAssertEqual(flag.variationType, .NUMERIC)
@@ -94,7 +94,7 @@ class PrecomputedFlagTests: XCTestCase {
         XCTAssertEqual(flag.extraLogging["holdoutVariation"], "all_shipped")
         XCTAssertTrue(flag.doLog)
     }
-    
+
     func testDecodingWithNullValues() throws {
         let json = """
         {
@@ -106,11 +106,11 @@ class PrecomputedFlagTests: XCTestCase {
             "doLog": false
         }
         """
-        
+
         let data = json.data(using: .utf8)!
         let decoder = JSONDecoder()
         let flag = try decoder.decode(PrecomputedFlag.self, from: data)
-        
+
         XCTAssertNil(flag.allocationKey)
         XCTAssertNil(flag.variationKey)
         XCTAssertEqual(flag.variationType, .INTEGER)
@@ -118,9 +118,9 @@ class PrecomputedFlagTests: XCTestCase {
         XCTAssertTrue(flag.extraLogging.isEmpty)
         XCTAssertFalse(flag.doLog)
     }
-    
+
     // MARK: - VariationType Tests
-    
+
     func testAllVariationTypes() throws {
         let testCases: [(VariationType, EppoValue, String)] = [
             (.BOOLEAN, .valueOf(true), "true"),
@@ -129,7 +129,7 @@ class PrecomputedFlagTests: XCTestCase {
             (.NUMERIC, .valueOf(3.14), "3.14"),
             (.JSON, .valueOf("{\"key\":\"value\"}"), "\"{\\\"key\\\":\\\"value\\\"}\"")
         ]
-        
+
         for (variationType, variationValue, jsonValue) in testCases {
             let json = """
             {
@@ -141,19 +141,18 @@ class PrecomputedFlagTests: XCTestCase {
                 "doLog": false
             }
             """
-            
+
             let data = json.data(using: .utf8)!
             let decoder = JSONDecoder()
             let flag = try decoder.decode(PrecomputedFlag.self, from: data)
-            
+
             XCTAssertEqual(flag.variationType, variationType)
             XCTAssertEqual(flag.variationValue, variationValue)
         }
     }
-    
-    
+
     // MARK: - Edge Cases
-    
+
     func testEmptyExtraLogging() {
         let flag = PrecomputedFlag(
             allocationKey: "test",
@@ -163,10 +162,10 @@ class PrecomputedFlagTests: XCTestCase {
             extraLogging: [:],
             doLog: false
         )
-        
+
         XCTAssertTrue(flag.extraLogging.isEmpty)
     }
-    
+
     func testComplexExtraLogging() throws {
         let json = """
         {
@@ -181,11 +180,11 @@ class PrecomputedFlagTests: XCTestCase {
             "doLog": true
         }
         """
-        
+
         let data = json.data(using: .utf8)!
         let decoder = JSONDecoder()
         let flag = try decoder.decode(PrecomputedFlag.self, from: data)
-        
+
         XCTAssertEqual(flag.extraLogging.count, 2)
         XCTAssertEqual(flag.extraLogging["holdoutKey"], "activeHoldout")
         XCTAssertEqual(flag.extraLogging["holdoutVariation"], "all_shipped")

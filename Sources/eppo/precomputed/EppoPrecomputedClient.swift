@@ -4,13 +4,13 @@ import Foundation
 public class EppoPrecomputedClient {
     public typealias AssignmentLogger = (Assignment) -> Void
     public typealias ConfigurationChangeCallback = (PrecomputedConfiguration) -> Void
-    
+
     public enum InitializationError: Error {
         case notConfigured
     }
     private static let sharedLock = NSLock()
     private static var sharedInstance: EppoPrecomputedClient?
-    
+
     public static func shared() throws -> EppoPrecomputedClient {
         try sharedLock.withLock {
             guard let instance = sharedInstance else {
@@ -19,18 +19,18 @@ public class EppoPrecomputedClient {
             return instance
         }
     }
-    
+
     private let configurationStore: PrecomputedConfigurationStore
     private let assignmentLogger: AssignmentLogger?
     private let assignmentCache: AssignmentCache?
-    
+
     // MARK: - Network Components  
     private var requestor: PrecomputedRequestor?
     private var poller: Poller?
     private let sdkKey: String
     private var host: String?
     private var configurationChangeCallback: ConfigurationChangeCallback?
-    
+
     /// Get the current precompute configuration from the loaded configuration
     private var currentPrecompute: Precompute? {
         guard let config = configurationStore.getDecodedConfiguration() else { return nil }
@@ -39,7 +39,7 @@ public class EppoPrecomputedClient {
             subjectAttributes: config.subject.subjectAttributes
         )
     }
-    
+
     private init(
         sdkKey: String,
         assignmentLogger: AssignmentLogger? = nil,
@@ -53,14 +53,13 @@ public class EppoPrecomputedClient {
         self.assignmentCache = assignmentCache
         self.configurationStore = PrecomputedConfigurationStore(withPersistentCache: withPersistentCache)
         self.configurationChangeCallback = configurationChangeCallback
-        
+
         // Set initial configuration if provided
         if let configuration = initialPrecomputedConfiguration {
             self.configurationStore.setConfiguration(configuration)
         }
     }
-    
-    
+
     /// Initialize the precomputed client offline with provided configuration
     /// The subject information is extracted from the precomputed configuration
     public static func initializeOffline(
@@ -75,7 +74,7 @@ public class EppoPrecomputedClient {
             if let instance = sharedInstance {
                 return instance
             }
-            
+
             let instance = EppoPrecomputedClient(
                 sdkKey: sdkKey,
                 assignmentLogger: assignmentLogger,
@@ -84,18 +83,17 @@ public class EppoPrecomputedClient {
                 withPersistentCache: withPersistentCache,
                 configurationChangeCallback: configurationChangeCallback
             )
-            
+
             // Trigger configuration change callback if configuration was set
             if let configuration = initialPrecomputedConfiguration {
                 instance.notifyConfigurationChange(configuration)
             }
-            
+
             sharedInstance = instance
             return instance
         }
     }
-    
-    
+
     /// Initialize the precomputed client with online configuration fetch
     public static func initialize(
         sdkKey: String,
@@ -118,23 +116,22 @@ public class EppoPrecomputedClient {
             withPersistentCache: withPersistentCache,
             configurationChangeCallback: configurationChangeCallback
         )
-        
+
         // Load configuration from network - this will trigger the configuration callback
         try await instance.load(precompute: precompute, host: host)
-        
+
         // Auto-start polling if enabled
         if pollingEnabled {
             try await instance.startPolling(intervalMs: pollingIntervalMs, jitterMs: pollingJitterMs)
         }
-        
+
         return instance
     }
-    
-    
+
     /// Load configuration from network
     public func load(precompute: Precompute, host: String? = nil) async throws {
         let resolvedHost = host ?? precomputedBaseUrl
-        
+
         let requestor = PrecomputedRequestor(
             precompute: precompute,
             sdkKey: self.sdkKey,
@@ -142,9 +139,9 @@ public class EppoPrecomputedClient {
             sdkVersion: sdkVersion,
             host: resolvedHost
         )
-        
+
         let networkConfig = try await requestor.fetchPrecomputedFlags()
-        
+
         // Create full configuration preserving precompute info
         let fullConfig = PrecomputedConfiguration(
             flags: networkConfig.flags,
@@ -158,7 +155,7 @@ public class EppoPrecomputedClient {
             configPublishedAt: networkConfig.configPublishedAt,
             environment: networkConfig.environment
         )
-        
+
         Self.sharedLock.withLock {
             self.requestor = requestor
             self.host = resolvedHost
@@ -166,9 +163,9 @@ public class EppoPrecomputedClient {
             self.notifyConfigurationChange(fullConfig)
         }
     }
-    
+
     // MARK: - Polling Management
-    
+
     /// Starts configuration polling for regular updates
     @MainActor
     public func startPolling(
@@ -177,22 +174,22 @@ public class EppoPrecomputedClient {
     ) async throws {
         // Stop existing polling if running
         stopPolling()
-        
+
         poller = await Poller(
             intervalMs: intervalMs,
             jitterMs: jitterMs,
             callback: { [weak self] in
                 guard let self = self else { return }
-                
+
                 // Handle gracefully if network components aren't initialized yet
                 guard let requestor = self.requestor else {
                     // Skip this polling cycle - network not initialized yet
                     return
                 }
-                
+
                 do {
                     let networkConfig = try await requestor.fetchPrecomputedFlags()
-                    
+
                     // Create full configuration preserving precompute info from requestor
                     let fullConfig = PrecomputedConfiguration(
                         flags: networkConfig.flags,
@@ -206,7 +203,7 @@ public class EppoPrecomputedClient {
                         configPublishedAt: networkConfig.configPublishedAt,
                         environment: networkConfig.environment
                     )
-                    
+
                     Self.sharedLock.withLock {
                         self.configurationStore.setConfiguration(fullConfig)
                         self.notifyConfigurationChange(fullConfig)
@@ -217,61 +214,60 @@ public class EppoPrecomputedClient {
                 }
             }
         )
-        
+
         try await poller?.start()
     }
-    
+
     /// Stops configuration polling
     @MainActor
     public func stopPolling() {
         poller?.stop()
         poller = nil
     }
-    
+
     // MARK: - Lifecycle Management
-    
+
     /// Sets the configuration change callback
     public func onConfigurationChange(_ callback: @escaping ConfigurationChangeCallback) {
         configurationChangeCallback = callback
     }
-    
+
     /// Notifies the registered callback when configuration changes
     private func notifyConfigurationChange(_ configuration: PrecomputedConfiguration) {
         configurationChangeCallback?(configuration)
     }
-    
-    
+
     /// Resets the client state (useful for testing)
     public static func resetForTesting() {
         sharedLock.withLock {
             sharedInstance = nil
         }
     }
-    
+
     // MARK: - Assignment Methods (synchronous, type-specific)
-    
+
     public func getStringAssignment(flagKey: String, defaultValue: String) -> String {
         return getPrecomputedAssignment(flagKey: flagKey, defaultValue: defaultValue, expectedType: .STRING)
     }
-    
+
     public func getBooleanAssignment(flagKey: String, defaultValue: Bool) -> Bool {
         return getPrecomputedAssignment(flagKey: flagKey, defaultValue: defaultValue, expectedType: .BOOLEAN)
     }
-    
+
     public func getIntegerAssignment(flagKey: String, defaultValue: Int) -> Int {
         return getPrecomputedAssignment(flagKey: flagKey, defaultValue: defaultValue, expectedType: .INTEGER)
     }
-    
+
     public func getNumericAssignment(flagKey: String, defaultValue: Double) -> Double {
         return getPrecomputedAssignment(flagKey: flagKey, defaultValue: defaultValue, expectedType: .NUMERIC)
     }
-    
+
     public func getJSONStringAssignment(flagKey: String, defaultValue: String) -> String {
         return getPrecomputedAssignment(flagKey: flagKey, defaultValue: defaultValue, expectedType: .JSON)
     }
-    
+
     // MARK: - Internal Assignment Logic
-    
+
     private func getPrecomputedAssignment<T>(
         flagKey: String,
         defaultValue: T,
@@ -280,28 +276,28 @@ public class EppoPrecomputedClient {
         guard configurationStore.isInitialized() else {
             return defaultValue
         }
-        
+
         guard let decodedConfig = configurationStore.getDecodedConfiguration() else {
             return defaultValue
         }
-        
+
         let hashedFlagKey = getMD5Hex(flagKey, salt: decodedConfig.decodedSalt)
-        
+
         guard let flag = configurationStore.getDecodedFlag(forKey: hashedFlagKey) else {
             return defaultValue
         }
-        
+
         guard flag.variationType == expectedType else {
             return defaultValue
         }
-        
+
         do {
             let convertedValue = try convertValue(
                 flag.variationValue,
                 expectedType: expectedType,
                 defaultValue: defaultValue
             )
-            
+
             if flag.doLog {
                 logAssignment(
                     flagKey: flagKey,
@@ -314,9 +310,9 @@ public class EppoPrecomputedClient {
             return defaultValue
         }
     }
-    
+
     // MARK: - Value Conversion
-    
+
     private func convertValue<T>(
         _ eppoValue: EppoValue,
         expectedType: VariationType,
@@ -352,9 +348,9 @@ public class EppoPrecomputedClient {
         }
         throw Errors.variationWrongType
     }
-    
+
     // MARK: - Assignment Logging
-    
+
     private func logAssignment(
         flagKey: String,
         flag: DecodedPrecomputedFlag
@@ -384,21 +380,21 @@ public class EppoPrecomputedClient {
             }
         }
     }
-    
+
     private func shouldLogAssignment(_ assignment: Assignment) -> Bool {
         guard let cache = assignmentCache,
               let allocationKey = assignment.allocation.isEmpty ? nil : assignment.allocation,
               let variationKey = assignment.variation.isEmpty ? nil : assignment.variation else {
             return true
         }
-        
+
         let cacheKey = AssignmentCacheKey(
             subjectKey: assignment.subject,
             flagKey: assignment.featureFlag,
             allocationKey: allocationKey,
             variationKey: variationKey
         )
-        
+
         return cache.shouldLogAssignment(key: cacheKey)
     }
 }

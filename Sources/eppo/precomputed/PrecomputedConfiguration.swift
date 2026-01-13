@@ -3,23 +3,23 @@ import Foundation
 /// Represents the configuration for precomputed flag assignments
 public struct PrecomputedConfiguration: Codable {
     let flags: [String: PrecomputedFlag]
-    
+
     /// Salt used for obfuscation (always present for precomputed)
     public let salt: String
-    
+
     /// Configuration format (should be "PRECOMPUTED")
     public let format: String
-    
+
     public let configFetchedAt: Date
-    
+
     /// Timestamp when the configuration was published (optional)
     public let configPublishedAt: Date?
-    
+
     public let environment: Environment?
-    
+
     /// Subject information that this configuration was generated for
     let subject: Subject
-    
+
     init(
         flags: [String: PrecomputedFlag],
         salt: String,
@@ -37,7 +37,7 @@ public struct PrecomputedConfiguration: Codable {
         self.environment = environment
         self.subject = subject
     }
-    
+
     /// Initialize from precomputed configuration string (from the Node SDK's getPrecomputedConfiguration method)
     public init(precomputedConfiguration: String) throws {
         guard let data = precomputedConfiguration.data(using: .utf8) else {
@@ -48,23 +48,23 @@ public struct PrecomputedConfiguration: Codable {
         }
         try self.init(precomputedConfigurationJson: data)
     }
-    
+
     internal init(precomputedConfigurationJson: Data) throws {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         let wireFormat = try decoder.decode(PrecomputedConfigurationWireFormat.self, from: precomputedConfigurationJson)
-        
+
         // Parse the inner response JSON
         let responseData = wireFormat.precomputed.response.data(using: .utf8) ?? Data()
         let responseDecoded = try decoder.decode(PrecomputedConfigurationFromJSON.self, from: responseData)
-        
+
         self.flags = responseDecoded.flags
         self.salt = responseDecoded.salt
         self.format = responseDecoded.format
         self.configFetchedAt = wireFormat.precomputed.fetchedAt
         self.configPublishedAt = responseDecoded.configPublishedAt
         self.environment = responseDecoded.environment
-        
+
         // Convert wire format subject to internal Subject
         self.subject = Subject(
             subjectKey: wireFormat.precomputed.subjectKey,
@@ -80,7 +80,7 @@ private struct PrecomputedConfigurationFromJSON: Decodable {
     let format: String
     let configPublishedAt: Date?
     let environment: Environment?
-    
+
     private enum CodingKeys: String, CodingKey {
         case flags
         case salt
@@ -88,27 +88,27 @@ private struct PrecomputedConfigurationFromJSON: Decodable {
         case createdAt
         case environment
     }
-    
+
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        
+
         flags = try container.decode([String: PrecomputedFlag].self, forKey: .flags)
         salt = try container.decode(String.self, forKey: .salt)
         format = try container.decode(String.self, forKey: .format)
-        
+
         // Handle dates with base64 support
         if let createdAtString = try? container.decode(String.self, forKey: .createdAt) {
             configPublishedAt = parseUtcISODateElement(createdAtString)
         } else {
             configPublishedAt = nil
         }
-        
+
         environment = try container.decodeIfPresent(Environment.self, forKey: .environment)
     }
 }
 
 extension PrecomputedConfiguration {
-    
+
     private enum CodingKeys: String, CodingKey {
         case flags
         case salt
@@ -117,42 +117,42 @@ extension PrecomputedConfiguration {
         case environment
         case subject
     }
-    
+
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        
+
         flags = try container.decode([String: PrecomputedFlag].self, forKey: .flags)
         salt = try container.decode(String.self, forKey: .salt)
         format = try container.decode(String.self, forKey: .format)
-        
+
         // Handle dates with base64 support
         if let createdAtString = try? container.decode(String.self, forKey: .createdAt) {
             configPublishedAt = parseUtcISODateElement(createdAtString)
         } else {
             configPublishedAt = nil
         }
-        
+
         configFetchedAt = Date()
-        
+
         environment = try container.decodeIfPresent(Environment.self, forKey: .environment)
         subject = try container.decode(Subject.self, forKey: .subject)
-        
+
         // Note: obfuscated field is always true for precomputed configs, so we ignore it
     }
-    
+
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        
+
         try container.encode(flags, forKey: .flags)
         try container.encode(salt, forKey: .salt)
         try container.encode(format, forKey: .format)
-        
+
         if let publishedAt = configPublishedAt {
             let formatter = ISO8601DateFormatter()
             formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
             try container.encode(formatter.string(from: publishedAt), forKey: .createdAt)
         }
-        
+
         try container.encodeIfPresent(environment, forKey: .environment)
         try container.encode(subject, forKey: .subject)
     }
@@ -170,18 +170,18 @@ private struct PrecomputedWireData: Decodable {
     let subjectAttributes: WireSubjectAttributes
     let fetchedAt: Date
     let response: String
-    
+
     private enum CodingKeys: String, CodingKey {
         case subjectKey, subjectAttributes, fetchedAt, response
     }
-    
+
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        
+
         subjectKey = try container.decode(String.self, forKey: .subjectKey)
         subjectAttributes = try container.decode(WireSubjectAttributes.self, forKey: .subjectAttributes)
         response = try container.decode(String.self, forKey: .response)
-        
+
         // Parse fetchedAt with custom date handling
         let fetchedAtString = try container.decode(String.self, forKey: .fetchedAt)
         if let parsedDate = parseUtcISODateElement(fetchedAtString) {
@@ -198,18 +198,18 @@ private struct PrecomputedWireData: Decodable {
 private struct WireSubjectAttributes: Decodable {
     let categoricalAttributes: [String: EppoValue]?
     let numericAttributes: [String: EppoValue]?
-    
+
     func toDictionary() -> [String: EppoValue] {
         var result: [String: EppoValue] = [:]
-        
+
         if let categorical = categoricalAttributes {
             result.merge(categorical) { _, new in new }
         }
-        
+
         if let numeric = numericAttributes {
             result.merge(numeric) { _, new in new }
         }
-        
+
         return result
     }
 }
@@ -258,7 +258,7 @@ extension PrecomputedConfiguration {
         guard let decodedSalt = base64Decode(self.salt) else {
             return nil
         }
-        
+
         var decodedFlags: [String: DecodedPrecomputedFlag] = [:]
         for (key, flag) in self.flags {
             guard let decodedFlag = decodeFlag(flag) else {
@@ -266,7 +266,7 @@ extension PrecomputedConfiguration {
             }
             decodedFlags[key] = decodedFlag
         }
-        
+
         return DecodedPrecomputedConfiguration(
             flags: decodedFlags,
             decodedSalt: decodedSalt,
@@ -277,7 +277,7 @@ extension PrecomputedConfiguration {
             subject: self.subject
         )
     }
-    
+
     private func decodeFlag(_ flag: PrecomputedFlag) -> DecodedPrecomputedFlag? {
         let decodedAllocationKey: String?
         if let allocationKey = flag.allocationKey {
@@ -290,7 +290,7 @@ extension PrecomputedConfiguration {
         } else {
             decodedAllocationKey = nil
         }
-        
+
         let decodedVariationKey: String?
         if let variationKey = flag.variationKey {
             if let decoded = base64Decode(variationKey) {
@@ -302,7 +302,7 @@ extension PrecomputedConfiguration {
         } else {
             decodedVariationKey = nil
         }
-        
+
         let decodedVariationValue: EppoValue
         if flag.variationType == .STRING || flag.variationType == .JSON {
             do {
@@ -316,7 +316,7 @@ extension PrecomputedConfiguration {
         } else {
             decodedVariationValue = flag.variationValue
         }
-        
+
         var decodedExtraLogging: [String: String] = [:]
         for (key, value) in flag.extraLogging {
             do {
@@ -328,7 +328,7 @@ extension PrecomputedConfiguration {
                 continue
             }
         }
-        
+
         return DecodedPrecomputedFlag(
             allocationKey: decodedAllocationKey,
             variationKey: decodedVariationKey,

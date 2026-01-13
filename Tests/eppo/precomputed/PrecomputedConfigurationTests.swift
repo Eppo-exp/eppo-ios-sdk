@@ -2,9 +2,9 @@ import XCTest
 @testable import EppoFlagging
 
 class PrecomputedConfigurationTests: XCTestCase {
-    
+
     // MARK: - Test Data
-    
+
     private func createSampleFlags() -> [String: PrecomputedFlag] {
         return [
             "flag1": PrecomputedFlag(
@@ -25,16 +25,16 @@ class PrecomputedConfigurationTests: XCTestCase {
             )
         ]
     }
-    
+
     // MARK: - Initialization Tests
-    
+
     func testInitialization() {
         let flags = createSampleFlags()
         let fetchedAt = Date()
         let publishedAt = Date(timeIntervalSinceNow: -3600) // 1 hour ago
         let environment = Environment(name: "production")
         let testPrecompute = Precompute(subjectKey: "test-user", subjectAttributes: [:])
-        
+
         let config = PrecomputedConfiguration(
             flags: flags,
             salt: base64Encode("test-salt"),
@@ -44,7 +44,7 @@ class PrecomputedConfigurationTests: XCTestCase {
             configPublishedAt: publishedAt,
             environment: environment
         )
-        
+
         XCTAssertEqual(config.flags.count, 2)
         XCTAssertEqual(config.salt, base64Encode("test-salt"))
         XCTAssertEqual(config.format, "PRECOMPUTED")
@@ -52,7 +52,7 @@ class PrecomputedConfigurationTests: XCTestCase {
         XCTAssertEqual(config.configPublishedAt, publishedAt)
         XCTAssertEqual(config.environment?.name, "production")
     }
-    
+
     func testInitializationWithMinimalData() {
         let testPrecompute = Precompute(subjectKey: "test-user", subjectAttributes: [:])
         let config = PrecomputedConfiguration(
@@ -62,15 +62,15 @@ class PrecomputedConfigurationTests: XCTestCase {
             configFetchedAt: Date(),
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes)
         )
-        
+
         XCTAssertTrue(config.flags.isEmpty)
         XCTAssertEqual(config.salt, "minimal-salt")
         XCTAssertNil(config.configPublishedAt)
         XCTAssertNil(config.environment)
     }
-    
+
     // MARK: - Codable Tests
-    
+
     func testJSONEncodingDecoding() throws {
         let testPrecompute = Precompute(subjectKey: "test-user", subjectAttributes: [:])
         let originalConfig = PrecomputedConfiguration(
@@ -82,20 +82,20 @@ class PrecomputedConfigurationTests: XCTestCase {
             configPublishedAt: Date(timeIntervalSinceNow: -7200),
             environment: Environment(name: "staging")
         )
-        
+
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         let data = try encoder.encode(originalConfig)
-        
+
         let decoder = JSONDecoder()
         let decodedConfig = try decoder.decode(PrecomputedConfiguration.self, from: data)
-        
+
         XCTAssertEqual(decodedConfig.flags.count, originalConfig.flags.count)
         XCTAssertEqual(decodedConfig.salt, originalConfig.salt)
         XCTAssertEqual(decodedConfig.format, originalConfig.format)
         XCTAssertEqual(decodedConfig.environment?.name, originalConfig.environment?.name)
     }
-    
+
     func testPublicStringAPIWithComplexFlags() throws {
         // Test public String API with multiple flags and complex scenarios
         let wireFormatJSON = """
@@ -112,37 +112,36 @@ class PrecomputedConfigurationTests: XCTestCase {
             }
         }
         """
-        
+
         let config = try PrecomputedConfiguration(precomputedConfiguration: wireFormatJSON)
-        
+
         XCTAssertEqual(config.salt, "c29kaXVtY2hsb3JpZGU=")
         XCTAssertEqual(config.format, "PRECOMPUTED")
         XCTAssertEqual(config.environment?.name, "Test")
         XCTAssertEqual(config.flags.count, 2)
-        
+
         let stringFlag = config.flags["string-flag"]
         XCTAssertNotNil(stringFlag)
         XCTAssertEqual(stringFlag?.variationKey, "dmFyaWF0aW9uLTEyMw==")
         XCTAssertEqual(stringFlag?.variationType, .STRING)
         XCTAssertEqual(stringFlag?.variationValue, .valueOf("cmVk"))
         XCTAssertTrue(stringFlag?.doLog ?? false)
-        
+
         let boolFlag = config.flags["boolean-flag"]
         XCTAssertNotNil(boolFlag)
         XCTAssertEqual(boolFlag?.variationType, .BOOLEAN)
         XCTAssertEqual(try boolFlag?.variationValue.getBoolValue(), true)
         XCTAssertFalse(boolFlag?.doLog ?? true)
     }
-    
-    
+
     func testStringAPIWithInvalidJSON() {
         let invalidJSON = "{ invalid json }"
-        
+
         XCTAssertThrowsError(try PrecomputedConfiguration(precomputedConfiguration: invalidJSON)) { error in
             XCTAssertTrue(error is DecodingError)
         }
     }
-    
+
     func testPublicStringAPIWithSubjectParsing() throws {
         // Test public String API with rich subject attribute parsing
         let wireFormatJSON = """
@@ -165,22 +164,22 @@ class PrecomputedConfigurationTests: XCTestCase {
             }
         }
         """
-        
+
         let config = try PrecomputedConfiguration(precomputedConfiguration: wireFormatJSON)
-        
+
         // Verify configuration properties
         XCTAssertEqual(config.salt, "dGVzdC1zYWx0")
         XCTAssertEqual(config.format, "PRECOMPUTED")
         XCTAssertEqual(config.environment?.name, "Test")
         XCTAssertEqual(config.flags.count, 1)
-        
+
         // Verify subject was parsed correctly
         XCTAssertEqual(config.subject.subjectKey, "test-subject-key")
         XCTAssertEqual(try config.subject.subjectAttributes["platform"]?.getStringValue(), "ios")
         XCTAssertEqual(try config.subject.subjectAttributes["language"]?.getStringValue(), "en-US")
         XCTAssertEqual(try config.subject.subjectAttributes["age"]?.getDoubleValue(), 25.0)
         XCTAssertEqual(try config.subject.subjectAttributes["score"]?.getDoubleValue(), 98.5)
-        
+
         // Verify flag was parsed correctly
         let testFlag = config.flags["test-flag"]
         XCTAssertNotNil(testFlag)
@@ -188,10 +187,9 @@ class PrecomputedConfigurationTests: XCTestCase {
         XCTAssertEqual(testFlag?.variationType, .STRING)
         XCTAssertTrue(testFlag?.doLog ?? false)
     }
-    
-    
+
     // MARK: - Salt Validation Tests
-    
+
     func testSaltIsRequired() throws {
         let json = """
         {
@@ -199,15 +197,15 @@ class PrecomputedConfigurationTests: XCTestCase {
             "flags": {}
         }
         """
-        
+
         let data = json.data(using: .utf8)!
         let decoder = JSONDecoder()
-        
+
         XCTAssertThrowsError(try decoder.decode(PrecomputedConfiguration.self, from: data)) { error in
             XCTAssertTrue(error is DecodingError)
         }
     }
-    
+
     func testEmptySaltIsValid() throws {
         // Empty salt is allowed (though not expected)
         let json = """
@@ -221,11 +219,11 @@ class PrecomputedConfigurationTests: XCTestCase {
             }
         }
         """
-        
+
         let data = json.data(using: .utf8)!
         let decoder = JSONDecoder()
         let config = try decoder.decode(PrecomputedConfiguration.self, from: data)
-        
+
         XCTAssertEqual(config.salt, "")
     }
 }

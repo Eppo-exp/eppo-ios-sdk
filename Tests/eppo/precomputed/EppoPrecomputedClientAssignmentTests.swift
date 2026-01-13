@@ -5,7 +5,7 @@ import XCTest
 class MockAssignmentLogger {
     private(set) var loggedAssignments: [Assignment] = []
     private let queue = DispatchQueue(label: "mock.logger.queue", attributes: .concurrent)
-    
+
     var logger: EppoPrecomputedClient.AssignmentLogger {
         return { [weak self] assignment in
             self?.queue.async(flags: .barrier) {
@@ -13,11 +13,11 @@ class MockAssignmentLogger {
             }
         }
     }
-    
+
     func getLoggedAssignments() -> [Assignment] {
         queue.sync { loggedAssignments }
     }
-    
+
     func reset() {
         queue.async(flags: .barrier) {
             self.loggedAssignments.removeAll()
@@ -29,25 +29,25 @@ class MockAssignmentLogger {
 class MockAssignmentCache: AssignmentCache {
     private var loggedKeys = Set<String>()
     private let queue = DispatchQueue(label: "mock.cache.queue", attributes: .concurrent)
-    
+
     func hasLoggedAssignment(key: AssignmentCacheKey) -> Bool {
         queue.sync {
             let cacheKey = "\(key.subjectKey)|\(key.flagKey)|\(key.allocationKey)|\(key.variationKey)"
             return loggedKeys.contains(cacheKey)
         }
     }
-    
+
     func setLastLoggedAssignment(key: AssignmentCacheKey) {
         queue.async(flags: .barrier) {
             let cacheKey = "\(key.subjectKey)|\(key.flagKey)|\(key.allocationKey)|\(key.variationKey)"
             self.loggedKeys.insert(cacheKey)
         }
     }
-    
+
     func shouldLogAssignment(key: AssignmentCacheKey) -> Bool {
         return queue.sync(flags: .barrier) {
             let cacheKey = "\(key.subjectKey)|\(key.flagKey)|\(key.allocationKey)|\(key.variationKey)"
-            
+
             // Atomically check and set
             if self.loggedKeys.contains(cacheKey) {
                 return false // Already logged
@@ -57,7 +57,7 @@ class MockAssignmentCache: AssignmentCache {
             }
         }
     }
-    
+
     func reset() {
         queue.async(flags: .barrier) {
             self.loggedKeys.removeAll()
@@ -72,7 +72,7 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
     var testSubjectAttributes: [String: EppoValue]!
     var testConfiguration: PrecomputedConfiguration!
     var configStore: PrecomputedConfigurationStore!
-    
+
     override func setUp() {
         super.setUp()
         EppoPrecomputedClient.resetForTesting()
@@ -80,7 +80,7 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
         mockCache = MockAssignmentCache()
         testSubjectKey = "test-user-123"
         testSubjectAttributes = ["age": EppoValue(value: 25)]
-        
+
         let testFlags: [String: PrecomputedFlag] = [
             getMD5Hex("string-flag", salt: "test-salt"): PrecomputedFlag(
                 allocationKey: base64Encode("allocation-1"),
@@ -93,7 +93,7 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
                 ],
                 doLog: true
             ),
-            
+
             getMD5Hex("bool-flag", salt: "test-salt"): PrecomputedFlag(
                 allocationKey: base64Encode("allocation-2"),
                 variationKey: base64Encode("variant-b"),
@@ -102,7 +102,7 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
                 extraLogging: [:],
                 doLog: true
             ),
-            
+
             getMD5Hex("int-flag", salt: "test-salt"): PrecomputedFlag(
                 allocationKey: base64Encode("allocation-3"),
                 variationKey: base64Encode("variant-c"),
@@ -111,7 +111,7 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
                 extraLogging: [:],
                 doLog: true
             ),
-            
+
             getMD5Hex("numeric-flag", salt: "test-salt"): PrecomputedFlag(
                 allocationKey: base64Encode("allocation-4"),
                 variationKey: base64Encode("variant-d"),
@@ -120,7 +120,7 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
                 extraLogging: [:],
                 doLog: true
             ),
-            
+
             getMD5Hex("json-flag", salt: "test-salt"): PrecomputedFlag(
                 allocationKey: base64Encode("allocation-5"),
                 variationKey: base64Encode("variant-e"),
@@ -129,7 +129,7 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
                 extraLogging: [:],
                 doLog: true
             ),
-            
+
             getMD5Hex("no-log-flag", salt: "test-salt"): PrecomputedFlag(
                 allocationKey: base64Encode("allocation-6"),
                 variationKey: base64Encode("variant-f"),
@@ -138,7 +138,7 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
                 extraLogging: [:],
                 doLog: false
             ),
-            
+
             getMD5Hex("type-mismatch-flag", salt: "test-salt"): PrecomputedFlag(
                 allocationKey: base64Encode("allocation-7"),
                 variationKey: base64Encode("variant-g"),
@@ -148,7 +148,7 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
                 doLog: true
             )
         ]
-        
+
         testConfiguration = PrecomputedConfiguration(
             flags: testFlags,
             salt: base64Encode("test-salt"),
@@ -158,20 +158,20 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
             configPublishedAt: Date(),
             environment: Environment(name: "test")
         )
-        
+
         configStore = PrecomputedConfigurationStore()
         configStore.setConfiguration(testConfiguration)
     }
-    
+
     override func tearDown() {
         mockLogger.reset()
         mockCache.reset()
         EppoPrecomputedClient.resetForTesting()
         super.tearDown()
     }
-    
+
     // MARK: - Test helpers
-    
+
     private func initializeClient() {
         _ = EppoPrecomputedClient.initializeOffline(
             sdkKey: "mock-api-key",
@@ -180,61 +180,61 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
             assignmentCache: mockCache
         )
     }
-    
+
     // MARK: - Assignment Value Tests
-    
+
     func testAllAssignmentTypes() throws {
         initializeClient()
-        
+
         let client = try EppoPrecomputedClient.shared()
-        
+
         let stringResult = client.getStringAssignment(
             flagKey: "string-flag",
             defaultValue: "default"
         )
         XCTAssertEqual(stringResult, "hello world")
-        
+
         let boolResult = client.getBooleanAssignment(
             flagKey: "bool-flag",
             defaultValue: false
         )
         XCTAssertTrue(boolResult)
-        
+
         let intResult = client.getIntegerAssignment(
             flagKey: "int-flag",
             defaultValue: 0
         )
         XCTAssertEqual(intResult, 42)
-        
+
         let numericResult = client.getNumericAssignment(
             flagKey: "numeric-flag",
             defaultValue: 0.0
         )
         XCTAssertEqual(numericResult, 3.14159, accuracy: 0.00001)
-        
+
         let jsonResult = client.getJSONStringAssignment(
             flagKey: "json-flag",
             defaultValue: "{}"
         )
         XCTAssertEqual(jsonResult, "{\"key\":\"value\",\"num\":123}")
     }
-    
+
     // MARK: - Assignment Logging Tests
-    
+
     func testAssignmentLoggingForValidFlag() throws {
         initializeClient()
-        
+
         let client = try EppoPrecomputedClient.shared()
         _ = client.getStringAssignment(
             flagKey: "string-flag",
             defaultValue: "default"
         )
-        
+
         Thread.sleep(forTimeInterval: 0.1)
-        
+
         let logged = mockLogger.getLoggedAssignments()
         XCTAssertEqual(logged.count, 1)
-        
+
         let assignment = logged[0]
         XCTAssertEqual(assignment.featureFlag, "string-flag")
         XCTAssertEqual(assignment.allocation, "allocation-1")
@@ -243,25 +243,25 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
         XCTAssertEqual(assignment.extraLogging["holdoutKey"], "feature-rollout")
         XCTAssertEqual(assignment.extraLogging["holdoutVariation"], "status_quo")
     }
-    
+
     func testNoLoggingWhenDoLogIsFalse() throws {
         initializeClient()
-        
+
         let client = try EppoPrecomputedClient.shared()
         _ = client.getStringAssignment(
             flagKey: "no-log-flag",
             defaultValue: "default"
         )
-        
+
         Thread.sleep(forTimeInterval: 0.1)
-        
+
         let logged = mockLogger.getLoggedAssignments()
         XCTAssertEqual(logged.count, 0)
     }
-    
+
     func testAssignmentDeduplication() throws {
         initializeClient()
-        
+
         let client = try EppoPrecomputedClient.shared()
         for _ in 0..<5 {
             _ = client.getStringAssignment(
@@ -269,13 +269,13 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
                 defaultValue: "default"
             )
         }
-        
+
         Thread.sleep(forTimeInterval: 0.1)
-        
+
         let logged = mockLogger.getLoggedAssignments()
         XCTAssertEqual(logged.count, 1, "Should only log once due to caching")
     }
-    
+
     func testAssignmentLoggingWithoutCache() throws {
         _ = EppoPrecomputedClient.initializeOffline(
             sdkKey: "mock-api-key",
@@ -283,7 +283,7 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
             assignmentLogger: mockLogger.logger,
             assignmentCache: nil
         )
-        
+
         let client = try EppoPrecomputedClient.shared()
         // Get the same assignment multiple times
         for _ in 0..<3 {
@@ -292,46 +292,46 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
                 defaultValue: "default"
             )
         }
-        
+
         // Wait a bit for async logging
         Thread.sleep(forTimeInterval: 0.1)
-        
+
         let logged = mockLogger.getLoggedAssignments()
         XCTAssertEqual(logged.count, 3, "Should log every time without cache")
     }
-    
+
     // MARK: - Edge Cases and Error Handling
-    
+
     func testAssignmentWithoutInitialization() {
         XCTAssertThrowsError(try EppoPrecomputedClient.shared()) { error in
             XCTAssertTrue(error is EppoPrecomputedClient.InitializationError)
         }
     }
-    
+
     func testAssignmentWithMissingFlag() throws {
         initializeClient()
-        
+
         let client = try EppoPrecomputedClient.shared()
         let result = client.getStringAssignment(
             flagKey: "non-existent-flag",
             defaultValue: "default"
         )
-        
+
         XCTAssertEqual(result, "default")
     }
-    
+
     // MARK: - Concurrent Access Tests
-    
+
     func testConcurrentAssignmentLogging() throws {
         initializeClient()
-        
+
         let client = try EppoPrecomputedClient.shared()
         let expectation = XCTestExpectation(description: "Concurrent logging completes")
         expectation.expectedFulfillmentCount = 50
-        
+
         DispatchQueue.concurrentPerform(iterations: 50) { i in
             let flagKey = i % 2 == 0 ? "string-flag" : "bool-flag"
-            
+
             if i % 2 == 0 {
                 _ = client.getStringAssignment(
                     flagKey: flagKey,
@@ -343,14 +343,14 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
                     defaultValue: false
                 )
             }
-            
+
             expectation.fulfill()
         }
-        
+
         wait(for: [expectation], timeout: 5.0)
-        
+
         Thread.sleep(forTimeInterval: 0.2)
-        
+
         let logged = mockLogger.getLoggedAssignments()
         XCTAssertEqual(logged.count, 2)
     }
