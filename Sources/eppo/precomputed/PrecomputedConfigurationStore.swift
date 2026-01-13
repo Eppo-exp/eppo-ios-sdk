@@ -31,11 +31,16 @@ class PrecomputedConfigurationStore {
     }
 
     /// Set configuration with disk persistence
-    func setConfiguration(_ configuration: PrecomputedConfiguration) {
+    /// - Parameters:
+    ///   - configuration: The precomputed configuration to store
+    ///   - completion: Optional completion handler called after disk write completes (for testing only)
+    func setConfiguration(_ configuration: PrecomputedConfiguration, completion: (() -> Void)? = nil) {
         syncQueue.sync(flags: .barrier) {
             if let decoded = configuration.decode() {
                 self.decodedConfiguration = decoded
-                self.saveToDisk(decodedConfiguration: decoded)
+                self.saveToDisk(decodedConfiguration: decoded, completion: completion)
+            } else {
+                completion?()
             }
         }
     }
@@ -89,8 +94,9 @@ class PrecomputedConfigurationStore {
             .appendingPathComponent("eppo-precomputed-configuration.json", isDirectory: false)
     }
 
-    private func saveToDisk(decodedConfiguration: DecodedPrecomputedConfiguration) {
+    private func saveToDisk(decodedConfiguration: DecodedPrecomputedConfiguration, completion: (() -> Void)?) {
         guard let cacheFileURL = self.cacheFileURL else {
+            completion?()
             return
         }
 
@@ -103,6 +109,7 @@ class PrecomputedConfigurationStore {
             } catch {
                 print("Error saving precomputed configuration to disk: \(error)")
             }
+            completion?()
         }
     }
 

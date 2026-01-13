@@ -119,11 +119,8 @@ class PrecomputedConfigurationStoreTests: XCTestCase {
         // Create store with persistence
         store = PrecomputedConfigurationStore(withPersistentCache: true)
 
-        let config = createSampleConfiguration()
-        store.setConfiguration(config)
-
         let expectation = XCTestExpectation(description: "Persistence write completes")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+        store.setConfiguration(createSampleConfiguration()) {
             expectation.fulfill()
         }
         wait(for: [expectation], timeout: 1.0)
@@ -139,9 +136,12 @@ class PrecomputedConfigurationStoreTests: XCTestCase {
 
     func testLoadInitialConfiguration() {
         store = PrecomputedConfigurationStore(withPersistentCache: true)
-        store.setConfiguration(createSampleConfiguration())
 
-        Thread.sleep(forTimeInterval: 0.5)
+        let expectation = XCTestExpectation(description: "Persistence write completes")
+        store.setConfiguration(createSampleConfiguration()) {
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 1.0)
 
         let newStore = PrecomputedConfigurationStore(withPersistentCache: true)
         XCTAssertNil(newStore.getDecodedConfiguration()) // Not loaded yet
@@ -153,9 +153,12 @@ class PrecomputedConfigurationStoreTests: XCTestCase {
 
     func testClearPersistentCache() {
         store = PrecomputedConfigurationStore(withPersistentCache: true)
-        store.setConfiguration(createSampleConfiguration())
 
-        Thread.sleep(forTimeInterval: 0.5)
+        let expectation = XCTestExpectation(description: "Persistence write completes")
+        store.setConfiguration(createSampleConfiguration()) {
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 1.0)
 
         PrecomputedConfigurationStore.clearPersistentCache()
 
