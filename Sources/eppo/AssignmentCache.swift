@@ -1,8 +1,15 @@
 import Foundation
 
 public protocol AssignmentCache {
+    @available(*, deprecated, message: "Use shouldLogAssignment() instead to avoid race conditions in concurrent environments")
     func hasLoggedAssignment(key: AssignmentCacheKey) -> Bool
+    
     func setLastLoggedAssignment(key: AssignmentCacheKey)
+    
+    /// Atomically check if assignment has been logged, and if not, mark it as logged.
+    /// Returns true if the assignment should be logged (wasn't logged before), false if it was already logged.
+    /// This method prevents race conditions by performing check-and-set in a single atomic operation.
+    func shouldLogAssignment(key: AssignmentCacheKey) -> Bool
 }
 
 public struct AssignmentCacheKey {
@@ -41,6 +48,7 @@ public class InMemoryAssignmentCache: AssignmentCache {
         // Initialization code here
     }
 
+    @available(*, deprecated, message: "Use shouldLogAssignment() instead to avoid race conditions in concurrent environments")
     public func hasLoggedAssignment(key: AssignmentCacheKey) -> Bool {
         return queue.sync {
             let cacheKey = CacheKey(subjectKey: key.subjectKey, flagKey: key.flagKey)
@@ -52,6 +60,21 @@ public class InMemoryAssignmentCache: AssignmentCache {
         queue.sync(flags: .barrier) {
             let cacheKey = CacheKey(subjectKey: key.subjectKey, flagKey: key.flagKey)
             set(key: cacheKey, value: CacheValue(allocationKey: key.allocationKey, variationKey: key.variationKey))
+        }
+    }
+    
+    public func shouldLogAssignment(key: AssignmentCacheKey) -> Bool {
+        return queue.sync(flags: .barrier) {
+            let cacheKey = CacheKey(subjectKey: key.subjectKey, flagKey: key.flagKey)
+            let expectedValue = CacheValue(allocationKey: key.allocationKey, variationKey: key.variationKey)
+            
+            // Atomically check and set
+            if get(key: cacheKey) == expectedValue {
+                return false // Already logged
+            } else {
+                set(key: cacheKey, value: expectedValue)
+                return true // Should log
+            }
         }
     }
 
