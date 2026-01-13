@@ -146,8 +146,36 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
     }
 
     func testOfflineInitializationWhenAlreadyInitialized() {
-        let testConfig = PrecomputedConfiguration(
-            flags: [:],
+        let testConfig1 = createTestFlags([
+            ("flag1", createTestFlag(
+                allocationKey: "allocation-1",
+                variationKey: "variant-a",
+                variationType: .STRING,
+                variationValue: "value1"
+            ))
+        ])
+
+        let testConfig2 = createTestFlags([
+            ("flag2", createTestFlag(
+                allocationKey: "allocation-2",
+                variationKey: "variant-b",
+                variationType: .STRING,
+                variationValue: "value2"
+            ))
+        ])
+
+        let config1 = PrecomputedConfiguration(
+            flags: testConfig1,
+            salt: base64Encode("test-salt"),
+            format: "PRECOMPUTED",
+            configFetchedAt: Date(),
+            subject: Subject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
+            configPublishedAt: nil,
+            environment: nil
+        )
+
+        let config2 = PrecomputedConfiguration(
+            flags: testConfig2,
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
             configFetchedAt: Date(),
@@ -158,15 +186,32 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
 
         let originalClient = EppoPrecomputedClient.initializeOffline(
             sdkKey: "mock-api-key",
-            initialPrecomputedConfiguration: testConfig
+            initialPrecomputedConfiguration: config1,
+            configurationChangeCallback: mockConfigChangeCallback.callback
         )
+
+        XCTAssertEqual(mockConfigChangeCallback.configurations.count, 1)
+
         let client2 = EppoPrecomputedClient.initializeOffline(
             sdkKey: "mock-api-key-2",
-            initialPrecomputedConfiguration: testConfig
+            initialPrecomputedConfiguration: config2,
+            configurationChangeCallback: mockConfigChangeCallback.callback
         )
 
         XCTAssertNotNil(client2)
         XCTAssertTrue(originalClient === client2)
+
+        // Verify that subsequent offline initialization returns same instance
+        // but does NOT update the configuration (current behavior)
+        // TODO: JS SDK replaces config on offline re-init - should we match that behavior?
+        XCTAssertEqual(mockConfigChangeCallback.configurations.count, 1)
+
+        // First config should still be active
+        let result1 = client2.getStringAssignment(flagKey: "flag1", defaultValue: "default")
+        XCTAssertEqual(result1, "value1")
+
+        let result2 = client2.getStringAssignment(flagKey: "flag2", defaultValue: "default")
+        XCTAssertEqual(result2, "default") // flag2 not in config, returns default
     }
 
     // MARK: - No-Op Logger Tests
