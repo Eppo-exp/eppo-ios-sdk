@@ -147,12 +147,12 @@ public class EppoPrecomputedClient {
             flags: networkConfig.flags,
             salt: networkConfig.salt,
             format: networkConfig.format,
-            configFetchedAt: networkConfig.configFetchedAt,
+            fetchedAt: networkConfig.fetchedAt,
             subject: Subject(
                 subjectKey: precompute.subjectKey,
                 subjectAttributes: precompute.subjectAttributes
             ),
-            configPublishedAt: networkConfig.configPublishedAt,
+            publishedAt: networkConfig.publishedAt,
             environment: networkConfig.environment
         )
 
@@ -195,12 +195,12 @@ public class EppoPrecomputedClient {
                         flags: networkConfig.flags,
                         salt: networkConfig.salt,
                         format: networkConfig.format,
-                        configFetchedAt: networkConfig.configFetchedAt,
+                        fetchedAt: networkConfig.fetchedAt,
                         subject: Subject(
                             subjectKey: requestor.precompute.subjectKey,
                             subjectAttributes: requestor.precompute.subjectAttributes
                         ),
-                        configPublishedAt: networkConfig.configPublishedAt,
+                        publishedAt: networkConfig.publishedAt,
                         environment: networkConfig.environment
                     )
 

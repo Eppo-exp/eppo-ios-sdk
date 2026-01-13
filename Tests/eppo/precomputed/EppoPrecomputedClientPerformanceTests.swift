@@ -245,12 +245,12 @@ class EppoPrecomputedClientPerformanceTests: XCTestCase {
             flags: flags,
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
-            configFetchedAt: Date(),
+            fetchedAt: Date(),
             subject: Subject(
                 subjectKey: testPrecompute.subjectKey,
                 subjectAttributes: testPrecompute.subjectAttributes
             ),
-            configPublishedAt: nil,
+            publishedAt: Date(),
             environment: nil
         )
     }
@@ -309,12 +309,12 @@ class EppoPrecomputedClientPerformanceTests: XCTestCase {
             flags: flags,
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
-            configFetchedAt: Date(),
+            fetchedAt: Date(),
             subject: Subject(
                 subjectKey: testPrecompute.subjectKey,
                 subjectAttributes: testPrecompute.subjectAttributes
             ),
-            configPublishedAt: nil,
+            publishedAt: Date(),
             environment: nil
         )
     }

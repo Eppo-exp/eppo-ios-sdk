@@ -263,9 +263,9 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
             ],
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
-            configFetchedAt: Date(),
+            fetchedAt: Date(),
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
-            configPublishedAt: nil,
+            publishedAt: Date(),
             environment: nil
         )
 
@@ -299,9 +299,9 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
             ],
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
-            configFetchedAt: Date(),
+            fetchedAt: Date(),
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
-            configPublishedAt: nil,
+            publishedAt: Date(),
             environment: nil
         )
 
@@ -326,12 +326,12 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
             flags: [:],
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
-            configFetchedAt: Date(),
+            fetchedAt: Date(),
             subject: Subject(
                 subjectKey: testPrecompute.subjectKey,
                 subjectAttributes: testPrecompute.subjectAttributes
             ),
-            configPublishedAt: nil,
+            publishedAt: Date(),
             environment: nil
         )
 
@@ -417,9 +417,9 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
             ],
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
-            configFetchedAt: oldDate,
+            fetchedAt: oldDate,
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
-            configPublishedAt: oldDate,
+            publishedAt: oldDate,
             environment: nil
         )
 
@@ -454,9 +454,9 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
             flags: [:],
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
-            configFetchedAt: Date(),
+            fetchedAt: Date(),
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
-            configPublishedAt: nil,
+            publishedAt: Date(),
             environment: nil
         )
 
@@ -491,9 +491,9 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
             ],
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
-            configFetchedAt: Date(),
+            fetchedAt: Date(),
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
-            configPublishedAt: nil,
+            publishedAt: Date(),
             environment: nil
         )
 
@@ -546,12 +546,12 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
             ],
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
-            configFetchedAt: Date(),
+            fetchedAt: Date(),
             subject: Subject(
                 subjectKey: testPrecompute.subjectKey,
                 subjectAttributes: testPrecompute.subjectAttributes
             ),
-            configPublishedAt: nil,
+            publishedAt: Date(),
             environment: nil
         )
 

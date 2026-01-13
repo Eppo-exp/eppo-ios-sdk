@@ -60,7 +60,7 @@ class PrecomputedConfigurationStore {
                 return true
             }
 
-            let age = Date().timeIntervalSince(config.configFetchedAt)
+            let age = Date().timeIntervalSince(config.fetchedAt)
             return age > ttlSeconds
         }
     }

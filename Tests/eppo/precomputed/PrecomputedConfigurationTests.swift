@@ -39,33 +39,35 @@ class PrecomputedConfigurationTests: XCTestCase {
             flags: flags,
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
-            configFetchedAt: fetchedAt,
+            fetchedAt: fetchedAt,
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
-            configPublishedAt: publishedAt,
+            publishedAt: publishedAt,
             environment: environment
         )
 
         XCTAssertEqual(config.flags.count, 2)
         XCTAssertEqual(config.salt, base64Encode("test-salt"))
         XCTAssertEqual(config.format, "PRECOMPUTED")
-        XCTAssertEqual(config.configFetchedAt, fetchedAt)
-        XCTAssertEqual(config.configPublishedAt, publishedAt)
+        XCTAssertEqual(config.fetchedAt, fetchedAt)
+        XCTAssertEqual(config.publishedAt, publishedAt)
         XCTAssertEqual(config.environment?.name, "production")
     }
 
     func testInitializationWithMinimalData() {
         let testPrecompute = Precompute(subjectKey: "test-user", subjectAttributes: [:])
+        let publishedAt = Date()
         let config = PrecomputedConfiguration(
             flags: [:],
             salt: "minimal-salt",
             format: "PRECOMPUTED",
-            configFetchedAt: Date(),
-            subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes)
+            fetchedAt: Date(),
+            subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
+            publishedAt: publishedAt
         )
 
         XCTAssertTrue(config.flags.isEmpty)
         XCTAssertEqual(config.salt, "minimal-salt")
-        XCTAssertNil(config.configPublishedAt)
+        XCTAssertEqual(config.publishedAt, publishedAt)
         XCTAssertNil(config.environment)
     }
 
@@ -77,9 +79,9 @@ class PrecomputedConfigurationTests: XCTestCase {
             flags: createSampleFlags(),
             salt: "encode-test-salt",
             format: "PRECOMPUTED",
-            configFetchedAt: Date(),
+            fetchedAt: Date(),
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
-            configPublishedAt: Date(timeIntervalSinceNow: -7200),
+            publishedAt: Date(timeIntervalSinceNow: -3600),
             environment: Environment(name: "staging")
         )
 
@@ -213,6 +215,8 @@ class PrecomputedConfigurationTests: XCTestCase {
             "salt": "",
             "format": "PRECOMPUTED",
             "flags": {},
+            "createdAt": "2024-11-18T14:23:25.123Z",
+            "fetchedAt": "2024-11-18T14:23:25.123Z",
             "subject": {
                 "subjectKey": "test-user",
                 "subjectAttributes": {}

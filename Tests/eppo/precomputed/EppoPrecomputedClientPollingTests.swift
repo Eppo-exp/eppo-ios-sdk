@@ -30,12 +30,12 @@ class EppoPrecomputedClientPollingTests: XCTestCase {
             ],
             salt: base64Encode("test-salt"),
             format: "PRECOMPUTED",
-            configFetchedAt: Date(),
+            fetchedAt: Date(),
             subject: Subject(
                 subjectKey: testPrecompute.subjectKey,
                 subjectAttributes: testPrecompute.subjectAttributes
             ),
-            configPublishedAt: Date(),
+            publishedAt: Date(),
             environment: Environment(name: "test")
         )
     }
