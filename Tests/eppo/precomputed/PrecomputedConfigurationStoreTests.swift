@@ -65,44 +65,6 @@ class PrecomputedConfigurationStoreTests: XCTestCase {
         XCTAssertEqual(store.getDecodedConfiguration()?.decodedSalt, "test-salt")
     }
 
-    // MARK: - Expiration Tests
-
-    func testIsExpired() {
-        store = PrecomputedConfigurationStore(withPersistentCache: false)
-
-        // No configuration should be considered expired
-        XCTAssertTrue(store.isExpired())
-
-        // Fresh configuration
-        let config = createSampleConfiguration()
-        store.setConfiguration(config)
-        XCTAssertFalse(store.isExpired(ttlSeconds: 300))
-
-        // Test with very short TTL
-        XCTAssertTrue(store.isExpired(ttlSeconds: 0))
-    }
-
-    func testIsExpiredWithOldConfiguration() {
-        store = PrecomputedConfigurationStore(withPersistentCache: false)
-
-        // Create configuration with old fetch time
-        let oldDate = Date(timeIntervalSinceNow: -400) // 400 seconds ago
-        let testPrecompute = Precompute(subjectKey: "test-user", subjectAttributes: [:])
-        let config = PrecomputedConfiguration(
-            flags: [:],
-            salt: base64Encode("old-salt"),
-            format: "PRECOMPUTED",
-            fetchedAt: oldDate,
-            subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
-            publishedAt: Date(timeIntervalSinceNow: -3600)
-        )
-
-        store.setConfiguration(config)
-
-        XCTAssertTrue(store.isExpired())
-        XCTAssertFalse(store.isExpired(ttlSeconds: 500))
-    }
-
     // MARK: - Thread Safety Tests
 
     func testThreadSafetyForConcurrentReads() {

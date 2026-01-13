@@ -48,17 +48,6 @@ class PrecomputedConfigurationStore {
         return syncQueue.sync { self.decodedConfiguration?.flags[key] }
     }
 
-    func isExpired(ttlSeconds: TimeInterval = 300) -> Bool {
-        return syncQueue.sync {
-            guard let config = self.decodedConfiguration else {
-                return true
-            }
-
-            let age = Date().timeIntervalSince(config.fetchedAt)
-            return age > ttlSeconds
-        }
-    }
-
     /// Clear the persistent cache
     static func clearPersistentCache() {
         guard let cacheFileURL = Self.findCacheFileURL() else {
