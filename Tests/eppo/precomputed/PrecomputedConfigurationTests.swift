@@ -10,7 +10,7 @@ class PrecomputedConfigurationTests: XCTestCase {
             "flag1": PrecomputedFlag(
                 allocationKey: "allocation-1",
                 variationKey: "variation-1",
-                variationType: .STRING,
+                variationType: .string,
                 variationValue: .valueOf("value1"),
                 extraLogging: [:],
                 doLog: true
@@ -18,7 +18,7 @@ class PrecomputedConfigurationTests: XCTestCase {
             "flag2": PrecomputedFlag(
                 allocationKey: "allocation-2",
                 variationKey: "variation-2",
-                variationType: .BOOLEAN,
+                variationType: .boolean,
                 variationValue: .valueOf(true),
                 extraLogging: ["holdoutKey": "experiment-holdout", "holdoutVariation": "status_quo"],
                 doLog: false
@@ -125,13 +125,13 @@ class PrecomputedConfigurationTests: XCTestCase {
         let stringFlag = config.flags["string-flag"]
         XCTAssertNotNil(stringFlag)
         XCTAssertEqual(stringFlag?.variationKey, "dmFyaWF0aW9uLTEyMw==")
-        XCTAssertEqual(stringFlag?.variationType, .STRING)
+        XCTAssertEqual(stringFlag?.variationType, .string)
         XCTAssertEqual(stringFlag?.variationValue, .valueOf("cmVk"))
         XCTAssertTrue(stringFlag?.doLog ?? false)
 
         let boolFlag = config.flags["boolean-flag"]
         XCTAssertNotNil(boolFlag)
-        XCTAssertEqual(boolFlag?.variationType, .BOOLEAN)
+        XCTAssertEqual(boolFlag?.variationType, .boolean)
         XCTAssertEqual(try boolFlag?.variationValue.getBoolValue(), true)
         XCTAssertFalse(boolFlag?.doLog ?? true)
     }
@@ -186,7 +186,7 @@ class PrecomputedConfigurationTests: XCTestCase {
         let testFlag = config.flags["test-flag"]
         XCTAssertNotNil(testFlag)
         XCTAssertEqual(testFlag?.allocationKey, "YWxsb2NhdGlvbi0xMjM=")
-        XCTAssertEqual(testFlag?.variationType, .STRING)
+        XCTAssertEqual(testFlag?.variationType, .string)
         XCTAssertTrue(testFlag?.doLog ?? false)
     }
 

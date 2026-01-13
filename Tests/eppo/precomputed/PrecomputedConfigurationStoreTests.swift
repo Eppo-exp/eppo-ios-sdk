@@ -238,7 +238,7 @@ class PrecomputedConfigurationStoreTests: XCTestCase {
         return PrecomputedFlag(
             allocationKey: base64Encode("test-allocation"),
             variationKey: base64Encode(variationKey),
-            variationType: .STRING,
+            variationType: .string,
             variationValue: .valueOf(base64Encode("test-value")),
             extraLogging: [:],
             doLog: true

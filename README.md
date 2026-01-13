@@ -98,7 +98,6 @@ As modern iOS devices have substantial memory, applications are often kept in me
 
 It is recommended to use the `load()` method to fetch the latest flag configurations when the application is launched.
 
-
 #### Assign anywhere
 
 Assignment is a synchronous operation.

@@ -255,7 +255,7 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
                 getMD5Hex("corrupt-flag", salt: "test-salt"): PrecomputedFlag(
                     allocationKey: "not-base64!@#$%", // Invalid base64 - should skip logging
                     variationKey: base64Encode("variant-a"),
-                    variationType: .STRING,
+                    variationType: .string,
                     variationValue: EppoValue(value: base64Encode("value")),
                     extraLogging: [:],
                     doLog: true // Logging enabled but will be skipped due to invalid base64
@@ -291,7 +291,7 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
                 getMD5Hex("type-mismatch-flag", salt: "test-salt"): PrecomputedFlag(
                     allocationKey: base64Encode("allocation-1"),
                     variationKey: base64Encode("variant-a"),
-                    variationType: .INTEGER, // Integer type
+                    variationType: .integer, // Integer type
                     variationValue: EppoValue(value: base64Encode("not-a-number")), // String value
                     extraLogging: [:],
                     doLog: true
@@ -409,7 +409,7 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
                 getMD5Hex("test-flag", salt: "test-salt"): PrecomputedFlag(
                     allocationKey: base64Encode("allocation-1"),
                     variationKey: base64Encode("variant-a"),
-                    variationType: .STRING,
+                    variationType: .string,
                     variationValue: EppoValue(value: base64Encode("value")),
                     extraLogging: [:],
                     doLog: true
@@ -483,7 +483,7 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
                 getMD5Hex("empty-extra-flag", salt: "test-salt"): PrecomputedFlag(
                     allocationKey: base64Encode("allocation-1"),
                     variationKey: base64Encode("variant-a"),
-                    variationType: .STRING,
+                    variationType: .string,
                     variationValue: EppoValue(value: base64Encode("value")),
                     extraLogging: [:], // Empty dictionary as per test data
                     doLog: true
@@ -538,7 +538,7 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
                 getMD5Hex("cache-test-flag", salt: "test-salt"): PrecomputedFlag(
                     allocationKey: base64Encode("allocation-1"),
                     variationKey: base64Encode("variant-a"),
-                    variationType: .STRING,
+                    variationType: .string,
                     variationValue: EppoValue(value: base64Encode("cached-value")),
                     extraLogging: [:],
                     doLog: true

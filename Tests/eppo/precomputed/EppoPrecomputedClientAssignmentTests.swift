@@ -85,7 +85,7 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
             ("string-flag", createTestFlag(
                 allocationKey: "allocation-1",
                 variationKey: "variant-a",
-                variationType: .STRING,
+                variationType: .string,
                 variationValue: "hello world",
                 extraLogging: [
                     "holdoutKey": "feature-rollout",
@@ -96,35 +96,35 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
             ("bool-flag", createTestFlag(
                 allocationKey: "allocation-2",
                 variationKey: "variant-b",
-                variationType: .BOOLEAN,
+                variationType: .boolean,
                 variationValue: true
             )),
 
             ("int-flag", createTestFlag(
                 allocationKey: "allocation-3",
                 variationKey: "variant-c",
-                variationType: .INTEGER,
+                variationType: .integer,
                 variationValue: 42.0
             )),
 
             ("numeric-flag", createTestFlag(
                 allocationKey: "allocation-4",
                 variationKey: "variant-d",
-                variationType: .NUMERIC,
+                variationType: .numeric,
                 variationValue: 3.14159
             )),
 
             ("json-flag", createTestFlag(
                 allocationKey: "allocation-5",
                 variationKey: "variant-e",
-                variationType: .JSON,
+                variationType: .json,
                 variationValue: "{\"key\":\"value\",\"num\":123}"
             )),
 
             ("no-log-flag", createTestFlag(
                 allocationKey: "allocation-6",
                 variationKey: "variant-f",
-                variationType: .STRING,
+                variationType: .string,
                 variationValue: "no logging",
                 doLog: false
             )),
@@ -132,7 +132,7 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
             ("type-mismatch-flag", createTestFlag(
                 allocationKey: "allocation-7",
                 variationKey: "variant-g",
-                variationType: .BOOLEAN,
+                variationType: .boolean,
                 variationValue: "not a boolean"
             ))
         ])

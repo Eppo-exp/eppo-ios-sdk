@@ -15,13 +15,13 @@ func createTestFlag(
 
     let encodedVariationValue: EppoValue
     switch variationType {
-    case .STRING, .JSON:
+    case .string, .json:
         if let stringValue = variationValue as? String {
             encodedVariationValue = EppoValue(value: base64Encode(stringValue))
         } else {
             fatalError("STRING and JSON variation values must be String type")
         }
-    case .BOOLEAN:
+    case .boolean:
         if let boolValue = variationValue as? Bool {
             encodedVariationValue = EppoValue(value: boolValue)
         } else if let stringValue = variationValue as? String {
@@ -29,7 +29,7 @@ func createTestFlag(
         } else {
             fatalError("BOOLEAN variation values must be Bool or String type")
         }
-    case .INTEGER:
+    case .integer:
         if let doubleValue = variationValue as? Double {
             encodedVariationValue = EppoValue(value: doubleValue)
         } else if let intValue = variationValue as? Int {
@@ -37,7 +37,7 @@ func createTestFlag(
         } else {
             fatalError("INTEGER variation values must be Double or Int type")
         }
-    case .NUMERIC:
+    case .numeric:
         if let doubleValue = variationValue as? Double {
             encodedVariationValue = EppoValue(value: doubleValue)
         } else if let intValue = variationValue as? Int {

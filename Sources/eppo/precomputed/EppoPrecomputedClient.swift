@@ -247,23 +247,23 @@ public class EppoPrecomputedClient {
     // MARK: - Assignment Methods (synchronous, type-specific)
 
     public func getStringAssignment(flagKey: String, defaultValue: String) -> String {
-        return getPrecomputedAssignment(flagKey: flagKey, defaultValue: defaultValue, expectedType: .STRING)
+        return getPrecomputedAssignment(flagKey: flagKey, defaultValue: defaultValue, expectedType: .string)
     }
 
     public func getBooleanAssignment(flagKey: String, defaultValue: Bool) -> Bool {
-        return getPrecomputedAssignment(flagKey: flagKey, defaultValue: defaultValue, expectedType: .BOOLEAN)
+        return getPrecomputedAssignment(flagKey: flagKey, defaultValue: defaultValue, expectedType: .boolean)
     }
 
     public func getIntegerAssignment(flagKey: String, defaultValue: Int) -> Int {
-        return getPrecomputedAssignment(flagKey: flagKey, defaultValue: defaultValue, expectedType: .INTEGER)
+        return getPrecomputedAssignment(flagKey: flagKey, defaultValue: defaultValue, expectedType: .integer)
     }
 
     public func getNumericAssignment(flagKey: String, defaultValue: Double) -> Double {
-        return getPrecomputedAssignment(flagKey: flagKey, defaultValue: defaultValue, expectedType: .NUMERIC)
+        return getPrecomputedAssignment(flagKey: flagKey, defaultValue: defaultValue, expectedType: .numeric)
     }
 
     public func getJSONStringAssignment(flagKey: String, defaultValue: String) -> String {
-        return getPrecomputedAssignment(flagKey: flagKey, defaultValue: defaultValue, expectedType: .JSON)
+        return getPrecomputedAssignment(flagKey: flagKey, defaultValue: defaultValue, expectedType: .json)
     }
 
     // MARK: - Internal Assignment Logic
@@ -319,28 +319,28 @@ public class EppoPrecomputedClient {
         defaultValue: T
     ) throws -> T {
         switch expectedType {
-        case .STRING:
+        case .string:
             let stringValue = try eppoValue.getStringValue()
             if let result = stringValue as? T {
                 return result
             }
-        case .BOOLEAN:
+        case .boolean:
             let boolValue = try eppoValue.getBoolValue()
             if let result = boolValue as? T {
                 return result
             }
-        case .INTEGER:
+        case .integer:
             let doubleValue = try eppoValue.getDoubleValue()
             let intValue = Int(doubleValue)
             if let result = intValue as? T {
                 return result
             }
-        case .NUMERIC:
+        case .numeric:
             let doubleValue = try eppoValue.getDoubleValue()
             if let result = doubleValue as? T {
                 return result
             }
-        case .JSON:
+        case .json:
             let stringValue = try eppoValue.getStringValue()
             if let result = stringValue as? T {
                 return result

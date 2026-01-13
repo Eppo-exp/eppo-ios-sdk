@@ -40,7 +40,7 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
                 getMD5Hex("test-flag", salt: "test-salt"): PrecomputedFlag(
                     allocationKey: base64Encode("allocation-1"),
                     variationKey: base64Encode("variant-a"),
-                    variationType: .STRING,
+                    variationType: .string,
                     variationValue: EppoValue(value: base64Encode("hello")),
                     extraLogging: [:],
                     doLog: true
@@ -110,7 +110,7 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
                 getMD5Hex("test-flag", salt: "test-salt"): PrecomputedFlag(
                     allocationKey: base64Encode("allocation-1"),
                     variationKey: base64Encode("variant-a"),
-                    variationType: .STRING,
+                    variationType: .string,
                     variationValue: EppoValue(value: base64Encode("hello")),
                     extraLogging: [:],
                     doLog: true
@@ -150,7 +150,7 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
             ("flag1", createTestFlag(
                 allocationKey: "allocation-1",
                 variationKey: "variant-a",
-                variationType: .STRING,
+                variationType: .string,
                 variationValue: "value1"
             ))
         ])
@@ -159,7 +159,7 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
             ("flag2", createTestFlag(
                 allocationKey: "allocation-2",
                 variationKey: "variant-b",
-                variationType: .STRING,
+                variationType: .string,
                 variationValue: "value2"
             ))
         ])

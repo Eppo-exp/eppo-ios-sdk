@@ -26,9 +26,9 @@ struct PrecomputedFlag: Codable, Equatable {
 }
 
 enum VariationType: String, Codable {
-    case BOOLEAN = "BOOLEAN"
-    case NUMERIC = "NUMERIC"
-    case INTEGER = "INTEGER"
-    case STRING = "STRING"
-    case JSON = "JSON"
+    case boolean = "BOOLEAN"
+    case numeric = "NUMERIC"
+    case integer = "INTEGER"
+    case string = "STRING"
+    case json = "JSON"
 }

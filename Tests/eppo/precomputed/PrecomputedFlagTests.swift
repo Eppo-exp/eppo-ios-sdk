@@ -9,7 +9,7 @@ class PrecomputedFlagTests: XCTestCase {
         let flag = PrecomputedFlag(
             allocationKey: "allocation-1",
             variationKey: "control",
-            variationType: .STRING,
+            variationType: .string,
             variationValue: .valueOf("test value"),
             extraLogging: ["holdoutKey": "test-holdout", "holdoutVariation": "status_quo"],
             doLog: true
@@ -17,7 +17,7 @@ class PrecomputedFlagTests: XCTestCase {
 
         XCTAssertEqual(flag.allocationKey, "allocation-1")
         XCTAssertEqual(flag.variationKey, "control")
-        XCTAssertEqual(flag.variationType, .STRING)
+        XCTAssertEqual(flag.variationType, .string)
         XCTAssertEqual(flag.variationValue, .valueOf("test value"))
         XCTAssertEqual(flag.extraLogging, ["holdoutKey": "test-holdout", "holdoutVariation": "status_quo"])
         XCTAssertTrue(flag.doLog)
@@ -27,7 +27,7 @@ class PrecomputedFlagTests: XCTestCase {
         let flag = PrecomputedFlag(
             allocationKey: nil,
             variationKey: nil,
-            variationType: .BOOLEAN,
+            variationType: .boolean,
             variationValue: .valueOf(false),
             extraLogging: [:],
             doLog: false
@@ -35,7 +35,7 @@ class PrecomputedFlagTests: XCTestCase {
 
         XCTAssertNil(flag.allocationKey)
         XCTAssertNil(flag.variationKey)
-        XCTAssertEqual(flag.variationType, .BOOLEAN)
+        XCTAssertEqual(flag.variationType, .boolean)
         XCTAssertEqual(flag.variationValue, .valueOf(false))
         XCTAssertTrue(flag.extraLogging.isEmpty)
         XCTAssertFalse(flag.doLog)
@@ -47,7 +47,7 @@ class PrecomputedFlagTests: XCTestCase {
         let originalFlag = PrecomputedFlag(
             allocationKey: "test-allocation",
             variationKey: "variant-a",
-            variationType: .STRING,
+            variationType: .string,
             variationValue: .valueOf("test string"),
             extraLogging: ["holdoutKey": "experiment-123", "holdoutVariation": "all_shipped"],
             doLog: true
@@ -88,7 +88,7 @@ class PrecomputedFlagTests: XCTestCase {
 
         XCTAssertEqual(flag.allocationKey, "allocation-123")
         XCTAssertEqual(flag.variationKey, "treatment")
-        XCTAssertEqual(flag.variationType, .NUMERIC)
+        XCTAssertEqual(flag.variationType, .numeric)
         XCTAssertEqual(try flag.variationValue.getDoubleValue(), 42.5)
         XCTAssertEqual(flag.extraLogging["holdoutKey"], "api-experiment")
         XCTAssertEqual(flag.extraLogging["holdoutVariation"], "all_shipped")
@@ -113,7 +113,7 @@ class PrecomputedFlagTests: XCTestCase {
 
         XCTAssertNil(flag.allocationKey)
         XCTAssertNil(flag.variationKey)
-        XCTAssertEqual(flag.variationType, .INTEGER)
+        XCTAssertEqual(flag.variationType, .integer)
         XCTAssertEqual(Int(try flag.variationValue.getDoubleValue()), 100)
         XCTAssertTrue(flag.extraLogging.isEmpty)
         XCTAssertFalse(flag.doLog)
@@ -123,11 +123,11 @@ class PrecomputedFlagTests: XCTestCase {
 
     func testAllVariationTypes() throws {
         let testCases: [(VariationType, EppoValue, String)] = [
-            (.BOOLEAN, .valueOf(true), "true"),
-            (.STRING, .valueOf("hello"), "\"hello\""),
-            (.INTEGER, .valueOf(42), "42"),
-            (.NUMERIC, .valueOf(3.14), "3.14"),
-            (.JSON, .valueOf("{\"key\":\"value\"}"), "\"{\\\"key\\\":\\\"value\\\"}\"")
+            (.boolean, .valueOf(true), "true"),
+            (.string, .valueOf("hello"), "\"hello\""),
+            (.integer, .valueOf(42), "42"),
+            (.numeric, .valueOf(3.14), "3.14"),
+            (.json, .valueOf("{\"key\":\"value\"}"), "\"{\\\"key\\\":\\\"value\\\"}\"")
         ]
 
         for (variationType, variationValue, jsonValue) in testCases {
@@ -157,7 +157,7 @@ class PrecomputedFlagTests: XCTestCase {
         let flag = PrecomputedFlag(
             allocationKey: "test",
             variationKey: "variant",
-            variationType: .BOOLEAN,
+            variationType: .boolean,
             variationValue: .valueOf(true),
             extraLogging: [:],
             doLog: false

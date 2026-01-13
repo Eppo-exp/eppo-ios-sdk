@@ -22,7 +22,7 @@ class EppoPrecomputedClientPollingTests: XCTestCase {
                 getMD5Hex("test-flag", salt: "test-salt"): PrecomputedFlag(
                     allocationKey: base64Encode("allocation-1"),
                     variationKey: base64Encode("variant-a"),
-                    variationType: .STRING,
+                    variationType: .string,
                     variationValue: EppoValue(value: base64Encode("hello")),
                     extraLogging: [:],
                     doLog: true

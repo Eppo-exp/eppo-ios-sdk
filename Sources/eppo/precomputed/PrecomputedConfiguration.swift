@@ -290,7 +290,7 @@ extension PrecomputedConfiguration {
         }
 
         let decodedVariationValue: EppoValue
-        if flag.variationType == .STRING || flag.variationType == .JSON {
+        if flag.variationType == .string || flag.variationType == .json {
             do {
                 let encodedString = try flag.variationValue.getStringValue()
                 let decodedString = try base64DecodeOrThrow(encodedString)

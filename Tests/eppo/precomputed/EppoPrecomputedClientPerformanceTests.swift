@@ -229,7 +229,7 @@ class EppoPrecomputedClientPerformanceTests: XCTestCase {
             flagSpecs.append((flagKey, createTestFlag(
                 allocationKey: "allocation-\(i)",
                 variationKey: "variant-\(i % 3)",
-                variationType: .STRING,
+                variationType: .string,
                 variationValue: "value-\(i)",
                 extraLogging: [
                     "experiment-holdout-key": "holdout-\(i % 10)",
@@ -266,7 +266,7 @@ class EppoPrecomputedClientPerformanceTests: XCTestCase {
             flagSpecs.append(("string-flag-\(i)", createTestFlag(
                 allocationKey: "allocation-\(i)",
                 variationKey: "variant-a",
-                variationType: .STRING,
+                variationType: .string,
                 variationValue: "string-value-\(i)"
             )))
 
@@ -274,7 +274,7 @@ class EppoPrecomputedClientPerformanceTests: XCTestCase {
             flagSpecs.append(("boolean-flag-\(i)", createTestFlag(
                 allocationKey: "allocation-\(i)",
                 variationKey: "variant-b",
-                variationType: .BOOLEAN,
+                variationType: .boolean,
                 variationValue: i % 2 == 0
             )))
 
@@ -282,7 +282,7 @@ class EppoPrecomputedClientPerformanceTests: XCTestCase {
             flagSpecs.append(("integer-flag-\(i)", createTestFlag(
                 allocationKey: "allocation-\(i)",
                 variationKey: "variant-c",
-                variationType: .INTEGER,
+                variationType: .integer,
                 variationValue: Double(i * 10)
             )))
 
@@ -290,7 +290,7 @@ class EppoPrecomputedClientPerformanceTests: XCTestCase {
             flagSpecs.append(("numeric-flag-\(i)", createTestFlag(
                 allocationKey: "allocation-\(i)",
                 variationKey: "variant-d",
-                variationType: .NUMERIC,
+                variationType: .numeric,
                 variationValue: Double(i) * 1.5
             )))
 
@@ -298,7 +298,7 @@ class EppoPrecomputedClientPerformanceTests: XCTestCase {
             flagSpecs.append(("json-flag-\(i)", createTestFlag(
                 allocationKey: "allocation-\(i)",
                 variationKey: "variant-e",
-                variationType: .JSON,
+                variationType: .json,
                 variationValue: "{\"index\": \(i)}"
             )))
         }
