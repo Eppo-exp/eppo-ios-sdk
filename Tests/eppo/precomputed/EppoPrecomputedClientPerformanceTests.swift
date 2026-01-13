@@ -222,22 +222,24 @@ class EppoPrecomputedClientPerformanceTests: XCTestCase {
     // MARK: - Helper Methods
 
     private func createPerformanceConfiguration(flagCount: Int) -> PrecomputedConfiguration {
-        var flags: [String: PrecomputedFlag] = [:]
+        var flagSpecs: [(String, PrecomputedFlag)] = []
 
         for i in 0..<flagCount {
             let flagKey = "flag-\(i)"
-            flags[getMD5Hex(flagKey, salt: "test-salt")] = PrecomputedFlag(
-                allocationKey: base64Encode("allocation-\(i)"),
-                variationKey: base64Encode("variant-\(i % 3)"),
+            flagSpecs.append((flagKey, createTestFlag(
+                allocationKey: "allocation-\(i)",
+                variationKey: "variant-\(i % 3)",
                 variationType: .STRING,
-                variationValue: EppoValue(value: base64Encode("value-\(i)")),
+                variationValue: "value-\(i)",
                 extraLogging: [
-                    base64Encode("experiment-holdout-key"): base64Encode("holdout-\(i % 10)"),
-                    base64Encode("holdoutVariation"): base64Encode(i % 2 == 0 ? "status_quo" : "all_shipped")
+                    "experiment-holdout-key": "holdout-\(i % 10)",
+                    "holdoutVariation": i % 2 == 0 ? "status_quo" : "all_shipped"
                 ],
                 doLog: i % 5 == 0 // Only log 20% to be realistic
-            )
+            )))
         }
+
+        let flags = createTestFlags(flagSpecs)
 
         return PrecomputedConfiguration(
             flags: flags,
@@ -254,62 +256,54 @@ class EppoPrecomputedClientPerformanceTests: XCTestCase {
     }
 
     private func createMixedTypeConfiguration(flagCount: Int) -> PrecomputedConfiguration {
-        var flags: [String: PrecomputedFlag] = [:]
+        var flagSpecs: [(String, PrecomputedFlag)] = []
 
         let flagsPerType = flagCount / 5
 
         // Create flags of different types
         for i in 0..<flagsPerType {
             // String flags
-            flags[getMD5Hex("string-flag-\(i)", salt: "test-salt")] = PrecomputedFlag(
-                allocationKey: base64Encode("allocation-\(i)"),
-                variationKey: base64Encode("variant-a"),
+            flagSpecs.append(("string-flag-\(i)", createTestFlag(
+                allocationKey: "allocation-\(i)",
+                variationKey: "variant-a",
                 variationType: .STRING,
-                variationValue: EppoValue(value: base64Encode("string-value-\(i)")),
-                extraLogging: [:],
-                doLog: true
-            )
+                variationValue: "string-value-\(i)"
+            )))
 
             // Boolean flags
-            flags[getMD5Hex("boolean-flag-\(i)", salt: "test-salt")] = PrecomputedFlag(
-                allocationKey: base64Encode("allocation-\(i)"),
-                variationKey: base64Encode("variant-b"),
+            flagSpecs.append(("boolean-flag-\(i)", createTestFlag(
+                allocationKey: "allocation-\(i)",
+                variationKey: "variant-b",
                 variationType: .BOOLEAN,
-                variationValue: EppoValue(value: i % 2 == 0),
-                extraLogging: [:],
-                doLog: true
-            )
+                variationValue: i % 2 == 0
+            )))
 
             // Integer flags
-            flags[getMD5Hex("integer-flag-\(i)", salt: "test-salt")] = PrecomputedFlag(
-                allocationKey: base64Encode("allocation-\(i)"),
-                variationKey: base64Encode("variant-c"),
+            flagSpecs.append(("integer-flag-\(i)", createTestFlag(
+                allocationKey: "allocation-\(i)",
+                variationKey: "variant-c",
                 variationType: .INTEGER,
-                variationValue: EppoValue(value: Double(i * 10)),
-                extraLogging: [:],
-                doLog: true
-            )
+                variationValue: Double(i * 10)
+            )))
 
             // Numeric flags
-            flags[getMD5Hex("numeric-flag-\(i)", salt: "test-salt")] = PrecomputedFlag(
-                allocationKey: base64Encode("allocation-\(i)"),
-                variationKey: base64Encode("variant-d"),
+            flagSpecs.append(("numeric-flag-\(i)", createTestFlag(
+                allocationKey: "allocation-\(i)",
+                variationKey: "variant-d",
                 variationType: .NUMERIC,
-                variationValue: EppoValue(value: Double(i) * 1.5),
-                extraLogging: [:],
-                doLog: true
-            )
+                variationValue: Double(i) * 1.5
+            )))
 
             // JSON flags
-            flags[getMD5Hex("json-flag-\(i)", salt: "test-salt")] = PrecomputedFlag(
-                allocationKey: base64Encode("allocation-\(i)"),
-                variationKey: base64Encode("variant-e"),
+            flagSpecs.append(("json-flag-\(i)", createTestFlag(
+                allocationKey: "allocation-\(i)",
+                variationKey: "variant-e",
                 variationType: .JSON,
-                variationValue: EppoValue(value: base64Encode("{\"index\": \(i)}")),
-                extraLogging: [:],
-                doLog: true
-            )
+                variationValue: "{\"index\": \(i)}"
+            )))
         }
+
+        let flags = createTestFlags(flagSpecs)
 
         return PrecomputedConfiguration(
             flags: flags,

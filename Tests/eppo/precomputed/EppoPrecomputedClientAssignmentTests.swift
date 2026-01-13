@@ -81,73 +81,61 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
         testSubjectKey = "test-user-123"
         testSubjectAttributes = ["age": EppoValue(value: 25)]
 
-        let testFlags: [String: PrecomputedFlag] = [
-            getMD5Hex("string-flag", salt: "test-salt"): PrecomputedFlag(
-                allocationKey: base64Encode("allocation-1"),
-                variationKey: base64Encode("variant-a"),
+        let testFlags = createTestFlags([
+            ("string-flag", createTestFlag(
+                allocationKey: "allocation-1",
+                variationKey: "variant-a",
                 variationType: .STRING,
-                variationValue: EppoValue(value: base64Encode("hello world")),
+                variationValue: "hello world",
                 extraLogging: [
-                    base64Encode("holdoutKey"): base64Encode("feature-rollout"),
-                    base64Encode("holdoutVariation"): base64Encode("status_quo")
-                ],
-                doLog: true
-            ),
+                    "holdoutKey": "feature-rollout",
+                    "holdoutVariation": "status_quo"
+                ]
+            )),
 
-            getMD5Hex("bool-flag", salt: "test-salt"): PrecomputedFlag(
-                allocationKey: base64Encode("allocation-2"),
-                variationKey: base64Encode("variant-b"),
+            ("bool-flag", createTestFlag(
+                allocationKey: "allocation-2",
+                variationKey: "variant-b",
                 variationType: .BOOLEAN,
-                variationValue: EppoValue(value: true),
-                extraLogging: [:],
-                doLog: true
-            ),
+                variationValue: true
+            )),
 
-            getMD5Hex("int-flag", salt: "test-salt"): PrecomputedFlag(
-                allocationKey: base64Encode("allocation-3"),
-                variationKey: base64Encode("variant-c"),
+            ("int-flag", createTestFlag(
+                allocationKey: "allocation-3",
+                variationKey: "variant-c",
                 variationType: .INTEGER,
-                variationValue: EppoValue(value: 42.0),
-                extraLogging: [:],
-                doLog: true
-            ),
+                variationValue: 42.0
+            )),
 
-            getMD5Hex("numeric-flag", salt: "test-salt"): PrecomputedFlag(
-                allocationKey: base64Encode("allocation-4"),
-                variationKey: base64Encode("variant-d"),
+            ("numeric-flag", createTestFlag(
+                allocationKey: "allocation-4",
+                variationKey: "variant-d",
                 variationType: .NUMERIC,
-                variationValue: EppoValue(value: 3.14159),
-                extraLogging: [:],
-                doLog: true
-            ),
+                variationValue: 3.14159
+            )),
 
-            getMD5Hex("json-flag", salt: "test-salt"): PrecomputedFlag(
-                allocationKey: base64Encode("allocation-5"),
-                variationKey: base64Encode("variant-e"),
+            ("json-flag", createTestFlag(
+                allocationKey: "allocation-5",
+                variationKey: "variant-e",
                 variationType: .JSON,
-                variationValue: EppoValue(value: base64Encode("{\"key\":\"value\",\"num\":123}")),
-                extraLogging: [:],
-                doLog: true
-            ),
+                variationValue: "{\"key\":\"value\",\"num\":123}"
+            )),
 
-            getMD5Hex("no-log-flag", salt: "test-salt"): PrecomputedFlag(
-                allocationKey: base64Encode("allocation-6"),
-                variationKey: base64Encode("variant-f"),
+            ("no-log-flag", createTestFlag(
+                allocationKey: "allocation-6",
+                variationKey: "variant-f",
                 variationType: .STRING,
-                variationValue: EppoValue(value: base64Encode("no logging")),
-                extraLogging: [:],
+                variationValue: "no logging",
                 doLog: false
-            ),
+            )),
 
-            getMD5Hex("type-mismatch-flag", salt: "test-salt"): PrecomputedFlag(
-                allocationKey: base64Encode("allocation-7"),
-                variationKey: base64Encode("variant-g"),
+            ("type-mismatch-flag", createTestFlag(
+                allocationKey: "allocation-7",
+                variationKey: "variant-g",
                 variationType: .BOOLEAN,
-                variationValue: EppoValue(value: base64Encode("not a boolean")),
-                extraLogging: [:],
-                doLog: true
-            )
-        ]
+                variationValue: "not a boolean"
+            ))
+        ])
 
         testConfiguration = PrecomputedConfiguration(
             flags: testFlags,
