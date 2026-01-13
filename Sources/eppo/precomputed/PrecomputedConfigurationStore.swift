@@ -44,12 +44,6 @@ class PrecomputedConfigurationStore {
         return syncQueue.sync { self.decodedConfiguration != nil }
     }
 
-    func getKeys() -> [String] {
-        return syncQueue.sync {
-            self.decodedConfiguration?.flags.keys.map { $0 } ?? []
-        }
-    }
-
     func getDecodedFlag(forKey key: String) -> DecodedPrecomputedFlag? {
         return syncQueue.sync { self.decodedConfiguration?.flags[key] }
     }

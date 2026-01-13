@@ -54,18 +54,6 @@ class PrecomputedConfigurationStoreTests: XCTestCase {
         XCTAssertNil(nonExistent)
     }
 
-    func testGetKeys() {
-        store = PrecomputedConfigurationStore(withPersistentCache: false)
-
-        let config = createSampleConfiguration()
-        store.setConfiguration(config)
-
-        let keys = store.getKeys()
-        XCTAssertEqual(keys.count, 2)
-        XCTAssertTrue(keys.contains("flag1"))
-        XCTAssertTrue(keys.contains("flag2"))
-    }
-
     func testGetSalt() {
         store = PrecomputedConfigurationStore(withPersistentCache: false)
 
