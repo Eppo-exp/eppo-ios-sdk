@@ -68,7 +68,7 @@ final class flagEvaluatorTests: XCTestCase {
             isConfigObfuscated: false
         )
         XCTAssertTrue(evaluationResult.doLog)
-        XCTAssertEqual(try evaluationResult.variation?.value.getStringValue(), "Control")
+        XCTAssertEqual(evaluationResult.variation?.value.stringValue, "Control")
     }
 
     public func testMatchesAnyRuleWithEmptyRules() throws {
@@ -85,7 +85,7 @@ final class flagEvaluatorTests: XCTestCase {
             isConfigObfuscated: false
         )
         XCTAssertTrue(evaluationResult.doLog)
-        XCTAssertEqual(try evaluationResult.variation?.value.getStringValue(), "Control")
+        XCTAssertEqual(evaluationResult.variation?.value.stringValue, "Control")
     }
 
     public func testMatchesAnyRuleWhenNoRuleMatches() throws {
@@ -121,7 +121,7 @@ final class flagEvaluatorTests: XCTestCase {
             isConfigObfuscated: false
         )
         XCTAssertTrue(evaluationResult.doLog)
-        XCTAssertEqual(try evaluationResult.variation?.value.getStringValue(), "Control")
+        XCTAssertEqual(evaluationResult.variation?.value.stringValue, "Control")
     }
 
     public func testNotMatchesAnyRuleWhenThrowInvalidSubjectAttribute() {
@@ -155,7 +155,7 @@ final class flagEvaluatorTests: XCTestCase {
             isConfigObfuscated: false
         )
         XCTAssertTrue(evaluationResult.doLog)
-        XCTAssertEqual(try evaluationResult.variation?.value.getStringValue(), "Control")
+        XCTAssertEqual(evaluationResult.variation?.value.stringValue, "Control")
     }
 
     public func testMatchesAnyRuleWithRegexConditionNotMatched() throws {
@@ -189,7 +189,7 @@ final class flagEvaluatorTests: XCTestCase {
             isConfigObfuscated: false
         )
         XCTAssertTrue(evaluationResult.doLog)
-        XCTAssertEqual(try evaluationResult.variation?.value.getStringValue(), "Control")
+        XCTAssertEqual(evaluationResult.variation?.value.stringValue, "Control")
     }
 
     public func testMatchesAnyRuleWithNotOneOfRuleNotPassed() {

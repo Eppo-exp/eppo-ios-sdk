@@ -204,7 +204,7 @@ public class EppoClient {
                 subjectKey: subjectKey,
                 subjectAttributes: subjectAttributes,
                 expectedVariationType: UFC_VariationType.boolean
-            )?.variation?.value.getBoolValue() ?? defaultValue
+            )?.variation?.value.boolValue ?? defaultValue
         } catch {
             return defaultValue
         }
@@ -221,7 +221,7 @@ public class EppoClient {
                 subjectKey: subjectKey,
                 subjectAttributes: subjectAttributes,
                 expectedVariationType: UFC_VariationType.json
-            )?.variation?.value.getStringValue() ?? defaultValue
+            )?.variation?.value.stringValue ?? defaultValue
         } catch {
             return defaultValue
         }
@@ -246,7 +246,7 @@ public class EppoClient {
             }
             
             // Get the double value and check if it's an integer
-            guard let doubleValue = try? assignment?.variation?.value.getDoubleValue(),
+            guard let doubleValue = assignment?.variation?.value.doubleValue,
                   doubleValue.isInteger else {
                 return defaultValue
             }
@@ -268,7 +268,7 @@ public class EppoClient {
                 subjectKey: subjectKey,
                 subjectAttributes: subjectAttributes,
                 expectedVariationType: UFC_VariationType.numeric
-            )?.variation?.value.getDoubleValue() ?? defaultValue
+            )?.variation?.value.doubleValue ?? defaultValue
         } catch {
             return defaultValue
         }
@@ -285,7 +285,7 @@ public class EppoClient {
                 subjectKey: subjectKey,
                 subjectAttributes: subjectAttributes,
                 expectedVariationType: UFC_VariationType.string
-            )?.variation?.value.getStringValue() ?? defaultValue
+            )?.variation?.value.stringValue ?? defaultValue
         } catch {
             return defaultValue
         }
@@ -491,7 +491,7 @@ public class EppoClient {
                 expectedVariationType: UFC_VariationType.string
             )
             
-            let variation = try flagEvaluation?.variation?.value.getStringValue() ?? defaultValue
+            let variation = flagEvaluation?.variation?.value.stringValue ?? defaultValue
             
             let evaluationDetails = FlagEvaluationDetails(
                 environmentName: configurationStore.getConfiguration()?.getFlagConfigDetails().configEnvironment.name ?? "",
@@ -553,7 +553,7 @@ public class EppoClient {
             // Only use defaultValue if we have a variation but failed to get its string value
             let variation: String?
             if let flagVariation = flagEvaluation?.variation {
-                variation = try flagVariation.value.getStringValue()
+                variation = flagVariation.value.stringValue
             } else {
                 variation = nil
             }
@@ -619,7 +619,7 @@ public class EppoClient {
                 expectedVariationType: UFC_VariationType.boolean
             )
             
-            let variation = try flagEvaluation?.variation?.value.getBoolValue()
+            let variation = flagEvaluation?.variation?.value.boolValue
             
             let evaluationDetails = FlagEvaluationDetails(
                 environmentName: configurationStore.getConfiguration()?.getFlagConfigDetails().configEnvironment.name ?? "",
@@ -703,7 +703,7 @@ public class EppoClient {
             }
             
             // Check if the value is a valid integer
-            if let doubleValue = try? flagEvaluation?.variation?.value.getDoubleValue(),
+            if let doubleValue = flagEvaluation?.variation?.value.doubleValue,
                doubleValue.isInteger {
                 let variation = Int(doubleValue)
                 
@@ -786,7 +786,7 @@ public class EppoClient {
                 expectedVariationType: UFC_VariationType.numeric
             )
             
-            let variation = try flagEvaluation?.variation?.value.getDoubleValue()
+            let variation = flagEvaluation?.variation?.value.doubleValue
             
             let evaluationDetails = FlagEvaluationDetails(
                 environmentName: configurationStore.getConfiguration()?.getFlagConfigDetails().configEnvironment.name ?? "",
@@ -876,7 +876,7 @@ func isValueOfType(expectedType: UFC_VariationType, variationValue: EppoValue) -
     case .json, .string:
         return variationValue.isString()
     case .integer:
-        let doubleValue = try? variationValue.getDoubleValue()
+        let doubleValue = variationValue.doubleValue
         return variationValue.isNumeric() && doubleValue != nil && floor(doubleValue!) == doubleValue!
     case .numeric:
         return variationValue.isNumeric()

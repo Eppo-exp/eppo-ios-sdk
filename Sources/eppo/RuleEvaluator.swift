@@ -153,7 +153,7 @@ public class FlagEvaluator {
                     if flag.variationType == .integer {
                         if let variation = variation {
                             // First try to get double value directly
-                            if let doubleValue = try? variation.value.getDoubleValue() {
+                            if let doubleValue = variation.value.doubleValue {
                                 if !doubleValue.isInteger {
                                     // Create a new variation with the original double value
                                     let errorVariation = UFC_Variation(
@@ -204,7 +204,7 @@ public class FlagEvaluator {
                             }
                             
                             // If not a double, try string value
-                            if let stringValue = try? variation.value.getStringValue() {
+                            if let stringValue = variation.value.stringValue {
                                 var decodedValue: String? = stringValue
                                 if isConfigObfuscated {
                                     decodedValue = base64Decode(stringValue)
@@ -406,10 +406,10 @@ public class FlagEvaluator {
         let attributeValueIsNull = attributeValue?.isNull() ?? true
         
         if condition.operator == .isNull {
-            if isConfigObfuscated, let value: String = try? condition.value.getStringValue() {
+            if isConfigObfuscated, let value: String = condition.value.stringValue {
                 let expectNull: Bool = getMD5Hex("true") == value
                 return expectNull == attributeValueIsNull
-            } else if let value = try? condition.value.getBoolValue() {
+            } else if let value = condition.value.boolValue {
                 let expectNull: Bool = value
                 return expectNull == attributeValueIsNull
             }
@@ -425,10 +425,10 @@ public class FlagEvaluator {
         
         switch condition.operator {
         case .greaterThanEqual, .greaterThan, .lessThanEqual, .lessThan:
-            let valueStr = try? value.getStringValue()
+            let valueStr = value.stringValue
 
             // If the config is obfuscated, we need to unobfuscate the condition value
-            var conditionValueStr: String? = try? condition.value.getStringValue()
+            var conditionValueStr: String? = condition.value.stringValue
             if isConfigObfuscated,
                let cvs = conditionValueStr,
                let decoded = base64Decode(cvs) {
@@ -451,7 +451,7 @@ public class FlagEvaluator {
                 }
             } else {
                 // If either string is not a valid Semver, fall back to double comparison
-                guard let valueDouble = try? value.getDoubleValue() else {
+                guard let valueDouble = value.doubleValue else {
                     return false
                 }
 
@@ -461,7 +461,7 @@ public class FlagEvaluator {
                    let cvs = conditionValueStr,
                    let doubleValue = Double(cvs) {
                     conditionDouble = doubleValue
-                } else if let doubleValue = try? condition.value.getDoubleValue() {
+                } else if let doubleValue = condition.value.doubleValue {
                     conditionDouble = doubleValue
                 } else {
                     return false
@@ -493,7 +493,7 @@ public class FlagEvaluator {
             return false
         case .oneOf, .notOneOf:
             if let valueString = try? value.toEppoString(),
-               let conditionArray = try? condition.value.getStringArrayValue() {
+               let conditionArray = condition.value.stringArrayValue {
                 if isConfigObfuscated {
                     let valueStringHash = getMD5Hex(valueString)
                     return condition.operator == .oneOf ? Compare.isOneOf(valueStringHash, conditionArray) : !Compare.isOneOf(valueStringHash, conditionArray)
