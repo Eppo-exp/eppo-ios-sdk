@@ -1,5 +1,5 @@
 import Foundation
-import CommonCrypto
+import CryptoKit
 
 private let hexDigits: [UInt16] = Array("0123456789abcdef".utf16)
 
@@ -17,24 +17,10 @@ func hexEncode(_ data: Data) -> String {
 }
 
 func getMD5Hex(_ value: String, salt: String = "") -> String {
-    let length = Int(CC_MD5_DIGEST_LENGTH)
     let saltedValue = salt + value
-    let messageData = saltedValue.data(using: .utf8)!
-    var digestData = Data(count: length)
-
-    _ = digestData.withUnsafeMutableBytes { digestBytes -> UInt8 in
-        messageData.withUnsafeBytes { messageBytes -> UInt8 in
-            if let messageBytesBaseAddress = messageBytes.baseAddress,
-               let digestBytesBlindMemory = digestBytes.bindMemory(to: UInt8.self).baseAddress {
-                let messageLength = CC_LONG(messageData.count)
-                // This warning can be ignore since we are deliberately using md5 to obfuscate the value.
-                CC_MD5(messageBytesBaseAddress, messageLength, digestBytesBlindMemory)
-            }
-            return 0
-        }
-    }
-
-    return hexEncode(digestData)
+    let messageData = Data(saltedValue.utf8)
+    let digest = Insecure.MD5.hash(data: messageData)
+    return hexEncode(Data(digest))
 }
 
 func base64Encode(_ value: String) -> String {
