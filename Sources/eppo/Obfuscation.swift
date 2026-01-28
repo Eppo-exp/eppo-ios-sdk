@@ -1,6 +1,21 @@
 import Foundation
 import CommonCrypto
 
+private let hexDigits: [UInt16] = Array("0123456789abcdef".utf16)
+
+/// Converts binary data to a lowercase hexadecimal string.
+func hexEncode(_ data: Data) -> String {
+    var result = ""
+    result.reserveCapacity(data.count * 2)
+
+    for byte in data {
+        result.unicodeScalars.append(UnicodeScalar(hexDigits[Int(byte >> 4)])!)
+        result.unicodeScalars.append(UnicodeScalar(hexDigits[Int(byte & 0x0F)])!)
+    }
+
+    return result
+}
+
 func getMD5Hex(_ value: String, salt: String = "") -> String {
     let length = Int(CC_MD5_DIGEST_LENGTH)
     let saltedValue = salt + value
@@ -19,7 +34,7 @@ func getMD5Hex(_ value: String, salt: String = "") -> String {
         }
     }
 
-    return digestData.map { String(format: "%02hhx", $0) }.joined()
+    return hexEncode(digestData)
 }
 
 func base64Encode(_ value: String) -> String {

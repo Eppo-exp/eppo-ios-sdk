@@ -9,7 +9,7 @@ class MD5Sharder: Sharder {
     func getShard(input: String, totalShards: Int) -> Int {
         let inputData = Data(input.utf8)
         let hash = Insecure.MD5.hash(data: inputData)
-        let hexString = hash.map { String(format: "%02hhx", $0) }.joined()
+        let hexString = hexEncode(Data(hash))
 
         // Get the first 8 characters of the MD5 hex string and parse them as an integer using base 16
         let substringIndex = hexString.index(hexString.startIndex, offsetBy: 8)
