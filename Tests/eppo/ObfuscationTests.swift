@@ -36,4 +36,19 @@ final class ObfuscationTests: XCTestCase {
         let parsedDate = parseUtcISODateElement(invalidBase64EncodedDate)
         XCTAssertNil(parsedDate, "The parsed date should be nil for an invalid base64 encoded ISO string.")
     }
+
+    // MARK: - MD5 Hash Tests
+
+    func testGetMD5Hex_KnownValues() {
+        // Test values from .NET SDK (eppo-sdk-test/helpers/SharderTest.cs)
+        XCTAssertEqual(getMD5Hex("hello-world"), "2095312189753de6ad47dfe20cbe97ec")
+        XCTAssertEqual(getMD5Hex("another-string-with-experiment-subject"), "fd6bfc667b1bcdb901173f3d712e6c50")
+    }
+
+    func testGetMD5Hex_WithSalt() {
+        // Salt should be prepended to value
+        let valueOnly = getMD5Hex("saltvalue")
+        let withSalt = getMD5Hex("value", salt: "salt")
+        XCTAssertEqual(valueOnly, withSalt)
+    }
 }

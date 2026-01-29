@@ -1,26 +1,25 @@
 import Foundation
 import CryptoKit
 
-private let hexDigits: [UInt16] = Array("0123456789abcdef".utf16)
-
-/// Converts binary data to a lowercase hexadecimal string.
-func hexEncode(_ data: Data) -> String {
-    var result = ""
-    result.reserveCapacity(data.count * 2)
-
-    for byte in data {
-        result.unicodeScalars.append(UnicodeScalar(hexDigits[Int(byte >> 4)])!)
-        result.unicodeScalars.append(UnicodeScalar(hexDigits[Int(byte & 0x0F)])!)
-    }
-
-    return result
-}
+private let hexTable: StaticString = "0123456789abcdef"
 
 func getMD5Hex(_ value: String, salt: String = "") -> String {
     let saltedValue = salt + value
     let messageData = Data(saltedValue.utf8)
     let digest = Insecure.MD5.hash(data: messageData)
-    return hexEncode(Data(digest))
+
+    // MD5 produces 16 bytes = 32 hex characters
+    var result = ""
+    result.reserveCapacity(32)
+
+    hexTable.withUTF8Buffer { hexDigits in
+        for byte in digest {
+            result.unicodeScalars.append(UnicodeScalar(hexDigits[Int(byte >> 4)]))
+            result.unicodeScalars.append(UnicodeScalar(hexDigits[Int(byte & 0x0F)]))
+        }
+    }
+
+    return result
 }
 
 func base64Encode(_ value: String) -> String {
