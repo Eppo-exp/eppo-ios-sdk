@@ -25,12 +25,32 @@ help: Makefile
 	@sed -n 's/^##//p' $<
 
 .PHONY: build
-build: 
+build:
 	swift build
 
 .PHONY: test
 test:
 	swift test
+
+## lint - Run SwiftLint to check code style
+.PHONY: lint
+lint:
+	@if command -v swiftlint >/dev/null 2>&1; then \
+		swiftlint lint --strict; \
+	else \
+		echo "$(ERROR)SwiftLint not installed. Install with: brew install swiftlint$(END)"; \
+		exit 1; \
+	fi
+
+## lint-fix - Run SwiftLint and auto-fix violations where possible
+.PHONY: lint-fix
+lint-fix:
+	@if command -v swiftlint >/dev/null 2>&1; then \
+		swiftlint lint --fix && swiftlint lint --strict; \
+	else \
+		echo "$(ERROR)SwiftLint not installed. Install with: brew install swiftlint$(END)"; \
+		exit 1; \
+	fi
 
 ## test-data
 testDataDir := Tests/eppo/Resources/test-data/
