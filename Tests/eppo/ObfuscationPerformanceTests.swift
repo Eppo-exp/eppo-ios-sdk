@@ -14,6 +14,7 @@ class ObfuscationPerformanceTests: XCTestCase {
         let saltedValue = salt + value
         let messageData = Data(saltedValue.utf8)
         let digest = Insecure.MD5.hash(data: messageData)
+        // swiftlint:disable:next slow_hex_encoding
         return Data(digest).map { String(format: "%02hhx", $0) }.joined()
     }
 

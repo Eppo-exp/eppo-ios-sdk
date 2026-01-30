@@ -1,0 +1,69 @@
+# SwiftLint configuration for Eppo iOS SDK
+
+# Paths to include/exclude
+included:
+  - Sources
+  - Tests
+
+excluded:
+  - .build
+  - .swiftpm
+  - Tests/eppo/Resources
+
+# Disabled rules - rules that would require significant refactoring of existing code
+disabled_rules:
+  - trailing_whitespace
+  - line_length
+  - identifier_name           # Existing code uses SCREAMING_SNAKE_CASE for constants
+  - type_name                 # Existing code uses UFC_ prefix for types
+  - force_unwrapping          # Existing code uses force unwrapping in safe contexts
+  - force_try                 # Tests commonly use try! for simplicity
+  - force_cast                # Existing code uses force casts in safe contexts
+  - discouraged_optional_boolean
+  - modifier_order            # Existing code has different modifier ordering
+  - switch_case_alignment     # Existing code uses different alignment style
+  - opening_brace             # Existing code uses different brace style
+  - function_parameter_count  # Existing code has functions with many parameters
+  - for_where                 # Existing code prefers if inside for loops
+  - todo                      # Allow TODO comments in codebase
+  - large_tuple               # Existing code uses larger tuples
+  - file_length               # Some files are large but well-organized
+  - type_body_length          # Some classes are large but well-organized
+  - function_body_length      # Some functions are large but clear
+  - cyclomatic_complexity     # Some functions have necessary complexity
+  - closure_parameter_position
+  - vertical_whitespace
+  - trailing_newline
+  - implicit_optional_initialization
+  - non_optional_string_data_conversion
+  - function_name_whitespace
+  - redundant_discardable_let  # Existing code uses let _ = pattern
+
+# Opt-in rules - additional checks we want to enable
+opt_in_rules:
+  - closure_spacing
+  - contains_over_first_not_nil
+  - empty_string
+  - first_where
+  - last_where
+  - legacy_random
+  - overridden_super_call
+  - prohibited_super_call
+  - redundant_nil_coalescing
+  - sorted_first_last
+  - yoda_condition
+
+# Custom rules
+custom_rules:
+  slow_hex_encoding:
+    name: "Slow Hex Encoding"
+    regex: '\.map\s*\{\s*String\(format:\s*["\u0027]%0?2h?h?[xX]["\u0027]'
+    message: "Avoid using String(format:) for hex encoding in map - it's slow due to intermediate String allocations. Use a lookup table or direct hex conversion instead."
+    severity: error
+
+# Rule configurations
+nesting:
+  type_level:
+    warning: 3
+  function_level:
+    warning: 5

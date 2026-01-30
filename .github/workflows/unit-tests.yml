@@ -25,6 +25,20 @@ on:
         required: false
 
 jobs:
+  lint:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          repository: Eppo-exp/eppo-ios-sdk
+          ref: ${{ env.SDK_BRANCH_NAME }}
+
+      - name: Install SwiftLint
+        run: brew install swiftlint
+
+      - name: Run SwiftLint
+        run: make lint
+
   build:
     runs-on: macos-latest
     steps:
@@ -37,7 +51,7 @@ jobs:
       - uses: actions/checkout@v3
         with:
           repository: Eppo-exp/eppo-ios-sdk
-          ref: ${{ env.SDK_BRANCH_NAME}}
+          ref: ${{ env.SDK_BRANCH_NAME }}
 
       - name: Build
         run: make build
