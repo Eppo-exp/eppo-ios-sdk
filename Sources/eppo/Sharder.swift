@@ -11,9 +11,11 @@ class MD5Sharder: Sharder {
         let hash = Insecure.MD5.hash(data: inputData)
 
         // Read first 4 bytes as big-endian UInt32
-        var value: UInt32 = 0
-        for byte in hash.prefix(4) {
-            value = (value << 8) | UInt32(byte)
+        let value = hash.withUnsafeBytes { bytes in
+          (UInt32(bytes[0]) << 24) |
+          (UInt32(bytes[1]) << 16) |
+          (UInt32(bytes[2]) << 8) |
+          (UInt32(bytes[3]))
         }
 
         return Int(value % UInt32(totalShards))
