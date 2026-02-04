@@ -368,8 +368,8 @@ public class EppoPrecomputedClient {
             subjectAttributes: precompute.subjectAttributes,
             metaData: [
                 "obfuscated": "true",
-                "sdkName": sdkName,
-                "sdkVersion": sdkVersion
+                "sdkLanguage": sdkName,
+                "sdkLibVersion": sdkVersion
             ],
             extraLogging: flag.extraLogging
         )

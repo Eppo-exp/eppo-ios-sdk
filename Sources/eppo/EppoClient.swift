@@ -419,8 +419,8 @@ public class EppoClient {
                         subjectAttributes: subjectAttributes,
                         metaData: [
                             "obfuscated": String(configuration.obfuscated),
-                            "sdkName": sdkName,
-                            "sdkVersion": sdkVersion
+                            "sdkLanguage": sdkName,
+                            "sdkLibVersion": sdkVersion
                         ],
                         extraLogging: flagEvaluation.extraLogging,
                         entityId: entityId
