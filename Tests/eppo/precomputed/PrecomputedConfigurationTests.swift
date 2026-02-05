@@ -37,7 +37,7 @@ class PrecomputedConfigurationTests: XCTestCase {
 
         let config = PrecomputedConfiguration(
             flags: flags,
-            salt: base64Encode("test-salt"),
+            salt: "test-salt",
             format: "PRECOMPUTED",
             fetchedAt: fetchedAt,
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
@@ -46,7 +46,7 @@ class PrecomputedConfigurationTests: XCTestCase {
         )
 
         XCTAssertEqual(config.flags.count, 2)
-        XCTAssertEqual(config.salt, base64Encode("test-salt"))
+        XCTAssertEqual(config.salt, "test-salt")
         XCTAssertEqual(config.format, "PRECOMPUTED")
         XCTAssertEqual(config.fetchedAt, fetchedAt)
         XCTAssertEqual(config.publishedAt, publishedAt)

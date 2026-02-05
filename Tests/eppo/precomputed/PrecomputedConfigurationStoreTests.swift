@@ -97,7 +97,7 @@ class PrecomputedConfigurationStoreTests: XCTestCase {
             let testPrecompute = Precompute(subjectKey: "test-user-\(index)", subjectAttributes: [:])
             let config = PrecomputedConfiguration(
                 flags: ["flag\(index)": createSampleFlag()],
-                salt: base64Encode("salt-\(index)"),
+                salt: "salt-\(index)",
                 format: "PRECOMPUTED",
                 fetchedAt: Date(),
                 subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
@@ -178,7 +178,7 @@ class PrecomputedConfigurationStoreTests: XCTestCase {
         let testPrecompute = Precompute(subjectKey: "test-user", subjectAttributes: [:])
         return PrecomputedConfiguration(
             flags: flags,
-            salt: base64Encode("test-salt"),
+            salt: "test-salt",
             format: "PRECOMPUTED",
             fetchedAt: Date(),
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),

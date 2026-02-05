@@ -46,7 +46,7 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
                     doLog: true
                 )
             ],
-            salt: base64Encode("test-salt"),
+            salt: "test-salt",
             format: "PRECOMPUTED",
             fetchedAt: Date(),
             subject: Subject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
@@ -65,7 +65,7 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
         // Test re-initialization throws error after first initialization
         let testConfig2 = PrecomputedConfiguration(
             flags: [:],
-            salt: base64Encode("test-salt"),
+            salt: "test-salt",
             format: "PRECOMPUTED",
             fetchedAt: Date(),
             subject: Subject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
@@ -116,7 +116,7 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
                     doLog: true
                 )
             ],
-            salt: base64Encode("test-salt"),
+            salt: "test-salt",
             format: "PRECOMPUTED",
             fetchedAt: Date(),
             subject: Subject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
@@ -134,7 +134,7 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
         XCTAssertNotNil(client)
 
         XCTAssertEqual(mockConfigChangeCallback.configurations.count, 1)
-        XCTAssertEqual(mockConfigChangeCallback.configurations[0].salt, base64Encode("test-salt"))
+        XCTAssertEqual(mockConfigChangeCallback.configurations[0].salt, "test-salt")
         let result = client.getStringAssignment(
             flagKey: "test-flag",
             defaultValue: "default"
@@ -166,7 +166,7 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
 
         let config1 = PrecomputedConfiguration(
             flags: testConfig1,
-            salt: base64Encode("test-salt"),
+            salt: "test-salt",
             format: "PRECOMPUTED",
             fetchedAt: Date(),
             subject: Subject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
@@ -176,7 +176,7 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
 
         let config2 = PrecomputedConfiguration(
             flags: testConfig2,
-            salt: base64Encode("test-salt"),
+            salt: "test-salt",
             format: "PRECOMPUTED",
             fetchedAt: Date(),
             subject: Subject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
@@ -219,7 +219,7 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
     func testInitializationWithoutLogger() {
         let testConfig = PrecomputedConfiguration(
             flags: [:],
-            salt: base64Encode("test-salt"),
+            salt: "test-salt",
             format: "PRECOMPUTED",
             fetchedAt: Date(),
             subject: Subject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
@@ -262,7 +262,7 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
     func testConfigurationChangeCallbackIsCalledOnInit() {
         let testConfig = PrecomputedConfiguration(
             flags: [:],
-            salt: base64Encode("test-salt"),
+            salt: "test-salt",
             format: "PRECOMPUTED",
             fetchedAt: Date(),
             subject: Subject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
@@ -277,7 +277,7 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
         )
 
         XCTAssertEqual(mockConfigChangeCallback.configurations.count, 1)
-        XCTAssertEqual(mockConfigChangeCallback.configurations[0].salt, base64Encode("test-salt"))
+        XCTAssertEqual(mockConfigChangeCallback.configurations[0].salt, "test-salt")
         XCTAssertEqual(mockConfigChangeCallback.configurations[0].format, "PRECOMPUTED")
     }
 
@@ -286,7 +286,7 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
     func testInitializationWithMinimalParameters() {
         let testConfig = PrecomputedConfiguration(
             flags: [:],
-            salt: base64Encode("test-salt"),
+            salt: "test-salt",
             format: "PRECOMPUTED",
             fetchedAt: Date(),
             subject: Subject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
