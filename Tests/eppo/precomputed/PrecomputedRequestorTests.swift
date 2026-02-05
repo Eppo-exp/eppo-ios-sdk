@@ -137,7 +137,7 @@ class PrecomputedRequestorTests: XCTestCase {
         XCTAssertTrue(json.contains("\"categoricalAttributes\""))
     }
 
-    func testContextAttributesExcludesNullValues() {
+    func testContextAttributesIncludesNullsInCategorical() {
         let attributes: [String: EppoValue] = [
             "validString": EppoValue(value: "test"),
             "validNumber": EppoValue(value: 42),
@@ -146,8 +146,8 @@ class PrecomputedRequestorTests: XCTestCase {
 
         let contextAttributes = ContextAttributes(from: attributes)
 
-        let totalAttributes = contextAttributes.numericAttributes.count +
-                              contextAttributes.categoricalAttributes.count
-        XCTAssertEqual(totalAttributes, 2)
+        XCTAssertEqual(contextAttributes.numericAttributes.count, 1)
+        XCTAssertEqual(contextAttributes.categoricalAttributes.count, 2)
+        XCTAssertNotNil(contextAttributes.categoricalAttributes["nullValue"])
     }
 }

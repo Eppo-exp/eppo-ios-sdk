@@ -135,7 +135,7 @@ struct ContextAttributes: Encodable {
         for (key, value) in attributes {
             if value.isNumeric() {
                 numeric[key] = value
-            } else if !value.isNull() {
+            } else {
                 categorical[key] = value
             }
         }
