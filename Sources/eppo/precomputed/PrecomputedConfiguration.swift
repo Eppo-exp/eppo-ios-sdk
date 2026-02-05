@@ -241,10 +241,6 @@ struct DecodedPrecomputedConfiguration: Codable {
 
 extension PrecomputedConfiguration {
     func decode() -> DecodedPrecomputedConfiguration? {
-        guard let decodedSalt = base64Decode(self.salt) else {
-            return nil
-        }
-
         var decodedFlags: [String: DecodedPrecomputedFlag] = [:]
         for (key, flag) in self.flags {
             guard let decodedFlag = decodeFlag(flag) else {
@@ -255,7 +251,7 @@ extension PrecomputedConfiguration {
 
         return DecodedPrecomputedConfiguration(
             flags: decodedFlags,
-            decodedSalt: decodedSalt,
+            decodedSalt: self.salt,
             format: self.format,
             fetchedAt: self.fetchedAt,
             publishedAt: self.publishedAt,

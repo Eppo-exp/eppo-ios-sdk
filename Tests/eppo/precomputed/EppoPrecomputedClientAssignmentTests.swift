@@ -139,7 +139,7 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
 
         testConfiguration = PrecomputedConfiguration(
             flags: testFlags,
-            salt: base64Encode("test-salt"),
+            salt: "test-salt",
             format: "PRECOMPUTED",
             fetchedAt: Date(),
             subject: Subject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),

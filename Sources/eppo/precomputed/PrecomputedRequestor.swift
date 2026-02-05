@@ -114,7 +114,35 @@ extension PrecomputedRequestor {
 /// Payload for requesting precomputed flags
 struct PrecomputedFlagsPayload: Encodable {
     let subjectKey: String
-    let subjectAttributes: [String: EppoValue]
+    let subjectAttributes: ContextAttributes
+
+    init(subjectKey: String, subjectAttributes: [String: EppoValue]) {
+        self.subjectKey = subjectKey
+        self.subjectAttributes = ContextAttributes(from: subjectAttributes)
+    }
+}
+
+/// Attribute context with numeric and categorical separation, as expected by the API.
+/// Used for subject attributes and bandit actions.
+struct ContextAttributes: Encodable {
+    let numericAttributes: [String: EppoValue]
+    let categoricalAttributes: [String: EppoValue]
+
+    init(from attributes: [String: EppoValue]) {
+        var numeric: [String: EppoValue] = [:]
+        var categorical: [String: EppoValue] = [:]
+
+        for (key, value) in attributes {
+            if value.isNumeric() {
+                numeric[key] = value
+            } else {
+                categorical[key] = value
+            }
+        }
+
+        self.numericAttributes = numeric
+        self.categoricalAttributes = categorical
+    }
 }
 
 // MARK: - Errors

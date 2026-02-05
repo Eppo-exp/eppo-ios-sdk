@@ -28,7 +28,7 @@ class EppoPrecomputedClientPollingTests: XCTestCase {
                     doLog: true
                 )
             ],
-            salt: base64Encode("test-salt"),
+            salt: "test-salt",
             format: "PRECOMPUTED",
             fetchedAt: Date(),
             subject: Subject(

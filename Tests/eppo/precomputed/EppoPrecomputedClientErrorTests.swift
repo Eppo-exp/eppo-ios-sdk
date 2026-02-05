@@ -261,7 +261,7 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
                     doLog: true // Logging enabled but will be skipped due to invalid base64
                 )
             ],
-            salt: base64Encode("test-salt"),
+            salt: "test-salt",
             format: "PRECOMPUTED",
             fetchedAt: Date(),
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
@@ -297,7 +297,7 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
                     doLog: true
                 )
             ],
-            salt: base64Encode("test-salt"),
+            salt: "test-salt",
             format: "PRECOMPUTED",
             fetchedAt: Date(),
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
@@ -324,7 +324,7 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
         // Prepare valid response
         let testConfig = PrecomputedConfiguration(
             flags: [:],
-            salt: base64Encode("test-salt"),
+            salt: "test-salt",
             format: "PRECOMPUTED",
             fetchedAt: Date(),
             subject: Subject(
@@ -415,7 +415,7 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
                     doLog: true
                 )
             ],
-            salt: base64Encode("test-salt"),
+            salt: "test-salt",
             format: "PRECOMPUTED",
             fetchedAt: oldDate,
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
@@ -452,7 +452,7 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
 
         let testConfig = PrecomputedConfiguration(
             flags: [:],
-            salt: base64Encode("test-salt"),
+            salt: "test-salt",
             format: "PRECOMPUTED",
             fetchedAt: Date(),
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
@@ -489,7 +489,7 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
                     doLog: true
                 )
             ],
-            salt: base64Encode("test-salt"),
+            salt: "test-salt",
             format: "PRECOMPUTED",
             fetchedAt: Date(),
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
@@ -544,7 +544,7 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
                     doLog: true
                 )
             ],
-            salt: base64Encode("test-salt"),
+            salt: "test-salt",
             format: "PRECOMPUTED",
             fetchedAt: Date(),
             subject: Subject(
