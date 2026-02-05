@@ -86,7 +86,6 @@ class PrecomputedRequestorTests: XCTestCase {
     // MARK: - Error Type Tests
 
     func testNetworkErrorTypes() {
-        // Test error descriptions
         let invalidURLError = NetworkError.invalidURL
         XCTAssertEqual(invalidURLError.errorDescription, "Invalid URL")
 
@@ -98,5 +97,57 @@ class PrecomputedRequestorTests: XCTestCase {
 
         let decodingError = NetworkError.decodingError(NSError(domain: "test", code: 1))
         XCTAssertTrue(decodingError.errorDescription?.contains("Failed to decode response") ?? false)
+    }
+
+    // MARK: - ContextAttributes Tests
+
+    func testContextAttributesSeparatesNumericAndCategorical() {
+        let flatAttributes: [String: EppoValue] = [
+            "age": EppoValue(value: 25),
+            "score": EppoValue(value: 99.5),
+            "country": EppoValue(value: "US"),
+            "isPremium": EppoValue(value: true)
+        ]
+
+        let contextAttributes = ContextAttributes(from: flatAttributes)
+
+        XCTAssertEqual(contextAttributes.numericAttributes.count, 2)
+        XCTAssertNotNil(contextAttributes.numericAttributes["age"])
+        XCTAssertNotNil(contextAttributes.numericAttributes["score"])
+
+        XCTAssertEqual(contextAttributes.categoricalAttributes.count, 2)
+        XCTAssertNotNil(contextAttributes.categoricalAttributes["country"])
+        XCTAssertNotNil(contextAttributes.categoricalAttributes["isPremium"])
+    }
+
+    func testContextAttributesEncodesToExpectedFormat() throws {
+        let attributes: [String: EppoValue] = [
+            "age": EppoValue(value: 30),
+            "country": EppoValue(value: "UK")
+        ]
+
+        let contextAttributes = ContextAttributes(from: attributes)
+
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .sortedKeys
+        let data = try encoder.encode(contextAttributes)
+        let json = String(data: data, encoding: .utf8)!
+
+        XCTAssertTrue(json.contains("\"numericAttributes\""))
+        XCTAssertTrue(json.contains("\"categoricalAttributes\""))
+    }
+
+    func testContextAttributesExcludesNullValues() {
+        let attributes: [String: EppoValue] = [
+            "validString": EppoValue(value: "test"),
+            "validNumber": EppoValue(value: 42),
+            "nullValue": EppoValue()
+        ]
+
+        let contextAttributes = ContextAttributes(from: attributes)
+
+        let totalAttributes = contextAttributes.numericAttributes.count +
+                              contextAttributes.categoricalAttributes.count
+        XCTAssertEqual(totalAttributes, 2)
     }
 }
