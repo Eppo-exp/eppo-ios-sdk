@@ -319,22 +319,17 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
     // MARK: - Concurrent Initialization Tests
 
     func testConcurrentInitializationAttempts() async throws {
-        // Prepare valid response
-        let testConfig = PrecomputedConfiguration(
-            flags: [:],
-            salt: "test-salt",
-            format: "PRECOMPUTED",
-            subject: Subject(
-                subjectKey: testPrecompute.subjectKey,
-                subjectAttributes: testPrecompute.subjectAttributes
-            ),
-            publishedAt: Date(),
-            environment: nil
-        )
+        // Prepare valid server response (matches PrecomputedServerResponse structure)
+        // Note: This must match what PrecomputedRequestor expects to decode
+        let serverResponse: [String: Any] = [
+            "flags": [:] as [String: Any],
+            "salt": "test-salt",
+            "format": "PRECOMPUTED",
+            "createdAt": ISO8601DateFormatter().string(from: Date()),
+            "environment": ["name": "test"]
+        ]
 
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
-        MockURLSessionForErrors.responseData = try encoder.encode(testConfig)
+        MockURLSessionForErrors.responseData = try JSONSerialization.data(withJSONObject: serverResponse)
         MockURLSessionForErrors.requestDelay = 0.01 // Minimal delay to ensure concurrency
 
         // Use actor for thread-safe result collection
@@ -382,8 +377,19 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
             }
         }
 
-        XCTAssertEqual(successes.count, 5, "All concurrent initialization attempts should succeed")
+        // Log failures for debugging
+        for (index, failure) in failures.enumerated() {
+            print("Concurrent init failure \(index): \(failure)")
+        }
+
+        XCTAssertEqual(successes.count, 5, "All concurrent initialization attempts should succeed. Failures: \(failures)")
         XCTAssertEqual(failures.count, 0, "No failures should occur with concurrent initialization")
+
+        // Guard against empty array before accessing
+        guard !successes.isEmpty else {
+            XCTFail("No successful initializations - cannot verify singleton behavior")
+            return
+        }
 
         // Verify all successes return the same instance
         let firstInstance = successes[0]
