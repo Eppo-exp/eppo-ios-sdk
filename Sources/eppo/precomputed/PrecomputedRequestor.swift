@@ -55,13 +55,24 @@ class PrecomputedRequestor {
             throw NetworkError.httpError(statusCode: httpResponse.statusCode)
         }
 
-        // Decode the response
+        // Decode the server response and construct configuration with fetchedAt
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
 
         do {
-            let configuration = try decoder.decode(PrecomputedConfiguration.self, from: data)
-            return configuration
+            let serverResponse = try decoder.decode(PrecomputedServerResponse.self, from: data)
+            return PrecomputedConfiguration(
+                flags: serverResponse.flags,
+                salt: serverResponse.salt,
+                format: serverResponse.format,
+                fetchedAt: Date(),
+                subject: Subject(
+                    subjectKey: _precompute.subjectKey,
+                    subjectAttributes: _precompute.subjectAttributes
+                ),
+                publishedAt: serverResponse.createdAt,
+                environment: serverResponse.environment
+            )
         } catch {
             throw NetworkError.decodingError(error)
         }
@@ -147,6 +158,17 @@ struct ContextAttributes: Encodable {
         self.numericAttributes = numeric
         self.categoricalAttributes = categorical
     }
+}
+
+// MARK: - Server Response
+
+/// Server response format for precomputed flags (without fetchedAt, which is added client-side)
+struct PrecomputedServerResponse: Decodable {
+    let flags: [String: PrecomputedFlag]
+    let salt: String
+    let format: String
+    let createdAt: Date
+    let environment: Environment?
 }
 
 // MARK: - Errors
