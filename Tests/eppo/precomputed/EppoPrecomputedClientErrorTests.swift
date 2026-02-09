@@ -264,7 +264,7 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
             salt: "test-salt",
             format: "PRECOMPUTED",
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
-            publishedAt: Date(),
+            publishedAt: ISO8601DateFormatter().string(from: Date()),
             environment: nil
         )
 
@@ -299,7 +299,7 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
             salt: "test-salt",
             format: "PRECOMPUTED",
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
-            publishedAt: Date(),
+            publishedAt: ISO8601DateFormatter().string(from: Date()),
             environment: nil
         )
 
@@ -321,11 +321,13 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
     func testConcurrentInitializationAttempts() async throws {
         // Prepare valid server response (matches PrecomputedServerResponse structure)
         // Note: This must match what PrecomputedRequestor expects to decode
+        let dateFormatter = ISO8601DateFormatter()
+        dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         let serverResponse: [String: Any] = [
             "flags": [:] as [String: Any],
             "salt": "test-salt",
             "format": "PRECOMPUTED",
-            "createdAt": ISO8601DateFormatter().string(from: Date()),
+            "createdAt": dateFormatter.string(from: Date()),
             "environment": ["name": "test"]
         ]
 
@@ -377,11 +379,6 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
             }
         }
 
-        // Log failures for debugging
-        for (index, failure) in failures.enumerated() {
-            print("Concurrent init failure \(index): \(failure)")
-        }
-
         XCTAssertEqual(successes.count, 5, "All concurrent initialization attempts should succeed. Failures: \(failures)")
         XCTAssertEqual(failures.count, 0, "No failures should occur with concurrent initialization")
 
@@ -404,7 +401,7 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
         // Test the actual expired configuration scenario with working assignment logging
         EppoPrecomputedClient.resetForTesting()
 
-        let oldDate = Date(timeIntervalSinceNow: -86400 * 30) // 30 days ago
+        let oldDate = ISO8601DateFormatter().string(from: Date(timeIntervalSinceNow: -86400 * 30)) // 30 days ago
         let testLogger = ErrorTestLogger()
 
         let testConfig = PrecomputedConfiguration(
@@ -457,7 +454,7 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
             salt: "test-salt",
             format: "PRECOMPUTED",
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
-            publishedAt: Date(),
+            publishedAt: ISO8601DateFormatter().string(from: Date()),
             environment: nil
         )
 
@@ -493,7 +490,7 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
             salt: "test-salt",
             format: "PRECOMPUTED",
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
-            publishedAt: Date(),
+            publishedAt: ISO8601DateFormatter().string(from: Date()),
             environment: nil
         )
 
@@ -550,7 +547,7 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
                 subjectKey: testPrecompute.subjectKey,
                 subjectAttributes: testPrecompute.subjectAttributes
             ),
-            publishedAt: Date(),
+            publishedAt: ISO8601DateFormatter().string(from: Date()),
             environment: nil
         )
 

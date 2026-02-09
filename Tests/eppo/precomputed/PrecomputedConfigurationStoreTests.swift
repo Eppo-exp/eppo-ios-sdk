@@ -100,7 +100,7 @@ class PrecomputedConfigurationStoreTests: XCTestCase {
                 salt: "salt-\(index)",
                 format: "PRECOMPUTED",
                     subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
-                publishedAt: Date()
+                publishedAt: ISO8601DateFormatter().string(from: Date())
             )
             store.setConfiguration(config)
             expectation.fulfill()
@@ -180,7 +180,7 @@ class PrecomputedConfigurationStoreTests: XCTestCase {
             salt: "test-salt",
             format: "PRECOMPUTED",
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
-            publishedAt: Date(timeIntervalSinceNow: -3600),
+            publishedAt: ISO8601DateFormatter().string(from: Date(timeIntervalSinceNow: -3600)),
             environment: Environment(name: "test")
         )
     }

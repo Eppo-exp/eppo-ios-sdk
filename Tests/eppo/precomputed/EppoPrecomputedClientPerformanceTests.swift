@@ -249,7 +249,7 @@ class EppoPrecomputedClientPerformanceTests: XCTestCase {
                 subjectKey: testPrecompute.subjectKey,
                 subjectAttributes: testPrecompute.subjectAttributes
             ),
-            publishedAt: Date(),
+            publishedAt: ISO8601DateFormatter().string(from: Date()),
             environment: nil
         )
     }
@@ -312,7 +312,7 @@ class EppoPrecomputedClientPerformanceTests: XCTestCase {
                 subjectKey: testPrecompute.subjectKey,
                 subjectAttributes: testPrecompute.subjectAttributes
             ),
-            publishedAt: Date(),
+            publishedAt: ISO8601DateFormatter().string(from: Date()),
             environment: nil
         )
     }

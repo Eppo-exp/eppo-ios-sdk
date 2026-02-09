@@ -147,14 +147,15 @@ class PrecomputedRequestorTests: XCTestCase {
         )
 
         let encoder = JSONEncoder()
-        encoder.outputFormatting = .sortedKeys
         let data = try encoder.encode(payload)
-        let json = String(data: data, encoding: .utf8)!
+        let jsonObject = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
 
-        XCTAssertTrue(json.contains("\"subject_key\""), "JSON was: \(json)")
-        XCTAssertTrue(json.contains("\"subject_attributes\""), "JSON was: \(json)")
-        XCTAssertTrue(json.contains("\"numericAttributes\""), "JSON was: \(json)")
-        XCTAssertTrue(json.contains("\"categoricalAttributes\""), "JSON was: \(json)")
+        XCTAssertNotNil(jsonObject["subject_key"])
+        XCTAssertNotNil(jsonObject["subject_attributes"])
+
+        let subjectAttributes = try XCTUnwrap(jsonObject["subject_attributes"] as? [String: Any])
+        XCTAssertNotNil(subjectAttributes["numericAttributes"])
+        XCTAssertNotNil(subjectAttributes["categoricalAttributes"])
     }
 
     func testContextAttributesIncludesNullsInCategorical() {

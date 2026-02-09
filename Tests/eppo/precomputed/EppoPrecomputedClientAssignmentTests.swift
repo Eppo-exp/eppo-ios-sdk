@@ -142,7 +142,7 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
             salt: "test-salt",
             format: "PRECOMPUTED",
             subject: Subject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
-            publishedAt: Date(),
+            publishedAt: ISO8601DateFormatter().string(from: Date()),
             environment: Environment(name: "test")
         )
 

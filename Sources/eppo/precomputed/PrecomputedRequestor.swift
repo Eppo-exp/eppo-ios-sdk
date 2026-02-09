@@ -56,11 +56,8 @@ class PrecomputedRequestor {
         }
 
         // Decode the server response and construct configuration
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-
         do {
-            let serverResponse = try decoder.decode(PrecomputedServerResponse.self, from: data)
+            let serverResponse = try JSONDecoder().decode(PrecomputedServerResponse.self, from: data)
             return PrecomputedConfiguration(
                 flags: serverResponse.flags,
                 salt: serverResponse.salt,
@@ -69,6 +66,7 @@ class PrecomputedRequestor {
                     subjectKey: _precompute.subjectKey,
                     subjectAttributes: _precompute.subjectAttributes
                 ),
+                // The server's `createdAt` represents the time this precomputed configuration was published
                 publishedAt: serverResponse.createdAt,
                 environment: serverResponse.environment
             )
@@ -166,7 +164,7 @@ struct PrecomputedServerResponse: Decodable {
     let flags: [String: PrecomputedFlag]
     let salt: String
     let format: String
-    let createdAt: Date
+    let createdAt: String
     let environment: Environment?
 }
 

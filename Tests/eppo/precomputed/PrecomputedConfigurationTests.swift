@@ -30,7 +30,7 @@ class PrecomputedConfigurationTests: XCTestCase {
 
     func testInitialization() {
         let flags = createSampleFlags()
-        let publishedAt = Date(timeIntervalSinceNow: -3600) // 1 hour ago
+        let publishedAt = ISO8601DateFormatter().string(from: Date(timeIntervalSinceNow: -3600)) // 1 hour ago
         let environment = Environment(name: "production")
         let testPrecompute = Precompute(subjectKey: "test-user", subjectAttributes: [:])
 
@@ -52,7 +52,7 @@ class PrecomputedConfigurationTests: XCTestCase {
 
     func testInitializationWithMinimalData() {
         let testPrecompute = Precompute(subjectKey: "test-user", subjectAttributes: [:])
-        let publishedAt = Date()
+        let publishedAt = ISO8601DateFormatter().string(from: Date())
         let config = PrecomputedConfiguration(
             flags: [:],
             salt: "minimal-salt",
@@ -76,12 +76,11 @@ class PrecomputedConfigurationTests: XCTestCase {
             salt: "encode-test-salt",
             format: "PRECOMPUTED",
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
-            publishedAt: Date(timeIntervalSinceNow: -3600),
+            publishedAt: ISO8601DateFormatter().string(from: Date(timeIntervalSinceNow: -3600)),
             environment: Environment(name: "staging")
         )
 
         let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
         let data = try encoder.encode(originalConfig)
 
         let decoder = JSONDecoder()

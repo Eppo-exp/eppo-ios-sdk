@@ -49,7 +49,7 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
             salt: "test-salt",
             format: "PRECOMPUTED",
             subject: Subject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
-            publishedAt: Date(),
+            publishedAt: ISO8601DateFormatter().string(from: Date()),
             environment: Environment(name: "test")
         )
 
@@ -67,7 +67,7 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
             salt: "test-salt",
             format: "PRECOMPUTED",
             subject: Subject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
-            publishedAt: Date(),
+            publishedAt: ISO8601DateFormatter().string(from: Date()),
             environment: nil
         )
 
@@ -117,7 +117,7 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
             salt: "test-salt",
             format: "PRECOMPUTED",
             subject: Subject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
-            publishedAt: Date(),
+            publishedAt: ISO8601DateFormatter().string(from: Date()),
             environment: Environment(name: "test")
         )
 
@@ -166,7 +166,7 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
             salt: "test-salt",
             format: "PRECOMPUTED",
             subject: Subject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
-            publishedAt: Date(),
+            publishedAt: ISO8601DateFormatter().string(from: Date()),
             environment: nil
         )
 
@@ -175,7 +175,7 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
             salt: "test-salt",
             format: "PRECOMPUTED",
             subject: Subject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
-            publishedAt: Date(),
+            publishedAt: ISO8601DateFormatter().string(from: Date()),
             environment: nil
         )
 
@@ -217,7 +217,7 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
             salt: "test-salt",
             format: "PRECOMPUTED",
             subject: Subject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
-            publishedAt: Date(),
+            publishedAt: ISO8601DateFormatter().string(from: Date()),
             environment: nil
         )
 
@@ -259,7 +259,7 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
             salt: "test-salt",
             format: "PRECOMPUTED",
             subject: Subject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
-            publishedAt: Date(),
+            publishedAt: ISO8601DateFormatter().string(from: Date()),
             environment: nil
         )
 
@@ -282,7 +282,7 @@ class EppoPrecomputedClientInitializationTests: XCTestCase {
             salt: "test-salt",
             format: "PRECOMPUTED",
             subject: Subject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
-            publishedAt: Date(),
+            publishedAt: ISO8601DateFormatter().string(from: Date()),
             environment: nil
         )
         let client = EppoPrecomputedClient.initializeOffline(

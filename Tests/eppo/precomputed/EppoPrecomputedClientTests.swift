@@ -18,7 +18,7 @@ class EppoPrecomputedClientTests: XCTestCase {
             salt: "salt",
             format: "PRECOMPUTED",
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
-            publishedAt: Date()
+            publishedAt: ISO8601DateFormatter().string(from: Date())
         )
         _ = EppoPrecomputedClient.initializeOffline(
             sdkKey: "mock-api-key",
@@ -47,7 +47,7 @@ class EppoPrecomputedClientTests: XCTestCase {
             salt: "salt",
             format: "PRECOMPUTED",
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
-            publishedAt: Date()
+            publishedAt: ISO8601DateFormatter().string(from: Date())
         )
         _ = EppoPrecomputedClient.initializeOffline(
             sdkKey: "mock-api-key",
@@ -70,7 +70,7 @@ class EppoPrecomputedClientTests: XCTestCase {
             salt: "salt",
             format: "PRECOMPUTED",
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
-            publishedAt: Date()
+            publishedAt: ISO8601DateFormatter().string(from: Date())
         )
         _ = EppoPrecomputedClient.initializeOffline(
             sdkKey: "mock-api-key",
@@ -98,7 +98,7 @@ class EppoPrecomputedClientTests: XCTestCase {
             salt: "salt",
             format: "PRECOMPUTED",
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
-            publishedAt: Date()
+            publishedAt: ISO8601DateFormatter().string(from: Date())
         )
         _ = EppoPrecomputedClient.initializeOffline(
             sdkKey: "mock-api-key",
@@ -147,7 +147,7 @@ class EppoPrecomputedClientTests: XCTestCase {
             salt: "salt",
             format: "PRECOMPUTED",
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
-            publishedAt: Date()
+            publishedAt: ISO8601DateFormatter().string(from: Date())
         )
         _ = EppoPrecomputedClient.initializeOffline(
             sdkKey: "mock-api-key",
