@@ -101,7 +101,6 @@ extension PrecomputedRequestor {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
         let encoder = JSONEncoder()
-        encoder.keyEncodingStrategy = .convertToSnakeCase
         request.httpBody = try encoder.encode(payload)
 
         // Simple single request like NetworkEppoHttpClient
@@ -115,6 +114,11 @@ extension PrecomputedRequestor {
 struct PrecomputedFlagsPayload: Encodable {
     let subjectKey: String
     let subjectAttributes: ContextAttributes
+
+    enum CodingKeys: String, CodingKey {
+        case subjectKey = "subject_key"
+        case subjectAttributes = "subject_attributes"
+    }
 
     init(subjectKey: String, subjectAttributes: [String: EppoValue]) {
         self.subjectKey = subjectKey
