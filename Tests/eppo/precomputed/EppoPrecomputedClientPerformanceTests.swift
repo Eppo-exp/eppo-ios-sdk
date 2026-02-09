@@ -245,7 +245,6 @@ class EppoPrecomputedClientPerformanceTests: XCTestCase {
             flags: flags,
             salt: "test-salt",
             format: "PRECOMPUTED",
-            fetchedAt: Date(),
             subject: Subject(
                 subjectKey: testPrecompute.subjectKey,
                 subjectAttributes: testPrecompute.subjectAttributes
@@ -309,7 +308,6 @@ class EppoPrecomputedClientPerformanceTests: XCTestCase {
             flags: flags,
             salt: "test-salt",
             format: "PRECOMPUTED",
-            fetchedAt: Date(),
             subject: Subject(
                 subjectKey: testPrecompute.subjectKey,
                 subjectAttributes: testPrecompute.subjectAttributes

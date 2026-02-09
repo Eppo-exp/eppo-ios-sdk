@@ -263,7 +263,6 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
             ],
             salt: "test-salt",
             format: "PRECOMPUTED",
-            fetchedAt: Date(),
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
             publishedAt: Date(),
             environment: nil
@@ -299,7 +298,6 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
             ],
             salt: "test-salt",
             format: "PRECOMPUTED",
-            fetchedAt: Date(),
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
             publishedAt: Date(),
             environment: nil
@@ -326,7 +324,6 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
             flags: [:],
             salt: "test-salt",
             format: "PRECOMPUTED",
-            fetchedAt: Date(),
             subject: Subject(
                 subjectKey: testPrecompute.subjectKey,
                 subjectAttributes: testPrecompute.subjectAttributes
@@ -417,7 +414,6 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
             ],
             salt: "test-salt",
             format: "PRECOMPUTED",
-            fetchedAt: oldDate,
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
             publishedAt: oldDate,
             environment: nil
@@ -454,7 +450,6 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
             flags: [:],
             salt: "test-salt",
             format: "PRECOMPUTED",
-            fetchedAt: Date(),
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
             publishedAt: Date(),
             environment: nil
@@ -491,7 +486,6 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
             ],
             salt: "test-salt",
             format: "PRECOMPUTED",
-            fetchedAt: Date(),
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
             publishedAt: Date(),
             environment: nil
@@ -546,7 +540,6 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
             ],
             salt: "test-salt",
             format: "PRECOMPUTED",
-            fetchedAt: Date(),
             subject: Subject(
                 subjectKey: testPrecompute.subjectKey,
                 subjectAttributes: testPrecompute.subjectAttributes

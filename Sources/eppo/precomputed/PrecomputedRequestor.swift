@@ -55,7 +55,7 @@ class PrecomputedRequestor {
             throw NetworkError.httpError(statusCode: httpResponse.statusCode)
         }
 
-        // Decode the server response and construct configuration with fetchedAt
+        // Decode the server response and construct configuration
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
 
@@ -65,7 +65,6 @@ class PrecomputedRequestor {
                 flags: serverResponse.flags,
                 salt: serverResponse.salt,
                 format: serverResponse.format,
-                fetchedAt: Date(),
                 subject: Subject(
                     subjectKey: _precompute.subjectKey,
                     subjectAttributes: _precompute.subjectAttributes
@@ -162,7 +161,7 @@ struct ContextAttributes: Encodable {
 
 // MARK: - Server Response
 
-/// Server response format for precomputed flags (without fetchedAt, which is added client-side)
+/// Server response format for precomputed flags
 struct PrecomputedServerResponse: Decodable {
     let flags: [String: PrecomputedFlag]
     let salt: String

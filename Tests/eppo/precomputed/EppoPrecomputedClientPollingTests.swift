@@ -30,7 +30,6 @@ class EppoPrecomputedClientPollingTests: XCTestCase {
             ],
             salt: "test-salt",
             format: "PRECOMPUTED",
-            fetchedAt: Date(),
             subject: Subject(
                 subjectKey: testPrecompute.subjectKey,
                 subjectAttributes: testPrecompute.subjectAttributes

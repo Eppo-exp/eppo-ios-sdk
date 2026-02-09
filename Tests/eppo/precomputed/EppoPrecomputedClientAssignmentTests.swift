@@ -141,7 +141,6 @@ class EppoPrecomputedClientAssignmentTests: XCTestCase {
             flags: testFlags,
             salt: "test-salt",
             format: "PRECOMPUTED",
-            fetchedAt: Date(),
             subject: Subject(subjectKey: testSubjectKey, subjectAttributes: testSubjectAttributes),
             publishedAt: Date(),
             environment: Environment(name: "test")

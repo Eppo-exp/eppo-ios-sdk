@@ -17,7 +17,6 @@ class EppoPrecomputedClientTests: XCTestCase {
             flags: [:],
             salt: "salt",
             format: "PRECOMPUTED",
-            fetchedAt: Date(),
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
             publishedAt: Date()
         )
@@ -47,7 +46,6 @@ class EppoPrecomputedClientTests: XCTestCase {
             flags: [:],
             salt: "salt",
             format: "PRECOMPUTED",
-            fetchedAt: Date(),
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
             publishedAt: Date()
         )
@@ -71,7 +69,6 @@ class EppoPrecomputedClientTests: XCTestCase {
             flags: [:],
             salt: "salt",
             format: "PRECOMPUTED",
-            fetchedAt: Date(),
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
             publishedAt: Date()
         )
@@ -100,7 +97,6 @@ class EppoPrecomputedClientTests: XCTestCase {
             flags: [:],
             salt: "salt",
             format: "PRECOMPUTED",
-            fetchedAt: Date(),
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
             publishedAt: Date()
         )
@@ -150,7 +146,6 @@ class EppoPrecomputedClientTests: XCTestCase {
             flags: [:],
             salt: "salt",
             format: "PRECOMPUTED",
-            fetchedAt: Date(),
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
             publishedAt: Date()
         )
