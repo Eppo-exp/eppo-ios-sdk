@@ -142,25 +142,11 @@ public class EppoPrecomputedClient {
 
         let networkConfig = try await requestor.fetchPrecomputedFlags()
 
-        // Create full configuration preserving precompute info
-        let fullConfig = PrecomputedConfiguration(
-            flags: networkConfig.flags,
-            salt: networkConfig.salt,
-            format: networkConfig.format,
-            fetchedAt: networkConfig.fetchedAt,
-            subject: Subject(
-                subjectKey: precompute.subjectKey,
-                subjectAttributes: precompute.subjectAttributes
-            ),
-            publishedAt: networkConfig.publishedAt,
-            environment: networkConfig.environment
-        )
-
         Self.sharedLock.withLock {
             self.requestor = requestor
             self.host = resolvedHost
-            self.configurationStore.setConfiguration(fullConfig)
-            self.notifyConfigurationChange(fullConfig)
+            self.configurationStore.setConfiguration(networkConfig)
+            self.notifyConfigurationChange(networkConfig)
         }
     }
 
@@ -190,23 +176,9 @@ public class EppoPrecomputedClient {
                 do {
                     let networkConfig = try await requestor.fetchPrecomputedFlags()
 
-                    // Create full configuration preserving precompute info from requestor
-                    let fullConfig = PrecomputedConfiguration(
-                        flags: networkConfig.flags,
-                        salt: networkConfig.salt,
-                        format: networkConfig.format,
-                        fetchedAt: networkConfig.fetchedAt,
-                        subject: Subject(
-                            subjectKey: requestor.precompute.subjectKey,
-                            subjectAttributes: requestor.precompute.subjectAttributes
-                        ),
-                        publishedAt: networkConfig.publishedAt,
-                        environment: networkConfig.environment
-                    )
-
                     Self.sharedLock.withLock {
-                        self.configurationStore.setConfiguration(fullConfig)
-                        self.notifyConfigurationChange(fullConfig)
+                        self.configurationStore.setConfiguration(networkConfig)
+                        self.notifyConfigurationChange(networkConfig)
                     }
                 } catch {
                     // Poller will handle retry logic

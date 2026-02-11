@@ -5,8 +5,7 @@ public struct PrecomputedConfiguration: Codable {
     let flags: [String: PrecomputedFlag]
     internal let salt: String
     internal let format: String
-    internal let fetchedAt: Date
-    internal let publishedAt: Date
+    internal let publishedAt: String
     internal let environment: Environment?
     let subject: Subject
 
@@ -14,15 +13,13 @@ public struct PrecomputedConfiguration: Codable {
         flags: [String: PrecomputedFlag],
         salt: String,
         format: String,
-        fetchedAt: Date,
         subject: Subject,
-        publishedAt: Date,
+        publishedAt: String,
         environment: Environment? = nil
     ) {
         self.flags = flags
         self.salt = salt
         self.format = format
-        self.fetchedAt = fetchedAt
         self.publishedAt = publishedAt
         self.environment = environment
         self.subject = subject
@@ -41,7 +38,6 @@ public struct PrecomputedConfiguration: Codable {
 
     internal init(precomputedConfigurationJson: Data) throws {
         let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
         let wireFormat = try decoder.decode(PrecomputedConfigurationWireFormat.self, from: precomputedConfigurationJson)
 
         // Parse the inner response JSON
@@ -51,7 +47,6 @@ public struct PrecomputedConfiguration: Codable {
         self.flags = responseDecoded.flags
         self.salt = responseDecoded.salt
         self.format = responseDecoded.format
-        self.fetchedAt = wireFormat.precomputed.fetchedAt
         self.publishedAt = responseDecoded.publishedAt
         self.environment = responseDecoded.environment
 
@@ -68,7 +63,7 @@ private struct PrecomputedConfigurationFromJSON: Decodable {
     let flags: [String: PrecomputedFlag]
     let salt: String
     let format: String
-    let publishedAt: Date
+    let publishedAt: String
     let environment: Environment?
 
     private enum CodingKeys: String, CodingKey {
@@ -85,9 +80,7 @@ private struct PrecomputedConfigurationFromJSON: Decodable {
         flags = try container.decode([String: PrecomputedFlag].self, forKey: .flags)
         salt = try container.decode(String.self, forKey: .salt)
         format = try container.decode(String.self, forKey: .format)
-
-        publishedAt = try decodeRequiredDate(from: container, forKey: .createdAt, fieldName: "createdAt", decoder: decoder)
-
+        publishedAt = try container.decode(String.self, forKey: .createdAt)
         environment = try container.decodeIfPresent(Environment.self, forKey: .environment)
     }
 }
@@ -99,7 +92,6 @@ extension PrecomputedConfiguration {
         case salt
         case format
         case createdAt
-        case fetchedAt
         case environment
         case subject
     }
@@ -110,14 +102,9 @@ extension PrecomputedConfiguration {
         flags = try container.decode([String: PrecomputedFlag].self, forKey: .flags)
         salt = try container.decode(String.self, forKey: .salt)
         format = try container.decode(String.self, forKey: .format)
-
-        publishedAt = try decodeRequiredDate(from: container, forKey: .createdAt, fieldName: "createdAt", decoder: decoder)
-        fetchedAt = try decodeRequiredDate(from: container, forKey: .fetchedAt, fieldName: "fetchedAt", decoder: decoder)
-
+        publishedAt = try container.decode(String.self, forKey: .createdAt)
         environment = try container.decodeIfPresent(Environment.self, forKey: .environment)
         subject = try container.decode(Subject.self, forKey: .subject)
-
-        // Note: obfuscated field is always true for precomputed configs, so we ignore it
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -126,13 +113,7 @@ extension PrecomputedConfiguration {
         try container.encode(flags, forKey: .flags)
         try container.encode(salt, forKey: .salt)
         try container.encode(format, forKey: .format)
-
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-
-        try container.encode(formatter.string(from: publishedAt), forKey: .createdAt)
-        try container.encode(formatter.string(from: fetchedAt), forKey: .fetchedAt)
-
+        try container.encode(publishedAt, forKey: .createdAt)
         try container.encodeIfPresent(environment, forKey: .environment)
         try container.encode(subject, forKey: .subject)
     }
@@ -148,22 +129,7 @@ private struct PrecomputedConfigurationWireFormat: Decodable {
 private struct PrecomputedWireData: Decodable {
     let subjectKey: String
     let subjectAttributes: WireSubjectAttributes
-    let fetchedAt: Date
     let response: String
-
-    private enum CodingKeys: String, CodingKey {
-        case subjectKey, subjectAttributes, fetchedAt, response
-    }
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-
-        subjectKey = try container.decode(String.self, forKey: .subjectKey)
-        subjectAttributes = try container.decode(WireSubjectAttributes.self, forKey: .subjectAttributes)
-        response = try container.decode(String.self, forKey: .response)
-
-        fetchedAt = try decodeRequiredDate(from: container, forKey: .fetchedAt, fieldName: "fetchedAt", decoder: decoder)
-    }
 }
 
 private struct WireSubjectAttributes: Decodable {
@@ -201,21 +167,6 @@ struct Subject: Codable {
     }
 }
 
-// MARK: - Helper Functions
-
-/// Decodes and parses a required date timestamp from a container
-private func decodeRequiredDate<K: CodingKey>(from container: KeyedDecodingContainer<K>, forKey key: K, fieldName: String, decoder: Decoder) throws -> Date {
-    let dateString = try container.decode(String.self, forKey: key)
-    if let parsedDate = parseUtcISODateElement(dateString) {
-        return parsedDate
-    } else {
-        throw DecodingError.dataCorrupted(DecodingError.Context(
-            codingPath: decoder.codingPath,
-            debugDescription: "Unable to parse \(fieldName) date: \(dateString)"
-        ))
-    }
-}
-
 // MARK: - Decoded Configuration Types
 
 struct DecodedPrecomputedFlag: Codable {
@@ -231,8 +182,7 @@ struct DecodedPrecomputedConfiguration: Codable {
     let flags: [String: DecodedPrecomputedFlag]
     let decodedSalt: String
     let format: String
-    let fetchedAt: Date
-    let publishedAt: Date
+    let publishedAt: String
     let environment: Environment?
     let subject: Subject
 }
@@ -253,7 +203,6 @@ extension PrecomputedConfiguration {
             flags: decodedFlags,
             decodedSalt: self.salt,
             format: self.format,
-            fetchedAt: self.fetchedAt,
             publishedAt: self.publishedAt,
             environment: self.environment,
             subject: self.subject

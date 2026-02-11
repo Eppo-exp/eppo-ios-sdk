@@ -17,9 +17,8 @@ class EppoPrecomputedClientTests: XCTestCase {
             flags: [:],
             salt: "salt",
             format: "PRECOMPUTED",
-            fetchedAt: Date(),
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
-            publishedAt: Date()
+            publishedAt: ISO8601DateFormatter().string(from: Date())
         )
         _ = EppoPrecomputedClient.initializeOffline(
             sdkKey: "mock-api-key",
@@ -47,9 +46,8 @@ class EppoPrecomputedClientTests: XCTestCase {
             flags: [:],
             salt: "salt",
             format: "PRECOMPUTED",
-            fetchedAt: Date(),
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
-            publishedAt: Date()
+            publishedAt: ISO8601DateFormatter().string(from: Date())
         )
         _ = EppoPrecomputedClient.initializeOffline(
             sdkKey: "mock-api-key",
@@ -71,9 +69,8 @@ class EppoPrecomputedClientTests: XCTestCase {
             flags: [:],
             salt: "salt",
             format: "PRECOMPUTED",
-            fetchedAt: Date(),
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
-            publishedAt: Date()
+            publishedAt: ISO8601DateFormatter().string(from: Date())
         )
         _ = EppoPrecomputedClient.initializeOffline(
             sdkKey: "mock-api-key",
@@ -100,9 +97,8 @@ class EppoPrecomputedClientTests: XCTestCase {
             flags: [:],
             salt: "salt",
             format: "PRECOMPUTED",
-            fetchedAt: Date(),
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
-            publishedAt: Date()
+            publishedAt: ISO8601DateFormatter().string(from: Date())
         )
         _ = EppoPrecomputedClient.initializeOffline(
             sdkKey: "mock-api-key",
@@ -150,9 +146,8 @@ class EppoPrecomputedClientTests: XCTestCase {
             flags: [:],
             salt: "salt",
             format: "PRECOMPUTED",
-            fetchedAt: Date(),
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
-            publishedAt: Date()
+            publishedAt: ISO8601DateFormatter().string(from: Date())
         )
         _ = EppoPrecomputedClient.initializeOffline(
             sdkKey: "mock-api-key",

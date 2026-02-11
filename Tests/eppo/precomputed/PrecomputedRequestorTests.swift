@@ -137,6 +137,27 @@ class PrecomputedRequestorTests: XCTestCase {
         XCTAssertTrue(json.contains("\"categoricalAttributes\""))
     }
 
+    func testPayloadUsesSnakeCaseTopLevelAndCamelCaseNestedKeys() throws {
+        let payload = PrecomputedFlagsPayload(
+            subjectKey: "test-user",
+            subjectAttributes: [
+                "age": EppoValue(value: 30),
+                "country": EppoValue(value: "UK")
+            ]
+        )
+
+        let encoder = JSONEncoder()
+        let data = try encoder.encode(payload)
+        let jsonObject = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+
+        XCTAssertNotNil(jsonObject["subject_key"])
+        XCTAssertNotNil(jsonObject["subject_attributes"])
+
+        let subjectAttributes = try XCTUnwrap(jsonObject["subject_attributes"] as? [String: Any])
+        XCTAssertNotNil(subjectAttributes["numericAttributes"])
+        XCTAssertNotNil(subjectAttributes["categoricalAttributes"])
+    }
+
     func testContextAttributesIncludesNullsInCategorical() {
         let attributes: [String: EppoValue] = [
             "validString": EppoValue(value: "test"),

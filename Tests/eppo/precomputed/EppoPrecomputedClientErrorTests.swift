@@ -263,9 +263,8 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
             ],
             salt: "test-salt",
             format: "PRECOMPUTED",
-            fetchedAt: Date(),
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
-            publishedAt: Date(),
+            publishedAt: ISO8601DateFormatter().string(from: Date()),
             environment: nil
         )
 
@@ -299,9 +298,8 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
             ],
             salt: "test-salt",
             format: "PRECOMPUTED",
-            fetchedAt: Date(),
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
-            publishedAt: Date(),
+            publishedAt: ISO8601DateFormatter().string(from: Date()),
             environment: nil
         )
 
@@ -321,23 +319,19 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
     // MARK: - Concurrent Initialization Tests
 
     func testConcurrentInitializationAttempts() async throws {
-        // Prepare valid response
-        let testConfig = PrecomputedConfiguration(
-            flags: [:],
-            salt: "test-salt",
-            format: "PRECOMPUTED",
-            fetchedAt: Date(),
-            subject: Subject(
-                subjectKey: testPrecompute.subjectKey,
-                subjectAttributes: testPrecompute.subjectAttributes
-            ),
-            publishedAt: Date(),
-            environment: nil
-        )
+        // Prepare valid server response (matches PrecomputedServerResponse structure)
+        // Note: This must match what PrecomputedRequestor expects to decode
+        let dateFormatter = ISO8601DateFormatter()
+        dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let serverResponse: [String: Any] = [
+            "flags": [:] as [String: Any],
+            "salt": "test-salt",
+            "format": "PRECOMPUTED",
+            "createdAt": dateFormatter.string(from: Date()),
+            "environment": ["name": "test"]
+        ]
 
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
-        MockURLSessionForErrors.responseData = try encoder.encode(testConfig)
+        MockURLSessionForErrors.responseData = try JSONSerialization.data(withJSONObject: serverResponse)
         MockURLSessionForErrors.requestDelay = 0.01 // Minimal delay to ensure concurrency
 
         // Use actor for thread-safe result collection
@@ -385,8 +379,14 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
             }
         }
 
-        XCTAssertEqual(successes.count, 5, "All concurrent initialization attempts should succeed")
+        XCTAssertEqual(successes.count, 5, "All concurrent initialization attempts should succeed. Failures: \(failures)")
         XCTAssertEqual(failures.count, 0, "No failures should occur with concurrent initialization")
+
+        // Guard against empty array before accessing
+        guard !successes.isEmpty else {
+            XCTFail("No successful initializations - cannot verify singleton behavior")
+            return
+        }
 
         // Verify all successes return the same instance
         let firstInstance = successes[0]
@@ -401,7 +401,7 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
         // Test the actual expired configuration scenario with working assignment logging
         EppoPrecomputedClient.resetForTesting()
 
-        let oldDate = Date(timeIntervalSinceNow: -86400 * 30) // 30 days ago
+        let oldDate = ISO8601DateFormatter().string(from: Date(timeIntervalSinceNow: -86400 * 30)) // 30 days ago
         let testLogger = ErrorTestLogger()
 
         let testConfig = PrecomputedConfiguration(
@@ -417,7 +417,6 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
             ],
             salt: "test-salt",
             format: "PRECOMPUTED",
-            fetchedAt: oldDate,
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
             publishedAt: oldDate,
             environment: nil
@@ -454,9 +453,8 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
             flags: [:],
             salt: "test-salt",
             format: "PRECOMPUTED",
-            fetchedAt: Date(),
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
-            publishedAt: Date(),
+            publishedAt: ISO8601DateFormatter().string(from: Date()),
             environment: nil
         )
 
@@ -491,9 +489,8 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
             ],
             salt: "test-salt",
             format: "PRECOMPUTED",
-            fetchedAt: Date(),
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
-            publishedAt: Date(),
+            publishedAt: ISO8601DateFormatter().string(from: Date()),
             environment: nil
         )
 
@@ -546,12 +543,11 @@ class EppoPrecomputedClientErrorTests: XCTestCase {
             ],
             salt: "test-salt",
             format: "PRECOMPUTED",
-            fetchedAt: Date(),
             subject: Subject(
                 subjectKey: testPrecompute.subjectKey,
                 subjectAttributes: testPrecompute.subjectAttributes
             ),
-            publishedAt: Date(),
+            publishedAt: ISO8601DateFormatter().string(from: Date()),
             environment: nil
         )
 

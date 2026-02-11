@@ -30,8 +30,7 @@ class PrecomputedConfigurationTests: XCTestCase {
 
     func testInitialization() {
         let flags = createSampleFlags()
-        let fetchedAt = Date()
-        let publishedAt = Date(timeIntervalSinceNow: -3600) // 1 hour ago
+        let publishedAt = ISO8601DateFormatter().string(from: Date(timeIntervalSinceNow: -3600)) // 1 hour ago
         let environment = Environment(name: "production")
         let testPrecompute = Precompute(subjectKey: "test-user", subjectAttributes: [:])
 
@@ -39,7 +38,6 @@ class PrecomputedConfigurationTests: XCTestCase {
             flags: flags,
             salt: "test-salt",
             format: "PRECOMPUTED",
-            fetchedAt: fetchedAt,
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
             publishedAt: publishedAt,
             environment: environment
@@ -48,19 +46,17 @@ class PrecomputedConfigurationTests: XCTestCase {
         XCTAssertEqual(config.flags.count, 2)
         XCTAssertEqual(config.salt, "test-salt")
         XCTAssertEqual(config.format, "PRECOMPUTED")
-        XCTAssertEqual(config.fetchedAt, fetchedAt)
         XCTAssertEqual(config.publishedAt, publishedAt)
         XCTAssertEqual(config.environment?.name, "production")
     }
 
     func testInitializationWithMinimalData() {
         let testPrecompute = Precompute(subjectKey: "test-user", subjectAttributes: [:])
-        let publishedAt = Date()
+        let publishedAt = ISO8601DateFormatter().string(from: Date())
         let config = PrecomputedConfiguration(
             flags: [:],
             salt: "minimal-salt",
             format: "PRECOMPUTED",
-            fetchedAt: Date(),
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
             publishedAt: publishedAt
         )
@@ -79,14 +75,12 @@ class PrecomputedConfigurationTests: XCTestCase {
             flags: createSampleFlags(),
             salt: "encode-test-salt",
             format: "PRECOMPUTED",
-            fetchedAt: Date(),
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
-            publishedAt: Date(timeIntervalSinceNow: -3600),
+            publishedAt: ISO8601DateFormatter().string(from: Date(timeIntervalSinceNow: -3600)),
             environment: Environment(name: "staging")
         )
 
         let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
         let data = try encoder.encode(originalConfig)
 
         let decoder = JSONDecoder()
@@ -216,7 +210,6 @@ class PrecomputedConfigurationTests: XCTestCase {
             "format": "PRECOMPUTED",
             "flags": {},
             "createdAt": "2024-11-18T14:23:25.123Z",
-            "fetchedAt": "2024-11-18T14:23:25.123Z",
             "subject": {
                 "subjectKey": "test-user",
                 "subjectAttributes": {}

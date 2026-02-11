@@ -99,9 +99,8 @@ class PrecomputedConfigurationStoreTests: XCTestCase {
                 flags: ["flag\(index)": createSampleFlag()],
                 salt: "salt-\(index)",
                 format: "PRECOMPUTED",
-                fetchedAt: Date(),
-                subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
-                publishedAt: Date()
+                    subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
+                publishedAt: ISO8601DateFormatter().string(from: Date())
             )
             store.setConfiguration(config)
             expectation.fulfill()
@@ -180,9 +179,8 @@ class PrecomputedConfigurationStoreTests: XCTestCase {
             flags: flags,
             salt: "test-salt",
             format: "PRECOMPUTED",
-            fetchedAt: Date(),
             subject: Subject(subjectKey: testPrecompute.subjectKey, subjectAttributes: testPrecompute.subjectAttributes),
-            publishedAt: Date(timeIntervalSinceNow: -3600),
+            publishedAt: ISO8601DateFormatter().string(from: Date(timeIntervalSinceNow: -3600)),
             environment: Environment(name: "test")
         )
     }
