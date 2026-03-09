@@ -35,7 +35,7 @@ final class UniversalFlagConfigTest: XCTestCase {
         XCTAssertEqual(variationFlag?.variationType, UFC_VariationType.numeric, "The 'numeric_flag' flag should have a variation type of 'NUMERIC'.")
         XCTAssertEqual(variationFlag?.variations.count, 2, "The 'numeric_flag' flag should have 2 variations.")
         XCTAssertEqual(variationFlag?.variations["e"]?.key, "e", "The 'numeric_flag' flag should have a variation key of 'e'.")
-        XCTAssertEqual(try variationFlag?.variations["e"]?.value.getDoubleValue(), 2.7182818)
+        XCTAssertEqual(variationFlag?.variations["e"]?.value.doubleValue, 2.7182818)
 
         // total shards
         XCTAssertEqual(variationFlag?.totalShards, 10000, "The total shards should be 10000.")
@@ -72,7 +72,7 @@ final class UniversalFlagConfigTest: XCTestCase {
         XCTAssertEqual(variationFlag?.variations.count, 2, "The 'numeric_flag' flag should have 2 variations.")
         XCTAssertEqual(variationFlag?.variations[base64Encode("e")]?.key, base64Encode("e"), "The 'numeric_flag' flag should have a variation key of 'e'.")
 
-        let variationValue = try! variationFlag?.variations[base64Encode("e")]?.value.getStringValue()
+        let variationValue = variationFlag?.variations[base64Encode("e")]?.value.stringValue
         let decodedVariationValue = base64Decode(variationValue ?? "")
         XCTAssertEqual(decodedVariationValue, "2.7182818")
 

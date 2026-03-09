@@ -13,21 +13,21 @@ class EppoValueTests: XCTestCase {
         let jsonData = try jsonData(from: #"{"\#(jsonKey)": "testString"}"#)
 
         let decodedValue = try decoder.decode([String: EppoValue].self, from: jsonData)
-        XCTAssertEqual(try decodedValue[jsonKey]?.getStringValue(), "testString")
+        XCTAssertEqual(decodedValue[jsonKey]?.stringValue, "testString")
     }
 
     func testDecodingInteger() throws {
         let jsonData = try jsonData(from: #"{"\#(jsonKey)": 123}"#)
 
         let decodedValue = try decoder.decode([String: EppoValue].self, from: jsonData)
-        XCTAssertEqual(try decodedValue[jsonKey]?.getDoubleValue(), 123)
+        XCTAssertEqual(decodedValue[jsonKey]?.doubleValue, 123)
     }
 
     func testDecodingDouble() throws {
         let jsonData = try jsonData(from: #"{"\#(jsonKey)": 123.456}"#)
 
         let decodedValue = try decoder.decode([String: EppoValue].self, from: jsonData)
-        XCTAssertEqual(try decodedValue[jsonKey]?.getDoubleValue(), 123.456)
+        XCTAssertEqual(decodedValue[jsonKey]?.doubleValue, 123.456)
     }
 
     func testDecodingArrayOfStrings() throws {
@@ -35,7 +35,7 @@ class EppoValueTests: XCTestCase {
         let decoder = JSONDecoder()
 
         let decodedValue = try decoder.decode([String: EppoValue].self, from: jsonData)
-        XCTAssertEqual(try decodedValue[jsonKey]?.getStringArrayValue(), ["one", "two", "three"])
+        XCTAssertEqual(decodedValue[jsonKey]?.stringArrayValue, ["one", "two", "three"])
     }
 
     func testEppoValueEquality() throws {

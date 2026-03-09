@@ -70,65 +70,80 @@ final class EppoClientDataTests: XCTestCase {
             testCase.subjects.forEach { subject in
                 switch testCase.variationType {
                 case UFC_VariationType.boolean:
-                    let assignment = try? eppoClient.getBooleanAssignment(
-                        flagKey: testCase.flag,
-                        subjectKey: subject.subjectKey,
-                        subjectAttributes: subject.subjectAttributes,
-                        defaultValue: testCase.defaultValue.getBoolValue()
-                    )
-                    let expectedAssignment = try? subject.assignment.getBoolValue()
+                    let assignment: Bool? = {
+                        guard let defaultValue = testCase.defaultValue.boolValue else { return nil }
+                        return try? eppoClient.getBooleanAssignment(
+                            flagKey: testCase.flag,
+                            subjectKey: subject.subjectKey,
+                            subjectAttributes: subject.subjectAttributes,
+                            defaultValue: defaultValue
+                        )
+                    }()
+                    let expectedAssignment = subject.assignment.boolValue
                     XCTAssertEqual(
                         assignment,
                         expectedAssignment,
                         assertMessage(testCase: testCase, subjectKey: subject.subjectKey, obfuscated: obfuscated)
                     )
                 case UFC_VariationType.json:
-                    let assignment = try? eppoClient.getJSONStringAssignment(
-                        flagKey: testCase.flag,
-                        subjectKey: subject.subjectKey,
-                        subjectAttributes: subject.subjectAttributes,
-                        defaultValue: testCase.defaultValue.getStringValue()
-                    )
-                    let expectedAssignment = try? subject.assignment.getStringValue()
+                    let assignment: String? = {
+                        guard let defaultValue = testCase.defaultValue.stringValue else { return nil }
+                        return try? eppoClient.getJSONStringAssignment(
+                            flagKey: testCase.flag,
+                            subjectKey: subject.subjectKey,
+                            subjectAttributes: subject.subjectAttributes,
+                            defaultValue: defaultValue
+                        )
+                    }()
+                    let expectedAssignment = subject.assignment.stringValue
                     XCTAssertEqual(
                         assignment,
                         expectedAssignment,
                         assertMessage(testCase: testCase, subjectKey: subject.subjectKey, obfuscated: obfuscated)
                     )
                 case UFC_VariationType.integer:
-                    let assignment = try? eppoClient.getIntegerAssignment(
-                        flagKey: testCase.flag,
-                        subjectKey: subject.subjectKey,
-                        subjectAttributes: subject.subjectAttributes,
-                        defaultValue: Int(testCase.defaultValue.getDoubleValue())
-                    )
-                    let expectedAssignment = try? Int(subject.assignment.getDoubleValue())
+                    let assignment: Int? = {
+                        guard let defaultValue = testCase.defaultValue.doubleValue else { return nil }
+                        return try? eppoClient.getIntegerAssignment(
+                            flagKey: testCase.flag,
+                            subjectKey: subject.subjectKey,
+                            subjectAttributes: subject.subjectAttributes,
+                            defaultValue: Int(defaultValue)
+                        )
+                    }()
+                    let expectedAssignment = subject.assignment.doubleValue.map(Int.init)
                     XCTAssertEqual(
                         assignment,
                         expectedAssignment,
                         assertMessage(testCase: testCase, subjectKey: subject.subjectKey, obfuscated: obfuscated)
                     )
                 case UFC_VariationType.numeric:
-                    let assignment = try? eppoClient.getNumericAssignment(
-                        flagKey: testCase.flag,
-                        subjectKey: subject.subjectKey,
-                        subjectAttributes: subject.subjectAttributes,
-                        defaultValue: testCase.defaultValue.getDoubleValue()
-                    )
-                    let expectedAssignment = try? subject.assignment.getDoubleValue()
+                    let assignment: Double? = {
+                        guard let defaultValue = testCase.defaultValue.doubleValue else { return nil }
+                        return try? eppoClient.getNumericAssignment(
+                            flagKey: testCase.flag,
+                            subjectKey: subject.subjectKey,
+                            subjectAttributes: subject.subjectAttributes,
+                            defaultValue: defaultValue
+                        )
+                    }()
+                    let expectedAssignment = subject.assignment.doubleValue
                     XCTAssertEqual(
                         assignment,
                         expectedAssignment,
                         assertMessage(testCase: testCase, subjectKey: subject.subjectKey, obfuscated: obfuscated)
                     )
                 case UFC_VariationType.string:
-                    let assignment = try? eppoClient.getStringAssignment(
-                        flagKey: testCase.flag,
-                        subjectKey: subject.subjectKey,
-                        subjectAttributes: subject.subjectAttributes,
-                        defaultValue: testCase.defaultValue.getStringValue()
-                    )
-                    let expectedAssignment = try? subject.assignment.getStringValue()
+                    let assignment: String? = {
+                        guard let defaultValue = testCase.defaultValue.stringValue else { return nil }
+                        return try? eppoClient.getStringAssignment(
+                            flagKey: testCase.flag,
+                            subjectKey: subject.subjectKey,
+                            subjectAttributes: subject.subjectAttributes,
+                            defaultValue: defaultValue
+                        )
+                    }()
+                    let expectedAssignment = subject.assignment.stringValue
                     XCTAssertEqual(
                         assignment,
                         expectedAssignment,
