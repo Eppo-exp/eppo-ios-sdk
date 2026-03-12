@@ -38,7 +38,8 @@ class PrecomputedRequestor {
     func fetchPrecomputedFlags() async throws -> PrecomputedConfiguration {
         let payload = PrecomputedFlagsPayload(
             subjectKey: _precompute.subjectKey,
-            subjectAttributes: _precompute.subjectAttributes
+            subjectAttributes: _precompute.subjectAttributes,
+            banditActions: _precompute.banditActions
         )
 
         let url = try buildURL()
@@ -60,6 +61,7 @@ class PrecomputedRequestor {
             let serverResponse = try JSONDecoder().decode(PrecomputedServerResponse.self, from: data)
             return PrecomputedConfiguration(
                 flags: serverResponse.flags,
+                bandits: serverResponse.bandits,
                 salt: serverResponse.salt,
                 format: serverResponse.format,
                 subject: Subject(
@@ -122,15 +124,45 @@ extension PrecomputedRequestor {
 struct PrecomputedFlagsPayload: Encodable {
     let subjectKey: String
     let subjectAttributes: ContextAttributes
+    let banditActions: [String: [String: ContextAttributes]]?
 
     enum CodingKeys: String, CodingKey {
         case subjectKey = "subject_key"
         case subjectAttributes = "subject_attributes"
+        case banditActions = "bandit_actions"
     }
 
-    init(subjectKey: String, subjectAttributes: [String: EppoValue]) {
+    init(
+        subjectKey: String,
+        subjectAttributes: [String: EppoValue],
+        banditActions: [String: [String: [String: EppoValue]]]?
+    ) {
         self.subjectKey = subjectKey
         self.subjectAttributes = ContextAttributes(from: subjectAttributes)
+
+        // Transform banditActions to use ContextAttributes for each action
+        if let actions = banditActions {
+            var transformed: [String: [String: ContextAttributes]] = [:]
+            for (flagKey, actionMap) in actions {
+                var transformedActions: [String: ContextAttributes] = [:]
+                for (actionKey, attributes) in actionMap {
+                    transformedActions[actionKey] = ContextAttributes(from: attributes)
+                }
+                transformed[flagKey] = transformedActions
+            }
+            self.banditActions = transformed
+        } else {
+            self.banditActions = nil
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(subjectKey, forKey: .subjectKey)
+        try container.encode(subjectAttributes, forKey: .subjectAttributes)
+        if let banditActions = banditActions, !banditActions.isEmpty {
+            try container.encode(banditActions, forKey: .banditActions)
+        }
     }
 }
 
@@ -162,10 +194,30 @@ struct ContextAttributes: Encodable {
 /// Server response format for precomputed flags
 struct PrecomputedServerResponse: Decodable {
     let flags: [String: PrecomputedFlag]
+    let bandits: [String: PrecomputedBandit]
     let salt: String
     let format: String
     let createdAt: String
     let environment: Environment?
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        flags = try container.decode([String: PrecomputedFlag].self, forKey: .flags)
+        bandits = try container.decodeIfPresent([String: PrecomputedBandit].self, forKey: .bandits) ?? [:]
+        salt = try container.decode(String.self, forKey: .salt)
+        format = try container.decode(String.self, forKey: .format)
+        createdAt = try container.decode(String.self, forKey: .createdAt)
+        environment = try container.decodeIfPresent(Environment.self, forKey: .environment)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case flags
+        case bandits
+        case salt
+        case format
+        case createdAt
+        case environment
+    }
 }
 
 // MARK: - Errors

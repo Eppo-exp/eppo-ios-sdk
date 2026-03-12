@@ -7,8 +7,17 @@ public struct Precompute: Codable {
     /// Additional attributes associated with the subject
     public let subjectAttributes: [String: EppoValue]
 
-    public init(subjectKey: String, subjectAttributes: [String: EppoValue] = [:]) {
+    /// Bandit actions available for each flag
+    /// Structure: flagKey -> actionKey -> attributes
+    public let banditActions: [String: [String: [String: EppoValue]]]?
+
+    public init(
+        subjectKey: String,
+        subjectAttributes: [String: EppoValue] = [:],
+        banditActions: [String: [String: [String: EppoValue]]]? = nil
+    ) {
         self.subjectKey = subjectKey
         self.subjectAttributes = subjectAttributes
+        self.banditActions = banditActions
     }
 }

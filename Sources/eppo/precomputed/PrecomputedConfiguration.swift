@@ -3,6 +3,7 @@ import Foundation
 /// Represents the configuration for precomputed flag assignments
 public struct PrecomputedConfiguration: Codable {
     let flags: [String: PrecomputedFlag]
+    let bandits: [String: PrecomputedBandit]
     internal let salt: String
     internal let format: String
     internal let publishedAt: String
@@ -11,6 +12,7 @@ public struct PrecomputedConfiguration: Codable {
 
     init(
         flags: [String: PrecomputedFlag],
+        bandits: [String: PrecomputedBandit] = [:],
         salt: String,
         format: String,
         subject: Subject,
@@ -18,6 +20,7 @@ public struct PrecomputedConfiguration: Codable {
         environment: Environment? = nil
     ) {
         self.flags = flags
+        self.bandits = bandits
         self.salt = salt
         self.format = format
         self.publishedAt = publishedAt
@@ -45,6 +48,7 @@ public struct PrecomputedConfiguration: Codable {
         let responseDecoded = try decoder.decode(PrecomputedConfigurationFromJSON.self, from: responseData)
 
         self.flags = responseDecoded.flags
+        self.bandits = responseDecoded.bandits
         self.salt = responseDecoded.salt
         self.format = responseDecoded.format
         self.publishedAt = responseDecoded.publishedAt
@@ -61,6 +65,7 @@ public struct PrecomputedConfiguration: Codable {
 /// Helper struct for parsing JSON configuration without embedded subject
 private struct PrecomputedConfigurationFromJSON: Decodable {
     let flags: [String: PrecomputedFlag]
+    let bandits: [String: PrecomputedBandit]
     let salt: String
     let format: String
     let publishedAt: String
@@ -68,6 +73,7 @@ private struct PrecomputedConfigurationFromJSON: Decodable {
 
     private enum CodingKeys: String, CodingKey {
         case flags
+        case bandits
         case salt
         case format
         case createdAt
@@ -78,6 +84,7 @@ private struct PrecomputedConfigurationFromJSON: Decodable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
         flags = try container.decode([String: PrecomputedFlag].self, forKey: .flags)
+        bandits = try container.decodeIfPresent([String: PrecomputedBandit].self, forKey: .bandits) ?? [:]
         salt = try container.decode(String.self, forKey: .salt)
         format = try container.decode(String.self, forKey: .format)
         publishedAt = try container.decode(String.self, forKey: .createdAt)
@@ -89,6 +96,7 @@ extension PrecomputedConfiguration {
 
     private enum CodingKeys: String, CodingKey {
         case flags
+        case bandits
         case salt
         case format
         case createdAt
@@ -100,6 +108,7 @@ extension PrecomputedConfiguration {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
         flags = try container.decode([String: PrecomputedFlag].self, forKey: .flags)
+        bandits = try container.decodeIfPresent([String: PrecomputedBandit].self, forKey: .bandits) ?? [:]
         salt = try container.decode(String.self, forKey: .salt)
         format = try container.decode(String.self, forKey: .format)
         publishedAt = try container.decode(String.self, forKey: .createdAt)
@@ -111,6 +120,7 @@ extension PrecomputedConfiguration {
         var container = encoder.container(keyedBy: CodingKeys.self)
 
         try container.encode(flags, forKey: .flags)
+        try container.encode(bandits, forKey: .bandits)
         try container.encode(salt, forKey: .salt)
         try container.encode(format, forKey: .format)
         try container.encode(publishedAt, forKey: .createdAt)
@@ -180,6 +190,7 @@ struct DecodedPrecomputedFlag: Codable {
 
 struct DecodedPrecomputedConfiguration: Codable {
     let flags: [String: DecodedPrecomputedFlag]
+    let bandits: [String: DecodedPrecomputedBandit]
     let decodedSalt: String
     let format: String
     let publishedAt: String
@@ -199,8 +210,17 @@ extension PrecomputedConfiguration {
             decodedFlags[key] = decodedFlag
         }
 
+        var decodedBandits: [String: DecodedPrecomputedBandit] = [:]
+        for (key, bandit) in self.bandits {
+            guard let decodedBandit = decodeBandit(bandit) else {
+                continue
+            }
+            decodedBandits[key] = decodedBandit
+        }
+
         return DecodedPrecomputedConfiguration(
             flags: decodedFlags,
+            bandits: decodedBandits,
             decodedSalt: self.salt,
             format: self.format,
             publishedAt: self.publishedAt,
@@ -262,6 +282,73 @@ extension PrecomputedConfiguration {
             variationValue: decodedVariationValue,
             extraLogging: decodedExtraLogging,
             doLog: flag.doLog
+        )
+    }
+
+    private func decodeBandit(_ bandit: PrecomputedBandit) -> DecodedPrecomputedBandit? {
+        // Decode banditKey (required)
+        guard let decodedBanditKey = base64Decode(bandit.banditKey) else {
+            print("Warning: Failed to decode banditKey: \(bandit.banditKey)")
+            return nil
+        }
+
+        // Decode action (optional)
+        let decodedAction: String?
+        if let action = bandit.action {
+            decodedAction = base64Decode(action)
+            if decodedAction == nil {
+                print("Warning: Failed to decode action: \(action)")
+            }
+        } else {
+            decodedAction = nil
+        }
+
+        // Decode modelVersion (optional)
+        let decodedModelVersion: String?
+        if let modelVersion = bandit.modelVersion {
+            decodedModelVersion = base64Decode(modelVersion)
+            if decodedModelVersion == nil {
+                print("Warning: Failed to decode modelVersion: \(modelVersion)")
+            }
+        } else {
+            decodedModelVersion = nil
+        }
+
+        // Decode actionNumericAttributes (keys and values are Base64 encoded, values are numeric strings)
+        var decodedNumericAttributes: [String: Double] = [:]
+        if let numericAttrs = bandit.actionNumericAttributes {
+            for (encodedKey, encodedValue) in numericAttrs {
+                guard let decodedKey = base64Decode(encodedKey),
+                      let decodedValueStr = base64Decode(encodedValue),
+                      let doubleValue = Double(decodedValueStr) else {
+                    print("Warning: Failed to decode numeric attribute - key: \(encodedKey), value: \(encodedValue)")
+                    continue
+                }
+                decodedNumericAttributes[decodedKey] = doubleValue
+            }
+        }
+
+        // Decode actionCategoricalAttributes (keys and values are Base64 encoded)
+        var decodedCategoricalAttributes: [String: String] = [:]
+        if let categoricalAttrs = bandit.actionCategoricalAttributes {
+            for (encodedKey, encodedValue) in categoricalAttrs {
+                guard let decodedKey = base64Decode(encodedKey),
+                      let decodedValue = base64Decode(encodedValue) else {
+                    print("Warning: Failed to decode categorical attribute - key: \(encodedKey), value: \(encodedValue)")
+                    continue
+                }
+                decodedCategoricalAttributes[decodedKey] = decodedValue
+            }
+        }
+
+        return DecodedPrecomputedBandit(
+            banditKey: decodedBanditKey,
+            action: decodedAction,
+            modelVersion: decodedModelVersion,
+            actionNumericAttributes: decodedNumericAttributes,
+            actionCategoricalAttributes: decodedCategoricalAttributes,
+            actionProbability: bandit.actionProbability,
+            optimalityGap: bandit.optimalityGap
         )
     }
 }

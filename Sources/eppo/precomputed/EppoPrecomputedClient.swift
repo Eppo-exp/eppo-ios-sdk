@@ -23,6 +23,8 @@ public class EppoPrecomputedClient {
     private let configurationStore: PrecomputedConfigurationStore
     private let assignmentLogger: AssignmentLogger?
     private let assignmentCache: AssignmentCache?
+    private let banditLogger: BanditLogger?
+    private let banditAssignmentCache: AssignmentCache?
 
     // MARK: - Network Components  
     private var requestor: PrecomputedRequestor?
@@ -44,6 +46,8 @@ public class EppoPrecomputedClient {
         sdkKey: String,
         assignmentLogger: AssignmentLogger? = nil,
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
+        banditLogger: BanditLogger? = nil,
+        banditAssignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
         initialPrecomputedConfiguration: PrecomputedConfiguration? = nil,
         withPersistentCache: Bool = true,
         configurationChangeCallback: ConfigurationChangeCallback? = nil
@@ -51,6 +55,8 @@ public class EppoPrecomputedClient {
         self.sdkKey = sdkKey
         self.assignmentLogger = assignmentLogger
         self.assignmentCache = assignmentCache
+        self.banditLogger = banditLogger
+        self.banditAssignmentCache = banditAssignmentCache
         self.configurationStore = PrecomputedConfigurationStore(withPersistentCache: withPersistentCache)
         self.configurationChangeCallback = configurationChangeCallback
 
@@ -67,6 +73,8 @@ public class EppoPrecomputedClient {
         initialPrecomputedConfiguration: PrecomputedConfiguration? = nil,
         assignmentLogger: AssignmentLogger? = nil,
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
+        banditLogger: BanditLogger? = nil,
+        banditAssignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
         withPersistentCache: Bool = true,
         configurationChangeCallback: ConfigurationChangeCallback? = nil
     ) -> EppoPrecomputedClient {
@@ -79,6 +87,8 @@ public class EppoPrecomputedClient {
                 sdkKey: sdkKey,
                 assignmentLogger: assignmentLogger,
                 assignmentCache: assignmentCache,
+                banditLogger: banditLogger,
+                banditAssignmentCache: banditAssignmentCache,
                 initialPrecomputedConfiguration: initialPrecomputedConfiguration,
                 withPersistentCache: withPersistentCache,
                 configurationChangeCallback: configurationChangeCallback
@@ -100,6 +110,8 @@ public class EppoPrecomputedClient {
         precompute: Precompute,
         assignmentLogger: AssignmentLogger? = nil,
         assignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
+        banditLogger: BanditLogger? = nil,
+        banditAssignmentCache: AssignmentCache? = InMemoryAssignmentCache(),
         host: String? = nil,
         withPersistentCache: Bool = true,
         configurationChangeCallback: ConfigurationChangeCallback? = nil,
@@ -113,6 +125,8 @@ public class EppoPrecomputedClient {
             initialPrecomputedConfiguration: nil,
             assignmentLogger: assignmentLogger,
             assignmentCache: assignmentCache,
+            banditLogger: banditLogger,
+            banditAssignmentCache: banditAssignmentCache,
             withPersistentCache: withPersistentCache,
             configurationChangeCallback: configurationChangeCallback
         )
@@ -236,6 +250,44 @@ public class EppoPrecomputedClient {
 
     public func getJSONStringAssignment(flagKey: String, defaultValue: String) -> String {
         return getPrecomputedAssignment(flagKey: flagKey, defaultValue: defaultValue, expectedType: .json)
+    }
+
+    // MARK: - Bandit Methods
+
+    /// Get bandit action for a flag
+    /// - Parameters:
+    ///   - flagKey: The feature flag key
+    ///   - defaultValue: Default variation to return if no assignment
+    /// - Returns: BanditResult containing the variation and optional action
+    public func getBanditAction(flagKey: String, defaultValue: String) -> BanditResult {
+        guard configurationStore.isInitialized() else {
+            return BanditResult(variation: defaultValue, action: nil)
+        }
+
+        guard let decodedConfig = configurationStore.getDecodedConfiguration() else {
+            return BanditResult(variation: defaultValue, action: nil)
+        }
+
+        let hashedFlagKey = getMD5Hex(flagKey, salt: decodedConfig.decodedSalt)
+
+        // First check if there's a bandit assignment for this flag
+        guard let bandit = configurationStore.getDecodedBandit(forKey: hashedFlagKey) else {
+            // No bandit, fall back to regular string assignment
+            let variation = getStringAssignment(flagKey: flagKey, defaultValue: defaultValue)
+            return BanditResult(variation: variation, action: nil)
+        }
+
+        // Get the variation from the bandit
+        let variation = bandit.banditKey
+        let action = bandit.action
+
+        // Log the bandit event
+        logBanditAction(
+            flagKey: flagKey,
+            bandit: bandit
+        )
+
+        return BanditResult(variation: variation, action: action)
     }
 
     // MARK: - Internal Assignment Logic
@@ -365,6 +417,82 @@ public class EppoPrecomputedClient {
             flagKey: assignment.featureFlag,
             allocationKey: allocationKey,
             variationKey: variationKey
+        )
+
+        return cache.shouldLogAssignment(key: cacheKey)
+    }
+
+    // MARK: - Bandit Logging
+
+    private func logBanditAction(
+        flagKey: String,
+        bandit: DecodedPrecomputedBandit
+    ) {
+        guard let precompute = currentPrecompute else {
+            return
+        }
+
+        guard let action = bandit.action else {
+            // No action to log
+            return
+        }
+
+        // Split subject attributes into numeric and categorical
+        var subjectNumericAttributes: [String: Double] = [:]
+        var subjectCategoricalAttributes: [String: String] = [:]
+
+        for (key, value) in precompute.subjectAttributes {
+            if value.isNumeric() {
+                if let doubleValue = try? value.getDoubleValue() {
+                    subjectNumericAttributes[key] = doubleValue
+                }
+            } else {
+                if let stringValue = try? value.getStringValue() {
+                    subjectCategoricalAttributes[key] = stringValue
+                }
+            }
+        }
+
+        let banditEvent = BanditEvent(
+            timestamp: ISO8601DateFormatter().string(from: Date()),
+            flagKey: flagKey,
+            banditKey: bandit.banditKey,
+            subjectKey: precompute.subjectKey,
+            action: action,
+            actionProbability: bandit.actionProbability,
+            optimalityGap: bandit.optimalityGap,
+            modelVersion: bandit.modelVersion ?? "",
+            subjectNumericAttributes: subjectNumericAttributes,
+            subjectCategoricalAttributes: subjectCategoricalAttributes,
+            actionNumericAttributes: bandit.actionNumericAttributes,
+            actionCategoricalAttributes: bandit.actionCategoricalAttributes,
+            metaData: [
+                "obfuscated": "true",
+                "sdkLanguage": sdkName,
+                "sdkLibVersion": sdkVersion
+            ]
+        )
+
+        if shouldLogBanditAction(flagKey: flagKey, banditKey: bandit.banditKey, action: action) {
+            banditLogger?(banditEvent)
+        }
+    }
+
+    private func shouldLogBanditAction(flagKey: String, banditKey: String, action: String) -> Bool {
+        guard let cache = banditAssignmentCache else {
+            return true
+        }
+
+        guard let precompute = currentPrecompute else {
+            return true
+        }
+
+        // Use banditKey as allocationKey and action as variationKey for cache key
+        let cacheKey = AssignmentCacheKey(
+            subjectKey: precompute.subjectKey,
+            flagKey: flagKey,
+            allocationKey: banditKey,
+            variationKey: action
         )
 
         return cache.shouldLogAssignment(key: cacheKey)
