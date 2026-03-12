@@ -50,7 +50,7 @@ func base64DecodeOrThrow(_ value: String) throws -> String {
 enum Base64DecodeError: Error, LocalizedError {
     case invalidBase64(String)
     case invalidUTF8(String)
-    
+
     var errorDescription: String? {
         switch self {
         case .invalidBase64(let value):
@@ -60,6 +60,36 @@ enum Base64DecodeError: Error, LocalizedError {
         }
     }
 }
+
+/// Decodes a base64-encoded variation value and converts it to the appropriate EppoValue type.
+/// Used by precomputed flags (PrecomputedConfiguration).
+func decodeVariationValue(encodedString: String, variationType: VariationType) throws -> EppoValue {
+    let decodedString = try base64DecodeOrThrow(encodedString)
+    return convertDecodedStringToEppoValue(decodedString, isBoolean: variationType == .boolean, isNumeric: variationType == .integer || variationType == .numeric)
+}
+
+/// Decodes a base64-encoded variation value and converts it to the appropriate EppoValue type.
+/// Used by local evaluation (FlagEvaluation).
+func decodeVariationValue(encodedString: String, variationType: UFC_VariationType) throws -> EppoValue {
+    let decodedString = try base64DecodeOrThrow(encodedString)
+    return convertDecodedStringToEppoValue(decodedString, isBoolean: variationType == .boolean, isNumeric: variationType == .integer || variationType == .numeric)
+}
+
+/// Internal helper to convert a decoded string to the appropriate EppoValue type.
+private func convertDecodedStringToEppoValue(_ decodedString: String, isBoolean: Bool, isNumeric: Bool) -> EppoValue {
+    if isBoolean {
+        return EppoValue(value: "true" == decodedString.lowercased())
+    } else if isNumeric {
+        if let doubleValue = Double(decodedString) {
+            return EppoValue(value: doubleValue)
+        }
+        return EppoValue.nullValue()
+    } else {
+        // string or json
+        return EppoValue(value: decodedString)
+    }
+}
+
 
 let UTC_ISO_DATE_FORMAT: DateFormatter = {
     let formatter = DateFormatter()

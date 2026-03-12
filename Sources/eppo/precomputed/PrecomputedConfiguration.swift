@@ -237,24 +237,7 @@ extension PrecomputedConfiguration {
         let decodedVariationValue: EppoValue
         do {
             let encodedString = try flag.variationValue.getStringValue()
-            let decodedString = try base64DecodeOrThrow(encodedString)
-
-            switch flag.variationType {
-            case .string, .json:
-                decodedVariationValue = EppoValue(value: decodedString)
-            case .boolean:
-                guard let boolValue = Bool(decodedString.lowercased()) else {
-                    print("Warning: Failed to parse boolean value '\(decodedString)', skipping flag")
-                    return nil
-                }
-                decodedVariationValue = EppoValue(value: boolValue)
-            case .integer, .numeric:
-                guard let doubleValue = Double(decodedString) else {
-                    print("Warning: Failed to parse numeric value '\(decodedString)', skipping flag")
-                    return nil
-                }
-                decodedVariationValue = EppoValue(value: doubleValue)
-            }
+            decodedVariationValue = try decodeVariationValue(encodedString: encodedString, variationType: flag.variationType)
         } catch {
             print("Warning: Failed to decode variationValue, skipping flag - error: \(error.localizedDescription)")
             return nil

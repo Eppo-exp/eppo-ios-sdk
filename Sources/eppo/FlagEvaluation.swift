@@ -48,21 +48,7 @@ public struct FlagEvaluation {
            let variationType = variationType,
            let decodedVariationKey = base64Decode(variation.key),
            let variationValue = try? variation.value.getStringValue(),
-           let decodedVariationValue = base64Decode(variationValue) {
-
-            var decodedValue: EppoValue = EppoValue.nullValue()
-
-            switch variationType {
-            case .boolean:
-                decodedValue = EppoValue(value: "true" == decodedVariationValue)
-            case .integer, .numeric:
-                if let doubleValue = Double(decodedVariationValue) {
-                    decodedValue = EppoValue(value: doubleValue)
-                }
-            case .string, .json:
-                decodedValue = EppoValue(value: decodedVariationValue)
-            }
-
+           let decodedValue = try? decodeVariationValue(encodedString: variationValue, variationType: variationType) {
             decodedVariation = UFC_Variation(key: decodedVariationKey, value: decodedValue)
         }
 
