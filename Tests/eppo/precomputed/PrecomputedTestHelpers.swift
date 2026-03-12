@@ -73,3 +73,49 @@ func createTestFlags(_ flags: [(key: String, flag: PrecomputedFlag)], salt: Stri
     }
     return result
 }
+
+/// Creates a PrecomputedBandit with base64-encoded values from unencoded inputs
+func createTestBandit(
+    banditKey: String,
+    action: String? = nil,
+    modelVersion: String? = nil,
+    actionNumericAttributes: [String: Double] = [:],
+    actionCategoricalAttributes: [String: String] = [:],
+    actionProbability: Double,
+    optimalityGap: Double
+) -> PrecomputedBandit {
+    let encodedBanditKey = base64Encode(banditKey)
+    let encodedAction = action.map { base64Encode($0) }
+    let encodedModelVersion = modelVersion.map { base64Encode($0) }
+
+    // Encode numeric attributes: both keys and values are base64 encoded
+    var encodedNumericAttributes: [String: String] = [:]
+    for (key, value) in actionNumericAttributes {
+        encodedNumericAttributes[base64Encode(key)] = base64Encode(String(value))
+    }
+
+    // Encode categorical attributes: both keys and values are base64 encoded
+    var encodedCategoricalAttributes: [String: String] = [:]
+    for (key, value) in actionCategoricalAttributes {
+        encodedCategoricalAttributes[base64Encode(key)] = base64Encode(value)
+    }
+
+    return PrecomputedBandit(
+        banditKey: encodedBanditKey,
+        action: encodedAction,
+        modelVersion: encodedModelVersion,
+        actionNumericAttributes: encodedNumericAttributes.isEmpty ? nil : encodedNumericAttributes,
+        actionCategoricalAttributes: encodedCategoricalAttributes.isEmpty ? nil : encodedCategoricalAttributes,
+        actionProbability: actionProbability,
+        optimalityGap: optimalityGap
+    )
+}
+
+func createTestBandits(_ bandits: [(key: String, bandit: PrecomputedBandit)], salt: String = "test-salt") -> [String: PrecomputedBandit] {
+    var result: [String: PrecomputedBandit] = [:]
+    for (key, bandit) in bandits {
+        let hashedKey = getMD5Hex(key, salt: salt)
+        result[hashedKey] = bandit
+    }
+    return result
+}

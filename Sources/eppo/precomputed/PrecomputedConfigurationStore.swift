@@ -53,6 +53,14 @@ class PrecomputedConfigurationStore {
         return syncQueue.sync { self.decodedConfiguration?.flags[key] }
     }
 
+    func getDecodedBandit(forKey key: String) -> DecodedPrecomputedBandit? {
+        return syncQueue.sync { self.decodedConfiguration?.bandits[key] }
+    }
+
+    func getSalt() -> String? {
+        return syncQueue.sync { self.decodedConfiguration?.decodedSalt }
+    }
+
     /// Clear the persistent cache
     static func clearPersistentCache() {
         guard let cacheFileURL = Self.findCacheFileURL() else {

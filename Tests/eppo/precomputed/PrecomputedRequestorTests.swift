@@ -143,7 +143,8 @@ class PrecomputedRequestorTests: XCTestCase {
             subjectAttributes: [
                 "age": EppoValue(value: 30),
                 "country": EppoValue(value: "UK")
-            ]
+            ],
+            banditActions: nil
         )
 
         let encoder = JSONEncoder()

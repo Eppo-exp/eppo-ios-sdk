@@ -98,6 +98,62 @@ class PrecomputedConfigurationWireTests: XCTestCase {
         XCTAssertTrue(client.getJSONStringAssignment(flagKey: "json-flag", defaultValue: "{}").contains("key"))
     }
 
+    // MARK: - Bandit Tests with Shared Test Data
+
+    func testBanditActionWithSharedTestData() throws {
+        let config = try loadPrecomputedConfig()
+
+        EppoPrecomputedClient.resetForTesting()
+        _ = EppoPrecomputedClient.initializeOffline(
+            sdkKey: "test-key",
+            initialPrecomputedConfiguration: config
+        )
+
+        let client = try EppoPrecomputedClient.shared()
+
+        // "string-flag" has a bandit associated with it in precomputed-v1.json
+        let result = client.getBanditAction(flagKey: "string-flag", defaultValue: "default")
+
+        XCTAssertEqual(result.variation, "recommendation-model-v1")
+        XCTAssertEqual(result.action, "show_red_button")
+    }
+
+    func testBanditActionWithExtraLoggingSharedTestData() throws {
+        let config = try loadPrecomputedConfig()
+
+        EppoPrecomputedClient.resetForTesting()
+        _ = EppoPrecomputedClient.initializeOffline(
+            sdkKey: "test-key",
+            initialPrecomputedConfiguration: config
+        )
+
+        let client = try EppoPrecomputedClient.shared()
+
+        // "string-flag-with-extra-logging" has a bandit in precomputed-v1.json
+        let result = client.getBanditAction(flagKey: "string-flag-with-extra-logging", defaultValue: "default")
+
+        XCTAssertEqual(result.variation, "content-recommendation")
+        XCTAssertEqual(result.action, "featured_content")
+    }
+
+    func testBanditActionForNonBanditFlagSharedTestData() throws {
+        let config = try loadPrecomputedConfig()
+
+        EppoPrecomputedClient.resetForTesting()
+        _ = EppoPrecomputedClient.initializeOffline(
+            sdkKey: "test-key",
+            initialPrecomputedConfiguration: config
+        )
+
+        let client = try EppoPrecomputedClient.shared()
+
+        // "not-a-bandit-flag" has no bandit, should fall back to flag assignment
+        let result = client.getBanditAction(flagKey: "not-a-bandit-flag", defaultValue: "default")
+
+        XCTAssertEqual(result.variation, "control")
+        XCTAssertNil(result.action)
+    }
+
     // MARK: - Helper Methods
 
     private func loadPrecomputedConfig() throws -> PrecomputedConfiguration {
