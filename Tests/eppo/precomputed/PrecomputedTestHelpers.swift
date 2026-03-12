@@ -13,6 +13,7 @@ func createTestFlag(
     let encodedAllocationKey = allocationKey.map { base64Encode($0) }
     let encodedVariationKey = variationKey.map { base64Encode($0) }
 
+    // All variation values are base64-encoded strings in the wire format
     let encodedVariationValue: EppoValue
     switch variationType {
     case .string, .json:
@@ -23,25 +24,27 @@ func createTestFlag(
         }
     case .boolean:
         if let boolValue = variationValue as? Bool {
-            encodedVariationValue = EppoValue(value: boolValue)
+            encodedVariationValue = EppoValue(value: base64Encode(boolValue ? "true" : "false"))
         } else if let stringValue = variationValue as? String {
+            // Allow passing raw string for edge case testing (e.g., "not a boolean")
             encodedVariationValue = EppoValue(value: base64Encode(stringValue))
         } else {
             fatalError("BOOLEAN variation values must be Bool or String type")
         }
     case .integer:
         if let doubleValue = variationValue as? Double {
-            encodedVariationValue = EppoValue(value: doubleValue)
+            let intValue = Int(doubleValue)
+            encodedVariationValue = EppoValue(value: base64Encode(String(intValue)))
         } else if let intValue = variationValue as? Int {
-            encodedVariationValue = EppoValue(value: intValue)
+            encodedVariationValue = EppoValue(value: base64Encode(String(intValue)))
         } else {
             fatalError("INTEGER variation values must be Double or Int type")
         }
     case .numeric:
         if let doubleValue = variationValue as? Double {
-            encodedVariationValue = EppoValue(value: doubleValue)
+            encodedVariationValue = EppoValue(value: base64Encode(String(doubleValue)))
         } else if let intValue = variationValue as? Int {
-            encodedVariationValue = EppoValue(value: intValue)
+            encodedVariationValue = EppoValue(value: base64Encode(String(intValue)))
         } else {
             fatalError("NUMERIC variation values must be Double or Int type")
         }

@@ -94,6 +94,8 @@ class PrecomputedConfigurationTests: XCTestCase {
 
     func testPublicStringAPIWithComplexFlags() throws {
         // Test public String API with multiple flags and complex scenarios
+        // Note: All variation values in wire format are base64-encoded strings
+        // "dHJ1ZQ==" is base64 for "true"
         let wireFormatJSON = """
         {
             "version": 1,
@@ -104,7 +106,7 @@ class PrecomputedConfigurationTests: XCTestCase {
                     "numericAttributes": {}
                 },
                 "fetchedAt": "2024-11-18T14:23:25.123Z",
-                "response": "{\\"createdAt\\":\\"2024-11-18T14:23:25.123Z\\",\\"format\\":\\"PRECOMPUTED\\",\\"salt\\":\\"c29kaXVtY2hsb3JpZGU=\\",\\"obfuscated\\":true,\\"environment\\":{\\"name\\":\\"Test\\"},\\"flags\\":{\\"string-flag\\":{\\"allocationKey\\":\\"YWxsb2NhdGlvbi0xMjM=\\",\\"variationKey\\":\\"dmFyaWF0aW9uLTEyMw==\\",\\"variationType\\":\\"STRING\\",\\"variationValue\\":\\"cmVk\\",\\"extraLogging\\":{},\\"doLog\\":true},\\"boolean-flag\\":{\\"allocationKey\\":\\"YWxsb2NhdGlvbi0xMjQ=\\",\\"variationKey\\":\\"dmFyaWF0aW9uLTEyNA==\\",\\"variationType\\":\\"BOOLEAN\\",\\"variationValue\\":true,\\"extraLogging\\":{\\"aG9sZG91dEtleQ==\\":\\"ZmVhdHVyZS1yb2xsb3V0\\",\\"aG9sZG91dFZhcmlhdGlvbg==\\":\\"YWxsX3NoaXBwZWQ=\\"},\\"doLog\\":false}}}"
+                "response": "{\\"createdAt\\":\\"2024-11-18T14:23:25.123Z\\",\\"format\\":\\"PRECOMPUTED\\",\\"salt\\":\\"c29kaXVtY2hsb3JpZGU=\\",\\"obfuscated\\":true,\\"environment\\":{\\"name\\":\\"Test\\"},\\"flags\\":{\\"string-flag\\":{\\"allocationKey\\":\\"YWxsb2NhdGlvbi0xMjM=\\",\\"variationKey\\":\\"dmFyaWF0aW9uLTEyMw==\\",\\"variationType\\":\\"STRING\\",\\"variationValue\\":\\"cmVk\\",\\"extraLogging\\":{},\\"doLog\\":true},\\"boolean-flag\\":{\\"allocationKey\\":\\"YWxsb2NhdGlvbi0xMjQ=\\",\\"variationKey\\":\\"dmFyaWF0aW9uLTEyNA==\\",\\"variationType\\":\\"BOOLEAN\\",\\"variationValue\\":\\"dHJ1ZQ==\\",\\"extraLogging\\":{\\"aG9sZG91dEtleQ==\\":\\"ZmVhdHVyZS1yb2xsb3V0\\",\\"aG9sZG91dFZhcmlhdGlvbg==\\":\\"YWxsX3NoaXBwZWQ=\\"},\\"doLog\\":false}}}"
             }
         }
         """
@@ -126,7 +128,8 @@ class PrecomputedConfigurationTests: XCTestCase {
         let boolFlag = config.flags["boolean-flag"]
         XCTAssertNotNil(boolFlag)
         XCTAssertEqual(boolFlag?.variationType, .boolean)
-        XCTAssertEqual(try boolFlag?.variationValue.getBoolValue(), true)
+        // Raw value is base64-encoded string "dHJ1ZQ==" before decoding
+        XCTAssertEqual(try boolFlag?.variationValue.getStringValue(), "dHJ1ZQ==")
         XCTAssertFalse(boolFlag?.doLog ?? true)
     }
 

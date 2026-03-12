@@ -235,17 +235,12 @@ extension PrecomputedConfiguration {
         }
 
         let decodedVariationValue: EppoValue
-        if flag.variationType == .string || flag.variationType == .json {
-            do {
-                let encodedString = try flag.variationValue.getStringValue()
-                let decodedString = try base64DecodeOrThrow(encodedString)
-                decodedVariationValue = EppoValue(value: decodedString)
-            } catch {
-                print("Warning: Failed to decode variationValue, skipping flag - error: \(error.localizedDescription)")
-                return nil
-            }
-        } else {
-            decodedVariationValue = flag.variationValue
+        do {
+            let encodedString = try flag.variationValue.getStringValue()
+            decodedVariationValue = try decodeVariationValue(encodedString: encodedString, variationType: flag.variationType)
+        } catch {
+            print("Warning: Failed to decode variationValue, skipping flag - error: \(error.localizedDescription)")
+            return nil
         }
 
         var decodedExtraLogging: [String: String] = [:]
